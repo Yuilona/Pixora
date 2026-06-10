@@ -39,6 +39,9 @@ jobs:
         with:
           version: '6.11.1'
           cache: true
+          # aqtinstall 3.3.0 不认识 Qt 6.11 Windows 仓库的按工具链分目录新布局,
+          # 暂用已本地验证的 master commit;aqtinstall >3.3.0 发布后删除此行
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@8d961e61720b3c06583517fbc68d57ec0a4e9f95'
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
