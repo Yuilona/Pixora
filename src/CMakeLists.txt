@@ -2,16 +2,29 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     main.cpp
     common/Log.h
     common/Log.cpp
+    app/CaptureService.h
+    app/CaptureService.cpp
     app/HotkeyService.h
     app/HotkeyService.cpp
+    app/OutputService.h
+    app/OutputService.cpp
     app/SettingsService.h
     app/SettingsService.cpp
     app/SingleInstanceGuard.h
     app/SingleInstanceGuard.cpp
     app/TrayService.h
     app/TrayService.cpp
+    core/capture/DesktopSnapshot.h
+    core/capture/DesktopSnapshot.cpp
+    core/capture/SnipSession.h
+    core/capture/SnipSession.cpp
+    ui/overlay/OverlayWindow.h
+    ui/overlay/OverlayWindow.cpp
     platform/interface/GlobalHotkey.h
     platform/interface/PlatformFactory.h
+    platform/interface/ScreenCapturer.h
+    platform/shared/QtScreenCapturer.h
+    platform/shared/QtScreenCapturer.cpp
 )
 
 if(WIN32)

@@ -3,8 +3,11 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(pixora_tests
     unit/smoke_test.cpp
     unit/settings_test.cpp
+    unit/desktop_snapshot_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.h
+    ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.cpp
 )
 
 target_include_directories(pixora_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)

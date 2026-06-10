@@ -16,6 +16,9 @@ public:
     void show();
     void notify(const QString& title, const QString& message);
 
+signals:
+    void captureRequested();
+
 private:
     QSystemTrayIcon tray_;
     QMenu menu_;

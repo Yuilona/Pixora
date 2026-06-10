@@ -13,6 +13,8 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
         QStringLiteral("Pixora %1 (M0)").arg(QApplication::applicationVersion()));
     title->setEnabled(false);
     menu_.addSeparator();
+    menu_.addAction(QStringLiteral("截图\tF1"), this, [this] { emit captureRequested(); });
+    menu_.addSeparator();
     menu_.addAction(QStringLiteral("退出"), [] { QCoreApplication::quit(); });
 
     // M0 暂用系统标准图标,正式图标随 resources/ 在后续里程碑加入。

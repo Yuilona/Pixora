@@ -1,9 +1,11 @@
+#include "app/CaptureService.h"
 #include "app/HotkeyService.h"
 #include "app/SettingsService.h"
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
 #include "common/Log.h"
 #include "platform/interface/PlatformFactory.h"
+#include "platform/interface/ScreenCapturer.h"
 
 #include <QApplication>
 
@@ -34,14 +36,27 @@ int main(int argc, char* argv[]) {
     pixora::TrayService tray;
     tray.show();
 
+    const auto screenCapturer = pixora::createScreenCapturer();
+    pixora::CaptureService capture(*screenCapturer);
+    QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
+        tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图已复制到剪贴板"));
+    });
+    QObject::connect(&capture, &pixora::CaptureService::savedToFile, &tray,
+                     [&tray](const QString& path) {
+                         tray.notify(QStringLiteral("Pixora"),
+                                     QStringLiteral("截图已保存:%1").arg(path));
+                     });
+    QObject::connect(&tray, &pixora::TrayService::captureRequested, &capture,
+                     [&capture] { capture.start(); });
+
     const auto hotkeyBackend = pixora::createGlobalHotkey();
     pixora::HotkeyService hotkeys(settings, hotkeyBackend.get());
 
-    // M0:热键只回托盘通知验证链路;M1 起接入真正的截图会话。
-    QObject::connect(&hotkeys, &pixora::HotkeyService::captureRequested, &tray, [&tray] {
-        spdlog::info("hotkey: capture requested");
-        tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图热键已触发(M1 实现截图)"));
-    });
+    QObject::connect(&hotkeys, &pixora::HotkeyService::captureRequested, &capture,
+                     [&capture] {
+                         spdlog::info("hotkey: capture requested");
+                         capture.start();
+                     });
     QObject::connect(&hotkeys, &pixora::HotkeyService::scrollCaptureRequested, &tray, [&tray] {
         spdlog::info("hotkey: scroll capture requested");
         tray.notify(QStringLiteral("Pixora"), QStringLiteral("长截图热键已触发(M3 实现长截图)"));
