@@ -2,9 +2,20 @@ find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(pixora_tests
     unit/smoke_test.cpp
+    unit/settings_test.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
+    ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
 )
 
-target_link_libraries(pixora_tests PRIVATE Catch2::Catch2WithMain)
+target_include_directories(pixora_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+target_link_libraries(pixora_tests PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Gui
+)
 
 include(Catch)
-catch_discover_tests(pixora_tests)
+# DL_PATHS: Windows 上测试枚举/运行时需能找到 Qt DLL(Qt 不在系统 PATH)
+catch_discover_tests(pixora_tests
+    DL_PATHS "$<TARGET_FILE_DIR:Qt6::Core>"
+)

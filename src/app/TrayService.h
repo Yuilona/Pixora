@@ -14,6 +14,7 @@ public:
     explicit TrayService(QObject* parent = nullptr);
 
     void show();
+    void notify(const QString& title, const QString& message);
 
 private:
     QSystemTrayIcon tray_;

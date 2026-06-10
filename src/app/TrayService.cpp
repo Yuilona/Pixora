@@ -21,6 +21,10 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     tray_.setContextMenu(&menu_);
 }
 
+void TrayService::notify(const QString& title, const QString& message) {
+    tray_.showMessage(title, message, QSystemTrayIcon::Information, 3000);
+}
+
 void TrayService::show() {
     if (!QSystemTrayIcon::isSystemTrayAvailable()) {
         spdlog::error("system tray is not available on this desktop environment");
