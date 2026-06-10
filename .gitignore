@@ -1,0 +1,36 @@
+# 构建产物
+build/
+out/
+cmake-build-*/
+
+# vcpkg
+vcpkg_installed/
+
+# CMake 用户本地配置（CMakePresets.json 会提交，UserPresets 不提交）
+CMakeUserPresets.json
+
+# IDE / 编辑器
+.vs/
+.vscode/
+.idea/
+*.user            # Qt Creator 项目本地配置 (CMakeLists.txt.user)
+*.autosave
+
+# Qt 生成物
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qm
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 日志与临时文件
+*.log
+*.tmp
+
+# Python 原型 (prototype/)
+__pycache__/
+.venv/
+*.pyc
