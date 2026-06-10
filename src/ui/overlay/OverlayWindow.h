@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/overlay/SelectionHandles.h"
+
 #include <QImage>
 #include <QPoint>
 #include <QRect>
@@ -11,8 +13,11 @@ class SnipSession;
 struct ScreenSnap;
 
 // 单屏遮罩窗:全屏显示冻结画面 + 暗化遮罩 + 选区交互。
-// 每个屏幕一个实例,规避跨 DPI 渲染缩放问题;选区状态(全局逻辑坐标)
-// 统一存于 SnipSession,本窗只做显示与输入转发(见 ARCHITECTURE §5.1)。
+// 每个屏幕一个实例,规避跨 DPI 渲染缩放问题;选区/悬停状态(全局逻辑
+// 坐标)统一存于 SnipSession,本窗只做显示与输入转发(见 ARCHITECTURE §5.1)。
+//
+// 交互:悬停自动吸附窗口 → 单击吸附为选区 / 拖拽自由选区 →
+// 手柄缩放、内部拖动平移 → Enter/双击复制, Ctrl+S 另存, Esc 取消。
 class OverlayWindow : public QWidget {
     Q_OBJECT
 public:
@@ -27,12 +32,25 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
 
 private:
-    QRect selectionLocal() const; // 会话全局选区 → 本窗局部坐标
+    enum class Mode { Idle, Creating, Moving, Resizing };
+
+    QRect selectionLocal() const;
+    QRect toLocal(const QRect& globalRect) const;
+    bool magnifierVisible() const;
 
     SnipSession& session_;
     QImage frozen_;     // 含 DPR 标记,按逻辑尺寸绘制
-    QPoint dragAnchorGlobal_;
-    bool dragging_ = false;
+    QImage physical_;   // DPR=1 裸图,放大镜取样用
+    qreal dpr_ = 1.0;
+
+    Mode mode_ = Mode::Idle;
+    SelectionHandles::Hit activeHandle_ = SelectionHandles::Hit::None;
+    QPoint pressGlobal_;
+    QPoint grabOffset_;
+    QRect baseSelection_;
+    bool moved_ = false;
+    QPoint cursorLocal_;
+    bool hasCursor_ = false;
 };
 
 } // namespace pixora

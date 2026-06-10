@@ -4,10 +4,16 @@ add_executable(pixora_tests
     unit/smoke_test.cpp
     unit/settings_test.cpp
     unit/desktop_snapshot_test.cpp
+    unit/selection_handles_test.cpp
+    unit/snip_session_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
     ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.h
     ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/capture/SnipSession.h
+    ${CMAKE_SOURCE_DIR}/src/core/capture/SnipSession.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/overlay/SelectionHandles.h
+    ${CMAKE_SOURCE_DIR}/src/ui/overlay/SelectionHandles.cpp
 )
 
 target_include_directories(pixora_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)

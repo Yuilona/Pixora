@@ -6,6 +6,7 @@
 #include "common/Log.h"
 #include "platform/interface/PlatformFactory.h"
 #include "platform/interface/ScreenCapturer.h"
+#include "platform/interface/WindowEnumerator.h"
 
 #include <QApplication>
 
@@ -37,7 +38,8 @@ int main(int argc, char* argv[]) {
     tray.show();
 
     const auto screenCapturer = pixora::createScreenCapturer();
-    pixora::CaptureService capture(*screenCapturer);
+    const auto windowEnumerator = pixora::createWindowEnumerator();
+    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get());
     QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
         tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图已复制到剪贴板"));
     });

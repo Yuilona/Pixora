@@ -3,6 +3,7 @@
 #include "core/capture/DesktopSnapshot.h"
 #include "core/capture/SnipSession.h"
 #include "platform/interface/ScreenCapturer.h"
+#include "platform/interface/WindowEnumerator.h"
 #include "ui/overlay/OverlayWindow.h"
 
 #include <QElapsedTimer>
@@ -13,8 +14,9 @@
 
 namespace pixora {
 
-CaptureService::CaptureService(IScreenCapturer& capturer, QObject* parent)
-    : QObject(parent), capturer_(capturer) {}
+CaptureService::CaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
+                               QObject* parent)
+    : QObject(parent), capturer_(capturer), enumerator_(enumerator) {}
 
 CaptureService::~CaptureService() {
     teardown();
@@ -36,6 +38,12 @@ void CaptureService::start() {
     session_ = std::make_unique<SnipSession>(DesktopSnapshot(std::move(snaps)));
     spdlog::info("snip session started: {} screen(s) frozen in {} ms",
                  session_->snapshot().screens().size(), timer.elapsed());
+
+    if (enumerator_) {
+        auto candidates = enumerator_->topLevelWindows();
+        spdlog::debug("window snap candidates: {}", candidates.size());
+        session_->setWindowCandidates(std::move(candidates));
+    }
 
     connect(session_.get(), &SnipSession::confirmed, this, [this](const QRect& region) {
         const QImage image = session_->snapshot().copyRegionLogical(region);

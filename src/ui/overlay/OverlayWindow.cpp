@@ -1,96 +1,185 @@
 #include "ui/overlay/OverlayWindow.h"
 
 #include "core/capture/SnipSession.h"
+#include "ui/overlay/Magnifier.h"
 
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+
+#include <algorithm>
 
 namespace pixora {
 
 namespace {
 const QColor kMaskColor(0, 0, 0, 120);
 const QColor kBorderColor(45, 124, 246); // Snipaste 风格蓝
+constexpr int kDragThreshold = 4;        // 区分"点击吸附"与"拖拽选区"
 } // namespace
 
 OverlayWindow::OverlayWindow(const ScreenSnap& snap, SnipSession& session)
-    : session_(session), frozen_(snap.image) {
+    : session_(session), frozen_(snap.image), physical_(snap.image), dpr_(snap.dpr) {
     frozen_.setDevicePixelRatio(snap.dpr);
 
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_DeleteOnClose);
     setGeometry(snap.geometryLogical);
     setCursor(Qt::CrossCursor);
+    setMouseTracking(true);
 
     connect(&session_, &SnipSession::selectionChanged, this,
             qOverload<>(&QWidget::update));
+    connect(&session_, &SnipSession::hoverChanged, this, qOverload<>(&QWidget::update));
+}
+
+QRect OverlayWindow::toLocal(const QRect& globalRect) const {
+    return globalRect.translated(-geometry().topLeft()) & rect();
 }
 
 QRect OverlayWindow::selectionLocal() const {
-    if (!session_.hasSelection()) {
-        return {};
+    return session_.hasSelection() ? toLocal(session_.selection()) : QRect();
+}
+
+bool OverlayWindow::magnifierVisible() const {
+    if (!hasCursor_) {
+        return false;
     }
-    return session_.selection().translated(-geometry().topLeft()) & rect();
+    return !session_.hasSelection() || mode_ == Mode::Creating || mode_ == Mode::Resizing;
 }
 
 void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
     QPainter painter(this);
     painter.drawImage(0, 0, frozen_);
 
-    // 选区外暗化
-    const QRect sel = selectionLocal();
+    // 高亮区:已有选区优先,否则为悬停吸附的窗口
+    const bool hasSelection = session_.hasSelection();
+    const QRect active = hasSelection ? selectionLocal() : toLocal(session_.hoverRect());
+
     QRegion dimmed(rect());
-    if (!sel.isEmpty()) {
-        dimmed -= sel;
+    if (!active.isEmpty()) {
+        dimmed -= active;
     }
     painter.setClipRegion(dimmed);
     painter.fillRect(rect(), kMaskColor);
     painter.setClipping(false);
 
-    if (sel.isEmpty()) {
-        return;
-    }
-    painter.setPen(QPen(kBorderColor, 2));
-    painter.drawRect(QRectF(sel).adjusted(0.5, 0.5, -0.5, -0.5));
+    if (!active.isEmpty()) {
+        painter.setPen(QPen(kBorderColor, 2));
+        painter.drawRect(QRectF(active).adjusted(0.5, 0.5, -0.5, -0.5));
 
-    // 尺寸标签(逻辑像素)
-    const QRect global = session_.selection();
-    const QString label = QStringLiteral("%1 × %2").arg(global.width()).arg(global.height());
-    QFont font = painter.font();
-    font.setPixelSize(12);
-    painter.setFont(font);
-    const QRect textRect = painter.fontMetrics().boundingRect(label).adjusted(-6, -3, 6, 3);
-    QPoint anchor(sel.left(), sel.top() - textRect.height() - 4);
-    if (anchor.y() < 0) {
-        anchor.setY(sel.top() + 4);
+        if (hasSelection && mode_ != Mode::Creating) {
+            SelectionHandles::paint(painter, active, kBorderColor);
+        }
+
+        // 尺寸标签(逻辑像素)
+        const QRect global = hasSelection ? session_.selection() : session_.hoverRect();
+        const QString label =
+            QStringLiteral("%1 × %2").arg(global.width()).arg(global.height());
+        QFont font = painter.font();
+        font.setPixelSize(12);
+        painter.setFont(font);
+        const QRect textRect =
+            painter.fontMetrics().boundingRect(label).adjusted(-6, -3, 6, 3);
+        QPoint anchor(active.left(), active.top() - textRect.height() - 4);
+        if (anchor.y() < 0) {
+            anchor.setY(active.top() + 4);
+        }
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(0, 0, 0, 180));
+        painter.drawRoundedRect(QRect(anchor, textRect.size()), 3, 3);
+        painter.setPen(Qt::white);
+        painter.drawText(QRect(anchor, textRect.size()), Qt::AlignCenter, label);
     }
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(0, 0, 0, 180));
-    painter.drawRoundedRect(QRect(anchor, textRect.size()), 3, 3);
-    painter.setPen(Qt::white);
-    painter.drawText(QRect(anchor, textRect.size()), Qt::AlignCenter, label);
+
+    if (magnifierVisible()) {
+        Magnifier::Context ctx;
+        ctx.physicalImage = &physical_;
+        ctx.dpr = dpr_;
+        ctx.cursorLocalLogical = cursorLocal_;
+        ctx.cursorGlobalLogical = cursorLocal_ + geometry().topLeft();
+        ctx.widgetSize = size();
+        Magnifier::draw(painter, ctx);
+    }
 }
 
 void OverlayWindow::mousePressEvent(QMouseEvent* event) {
     if (event->button() != Qt::LeftButton) {
         return;
     }
-    dragging_ = true;
-    dragAnchorGlobal_ = event->globalPosition().toPoint();
-    session_.setSelection(QRect(dragAnchorGlobal_, QSize()));
+    pressGlobal_ = event->globalPosition().toPoint();
+    moved_ = false;
+
+    if (session_.hasSelection()) {
+        const SelectionHandles::Hit hit =
+            SelectionHandles::hitTest(selectionLocal(), event->pos());
+        if (hit == SelectionHandles::Hit::Inside) {
+            mode_ = Mode::Moving;
+            baseSelection_ = session_.selection();
+            grabOffset_ = pressGlobal_ - baseSelection_.topLeft();
+            return;
+        }
+        if (hit != SelectionHandles::Hit::None) {
+            mode_ = Mode::Resizing;
+            activeHandle_ = hit;
+            baseSelection_ = session_.selection();
+            return;
+        }
+    }
+    mode_ = Mode::Creating;
 }
 
 void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
-    if (!dragging_) {
-        return;
+    cursorLocal_ = event->pos();
+    hasCursor_ = true;
+    const QPoint global = event->globalPosition().toPoint();
+
+    switch (mode_) {
+    case Mode::Creating:
+        if (!moved_ && (global - pressGlobal_).manhattanLength() > kDragThreshold) {
+            moved_ = true;
+        }
+        if (moved_) {
+            session_.setSelection(QRect(pressGlobal_, global));
+        }
+        break;
+    case Mode::Moving: {
+        moved_ = true;
+        const QRect bounds = session_.snapshot().virtualGeometryLogical();
+        QPoint topLeft = global - grabOffset_;
+        topLeft.setX(std::clamp(topLeft.x(), bounds.left(),
+                                bounds.right() - baseSelection_.width() + 1));
+        topLeft.setY(std::clamp(topLeft.y(), bounds.top(),
+                                bounds.bottom() - baseSelection_.height() + 1));
+        session_.setSelection(QRect(topLeft, baseSelection_.size()));
+        break;
     }
-    session_.setSelection(QRect(dragAnchorGlobal_, event->globalPosition().toPoint()));
+    case Mode::Resizing:
+        moved_ = true;
+        session_.setSelection(
+            SelectionHandles::resized(baseSelection_, activeHandle_, global - pressGlobal_));
+        break;
+    case Mode::Idle:
+        if (session_.hasSelection()) {
+            setCursor(SelectionHandles::cursorFor(
+                SelectionHandles::hitTest(selectionLocal(), event->pos())));
+        } else {
+            session_.updateHover(global);
+        }
+        break;
+    }
+    update();
 }
 
 void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        dragging_ = false;
+    if (event->button() != Qt::LeftButton) {
+        return;
     }
+    // 单击(未拖出阈值)且悬停命中窗口 → 吸附为选区
+    if (mode_ == Mode::Creating && !moved_ && !session_.hasSelection() &&
+        !session_.hoverRect().isEmpty()) {
+        session_.setSelection(session_.hoverRect());
+    }
+    mode_ = Mode::Idle;
 }
 
 void OverlayWindow::mouseDoubleClickEvent(QMouseEvent* event) {

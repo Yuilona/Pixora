@@ -1,9 +1,13 @@
 #pragma once
 
 #include "core/capture/DesktopSnapshot.h"
+#include "platform/interface/PlatformTypes.h"
 
 #include <QObject>
+#include <QPoint>
 #include <QRect>
+
+#include <vector>
 
 namespace pixora {
 
@@ -21,12 +25,18 @@ public:
     bool hasSelection() const;
     void setSelection(const QRect& rect);
 
+    // 窗口吸附:候选列表按 Z 序(最顶在前),悬停命中取首个包含点的窗口。
+    void setWindowCandidates(std::vector<WindowInfo> windows);
+    void updateHover(const QPoint& globalLogical);
+    QRect hoverRect() const { return hover_; }
+
     void confirm();     // 确认选区 → 复制输出
     void requestSave(); // 确认选区 → 另存输出
     void cancel();
 
 signals:
     void selectionChanged(const QRect& rect);
+    void hoverChanged(const QRect& rect);
     void confirmed(const QRect& rect);
     void saveRequested(const QRect& rect);
     void cancelled();
@@ -34,6 +44,8 @@ signals:
 private:
     DesktopSnapshot snapshot_;
     QRect selection_;
+    QRect hover_;
+    std::vector<WindowInfo> candidates_;
 };
 
 } // namespace pixora

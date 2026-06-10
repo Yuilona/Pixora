@@ -2,6 +2,7 @@
 
 #include "platform/shared/QtScreenCapturer.h"
 #include "platform/windows/WinGlobalHotkey.h"
+#include "platform/windows/WinWindowEnumerator.h"
 
 namespace pixora {
 
@@ -11,6 +12,10 @@ std::unique_ptr<IGlobalHotkey> createGlobalHotkey() {
 
 std::unique_ptr<IScreenCapturer> createScreenCapturer() {
     return std::make_unique<QtScreenCapturer>();
+}
+
+std::unique_ptr<IWindowEnumerator> createWindowEnumerator() {
+    return std::make_unique<WinWindowEnumerator>();
 }
 
 } // namespace pixora

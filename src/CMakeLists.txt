@@ -18,11 +18,17 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/capture/DesktopSnapshot.cpp
     core/capture/SnipSession.h
     core/capture/SnipSession.cpp
+    ui/overlay/Magnifier.h
+    ui/overlay/Magnifier.cpp
     ui/overlay/OverlayWindow.h
     ui/overlay/OverlayWindow.cpp
+    ui/overlay/SelectionHandles.h
+    ui/overlay/SelectionHandles.cpp
     platform/interface/GlobalHotkey.h
     platform/interface/PlatformFactory.h
+    platform/interface/PlatformTypes.h
     platform/interface/ScreenCapturer.h
+    platform/interface/WindowEnumerator.h
     platform/shared/QtScreenCapturer.h
     platform/shared/QtScreenCapturer.cpp
 )
@@ -31,6 +37,8 @@ if(WIN32)
     target_sources(pixora PRIVATE
         platform/windows/WinGlobalHotkey.h
         platform/windows/WinGlobalHotkey.cpp
+        platform/windows/WinWindowEnumerator.h
+        platform/windows/WinWindowEnumerator.cpp
         platform/windows/PlatformFactory.cpp
     )
 else()
@@ -50,5 +58,5 @@ target_link_libraries(pixora PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(pixora PRIVATE user32)
+    target_link_libraries(pixora PRIVATE user32 dwmapi)
 endif()
