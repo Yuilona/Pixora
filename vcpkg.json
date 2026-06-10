@@ -1,0 +1,9 @@
+{
+  "$comment": "opencv4[core,imgproc] 推迟到 M3 长截图拼接开发时加入,避免 M0 阶段 20-40 分钟的首次编译",
+  "name": "pixora",
+  "version": "0.1.0",
+  "dependencies": [
+    "spdlog",
+    "catch2"
+  ]
+}
