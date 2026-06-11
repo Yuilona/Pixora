@@ -34,17 +34,13 @@ public:
     void updateHover(const QPoint& globalLogical);
     QRect hoverRect() const { return hover_; }
 
-    // 出口与工具激活均可在"仅悬停高亮、尚未点击确认"状态下调用:
-    // 自动把悬停窗口提升为选区(免去多余的一次确认点击)。
     void confirm();       // 确认选区 → 复制输出
     void requestSave();   // 确认选区 → 另存输出
     void requestPin();    // 确认选区 → 贴图输出
     void requestScroll(); // 确认选区 → 转入长截图(滚动拼接)
     void cancel();
 
-    // UI 在一次拖拽交互(框选/吸附/调整)开始/结束时调用,
-    // 工具条据此隐藏/显示(避免拖拽过程中跟随乱跳)。
-    void notifyInteractionStarted();
+    // UI 在一次拖拽交互(框选/吸附/调整)结束时调用,工具条据此显示。
     void notifyInteractionFinished();
 
     // —— 标注(Annotating)——
@@ -71,7 +67,6 @@ public:
 signals:
     void selectionChanged(const QRect& rect);
     void hoverChanged(const QRect& rect);
-    void interactionStarted();
     void interactionFinished();
     void confirmed(const QRect& rect);
     void saveRequested(const QRect& rect);
@@ -82,8 +77,6 @@ signals:
     void annotationsChanged(); // 文档或进行中标注变化
 
 private:
-    void promoteHoverToSelection(); // 悬停高亮 → 正式选区(无选区时)
-
     DesktopSnapshot snapshot_;
     QRect selection_;
     QRect hover_;
