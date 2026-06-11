@@ -195,6 +195,99 @@ void SnipSession::deleteSelectedAnnotation() {
     document_.pushRemoveItem(index);
 }
 
+const AnnotationItem* SnipSession::selectedItem() const {
+    if (selectedAnnotation_ < 0 ||
+        selectedAnnotation_ >= static_cast<int>(document_.items().size())) {
+        return nullptr;
+    }
+    return document_.items()[static_cast<size_t>(selectedAnnotation_)].get();
+}
+
+bool SnipSession::selectedIsShape() const {
+    const AnnotationItem* item = selectedItem();
+    if (!item) {
+        return false;
+    }
+    switch (item->tool()) {
+    case AnnotationTool::Rect:
+    case AnnotationTool::Ellipse:
+    case AnnotationTool::Mosaic:
+    case AnnotationTool::Blur:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool SnipSession::selectedIsArrow() const {
+    const AnnotationItem* item = selectedItem();
+    return item && item->tool() == AnnotationTool::Arrow;
+}
+
+bool SnipSession::selectedIsText() const {
+    const AnnotationItem* item = selectedItem();
+    return item && item->tool() == AnnotationTool::Text;
+}
+
+void SnipSession::setSelectedShapeRect(const QRect& rect) {
+    if (!selectedIsShape()) {
+        return;
+    }
+    auto& shape = static_cast<ShapeItem&>(
+        *document_.items()[static_cast<size_t>(selectedAnnotation_)]);
+    if (shape.rect == rect) {
+        return;
+    }
+    shape.rect = rect;
+    emit annotationsChanged();
+}
+
+void SnipSession::setSelectedArrowEndpoints(const QPoint& from, const QPoint& to) {
+    if (!selectedIsArrow()) {
+        return;
+    }
+    auto& arrow = static_cast<ArrowItem&>(
+        *document_.items()[static_cast<size_t>(selectedAnnotation_)]);
+    if (arrow.from == from && arrow.to == to) {
+        return;
+    }
+    arrow.from = from;
+    arrow.to = to;
+    emit annotationsChanged();
+}
+
+void SnipSession::commitSelectedShapeRect(const QRect& oldRect) {
+    document_.pushSetShapeRect(selectedAnnotation_, oldRect);
+}
+
+void SnipSession::commitSelectedArrow(const QPoint& oldFrom, const QPoint& oldTo) {
+    document_.pushSetArrow(selectedAnnotation_, oldFrom, oldTo);
+}
+
+void SnipSession::chooseColor(const QColor& color) {
+    style_.color = color;
+    if (const AnnotationItem* item = selectedItem()) {
+        StrokeStyle patched = item->style(); // 只动颜色,保留条目自身粗细
+        patched.color = color;
+        document_.pushRestyleItem(selectedAnnotation_, patched);
+    }
+}
+
+void SnipSession::chooseWidth(int width) {
+    style_.width = width;
+    if (const AnnotationItem* item = selectedItem()) {
+        StrokeStyle patched = item->style(); // 只动粗细,保留条目自身颜色
+        patched.width = width;
+        document_.pushRestyleItem(selectedAnnotation_, patched);
+    }
+}
+
+void SnipSession::editSelectedText(const QString& text) {
+    if (selectedIsText()) {
+        document_.pushEditText(selectedAnnotation_, text);
+    }
+}
+
 void SnipSession::endAnnotation() {
     if (!pending_) {
         return;

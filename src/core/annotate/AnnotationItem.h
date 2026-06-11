@@ -22,6 +22,7 @@ public:
 
     AnnotationTool tool() const { return tool_; }
     const StrokeStyle& style() const { return style_; }
+    void setStyle(const StrokeStyle& style) { style_ = style; } // 仅经撤销命令调用
 
     virtual QRect bounds() const = 0;
     virtual void translate(const QPoint& delta) = 0;

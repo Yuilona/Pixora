@@ -35,12 +35,22 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    enum class Mode { Idle, Creating, Moving, Resizing, Drawing, DraggingItem };
+    enum class Mode {
+        Idle,
+        Creating,
+        Moving,
+        Resizing,
+        Drawing,
+        DraggingItem,
+        ResizingItem,    // 选中条目的手柄缩放(矩形/椭圆/马赛克/模糊)
+        DraggingArrowEnd // 选中箭头的端点拖拽
+    };
 
     QRect selectionLocal() const;
     QRect toLocal(const QRect& globalRect) const;
+    QRect selectedItemHandleRect() const; // 选中条目手柄区(本窗局部坐标)
     bool magnifierVisible() const;
-    void startTextEditing(const QPoint& globalPos);
+    void startTextEditing(const QPoint& globalPos, bool editExisting);
     void finishTextEditing(bool accept);
     void addBadge(const QPoint& globalPos);
 
@@ -59,8 +69,13 @@ private:
     bool hasCursor_ = false;
     QLineEdit* textEditor_ = nullptr;
     QPoint textPosGlobal_;
+    bool editingExistingText_ = false; // 双击文字条目的二次编辑
     QPoint lastDragGlobal_; // 条目拖动:上一移动点(增量)与累计位移
     QPoint itemDragTotal_;
+    QRect baseItemRect_;    // 条目缩放:按下时的基准几何
+    QPoint baseArrowFrom_;  // 箭头端点拖拽:按下时的两端
+    QPoint baseArrowTo_;
+    bool draggingArrowFrom_ = false;
 };
 
 } // namespace pixora

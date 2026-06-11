@@ -48,6 +48,15 @@ QRect OverlayWindow::selectionLocal() const {
     return session_.hasSelection() ? toLocal(session_.selection()) : QRect();
 }
 
+QRect OverlayWindow::selectedItemHandleRect() const {
+    const AnnotationItem* item = session_.selectedItem();
+    if (!item) {
+        return {};
+    }
+    // 与选中虚线框一致的外扩;不与 rect() 相交裁剪,保证手柄命中完整
+    return item->bounds().adjusted(-4, -4, 4, 4).translated(-geometry().topLeft());
+}
+
 bool OverlayWindow::magnifierVisible() const {
     if (!hasCursor_) {
         return false;
@@ -80,17 +89,22 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
         if (const AnnotationItem* pending = session_.pendingAnnotation()) {
             AnnotationRenderer::renderItem(painter, *pending, &session_.snapshot());
         }
-        // 选中条目:虚线高亮框
-        const int selIdx = session_.selectedAnnotation();
-        if (selIdx >= 0 && selIdx < static_cast<int>(session_.document().items().size())) {
-            const QRect b = session_.document()
-                                .items()[static_cast<size_t>(selIdx)]
-                                ->bounds()
-                                .adjusted(-4, -4, 4, 4);
+        // 选中条目:虚线高亮框 + 编辑抓手(形状八向手柄/箭头端点圆点)
+        if (const AnnotationItem* sel = session_.selectedItem()) {
+            const QRect b = sel->bounds().adjusted(-4, -4, 4, 4);
             QPen dash(Qt::white, 1, Qt::DashLine);
             painter.setPen(dash);
             painter.setBrush(Qt::NoBrush);
             painter.drawRect(b);
+            if (session_.selectedIsShape()) {
+                SelectionHandles::paint(painter, b, Qt::white);
+            } else if (session_.selectedIsArrow()) {
+                const auto* arrow = static_cast<const ArrowItem*>(sel);
+                painter.setPen(QPen(kBorderColor, 1));
+                painter.setBrush(Qt::white);
+                painter.drawEllipse(arrow->from, 4, 4);
+                painter.drawEllipse(arrow->to, 4, 4);
+            }
         }
         painter.restore();
     }
@@ -146,7 +160,7 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
         session_.selection().contains(pressGlobal_)) {
         switch (*session_.activeTool()) {
         case AnnotationTool::Text:
-            startTextEditing(pressGlobal_);
+            startTextEditing(pressGlobal_, /*editExisting=*/false);
             return;
         case AnnotationTool::Badge:
             addBadge(pressGlobal_);
@@ -162,6 +176,31 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
         const SelectionHandles::Hit hit =
             SelectionHandles::hitTest(selectionLocal(), event->pos());
         if (hit == SelectionHandles::Hit::Inside) {
+            // 已选中条目的编辑抓手优先:形状手柄缩放 / 箭头端点拖拽
+            if (session_.selectedIsShape()) {
+                const SelectionHandles::Hit itemHit =
+                    SelectionHandles::hitTest(selectedItemHandleRect(), event->pos());
+                if (itemHit != SelectionHandles::Hit::None &&
+                    itemHit != SelectionHandles::Hit::Inside) {
+                    mode_ = Mode::ResizingItem;
+                    activeHandle_ = itemHit;
+                    baseItemRect_ = session_.selectedItem()->bounds();
+                    return;
+                }
+            } else if (session_.selectedIsArrow()) {
+                const auto* arrow =
+                    static_cast<const ArrowItem*>(session_.selectedItem());
+                const bool nearFrom =
+                    (pressGlobal_ - arrow->from).manhattanLength() <= 8;
+                const bool nearTo = (pressGlobal_ - arrow->to).manhattanLength() <= 8;
+                if (nearFrom || nearTo) {
+                    mode_ = Mode::DraggingArrowEnd;
+                    draggingArrowFrom_ = nearFrom;
+                    baseArrowFrom_ = arrow->from;
+                    baseArrowTo_ = arrow->to;
+                    return;
+                }
+            }
             // 先尝试命中已有标注条目(顶层优先),否则移动选区
             if (session_.selectAnnotationAt(pressGlobal_)) {
                 mode_ = Mode::DraggingItem;
@@ -224,11 +263,38 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
         lastDragGlobal_ = global;
         break;
     }
+    case Mode::ResizingItem:
+        session_.setSelectedShapeRect(
+            SelectionHandles::resized(baseItemRect_, activeHandle_, global - pressGlobal_));
+        break;
+    case Mode::DraggingArrowEnd:
+        session_.setSelectedArrowEndpoints(draggingArrowFrom_ ? global : baseArrowFrom_,
+                                           draggingArrowFrom_ ? baseArrowTo_ : global);
+        break;
     case Mode::Idle:
         if (session_.hasSelection()) {
             if (!session_.activeTool()) {
-                setCursor(SelectionHandles::cursorFor(
-                    SelectionHandles::hitTest(selectionLocal(), event->pos())));
+                // 选中条目的抓手光标优先于选区手柄光标
+                SelectionHandles::Hit itemHit = SelectionHandles::Hit::None;
+                if (session_.selectedIsShape()) {
+                    itemHit =
+                        SelectionHandles::hitTest(selectedItemHandleRect(), event->pos());
+                } else if (session_.selectedIsArrow()) {
+                    const auto* arrow =
+                        static_cast<const ArrowItem*>(session_.selectedItem());
+                    if ((global - arrow->from).manhattanLength() <= 8 ||
+                        (global - arrow->to).manhattanLength() <= 8) {
+                        setCursor(Qt::SizeAllCursor);
+                        break;
+                    }
+                }
+                if (itemHit != SelectionHandles::Hit::None &&
+                    itemHit != SelectionHandles::Hit::Inside) {
+                    setCursor(SelectionHandles::cursorFor(itemHit));
+                } else {
+                    setCursor(SelectionHandles::cursorFor(
+                        SelectionHandles::hitTest(selectionLocal(), event->pos())));
+                }
             }
         } else {
             session_.updateHover(global);
@@ -252,6 +318,16 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
         mode_ = Mode::Idle;
         return;
     }
+    if (mode_ == Mode::ResizingItem) {
+        session_.commitSelectedShapeRect(baseItemRect_);
+        mode_ = Mode::Idle;
+        return;
+    }
+    if (mode_ == Mode::DraggingArrowEnd) {
+        session_.commitSelectedArrow(baseArrowFrom_, baseArrowTo_);
+        mode_ = Mode::Idle;
+        return;
+    }
     // 单击(未拖出阈值)且悬停命中窗口 → 吸附为选区
     if (mode_ == Mode::Creating && !moved_ && !session_.hasSelection() &&
         !session_.hoverRect().isEmpty()) {
@@ -262,27 +338,46 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void OverlayWindow::mouseDoubleClickEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton &&
-        session_.selection().contains(event->globalPosition().toPoint())) {
-        session_.confirm();
+    if (event->button() != Qt::LeftButton ||
+        !session_.selection().contains(event->globalPosition().toPoint())) {
+        return;
     }
+    // 双击文字条目 → 二次编辑;否则双击 = 复制确认
+    const QPoint global = event->globalPosition().toPoint();
+    if (!session_.activeTool() && session_.selectAnnotationAt(global) &&
+        session_.selectedIsText()) {
+        const auto* text = static_cast<const TextItem*>(session_.selectedItem());
+        startTextEditing(text->pos, /*editExisting=*/true);
+        return;
+    }
+    session_.confirm();
 }
 
-void OverlayWindow::startTextEditing(const QPoint& globalPos) {
+void OverlayWindow::startTextEditing(const QPoint& globalPos, bool editExisting) {
     finishTextEditing(true); // 已有未提交文本先落盘
 
+    // 二次编辑用条目自身样式,新建用当前默认样式
+    const StrokeStyle style = editExisting && session_.selectedItem()
+                                  ? session_.selectedItem()->style()
+                                  : session_.strokeStyle();
+    editingExistingText_ = editExisting;
     textPosGlobal_ = globalPos;
     textEditor_ = new QLineEdit(this);
     QFont font;
-    font.setPixelSize(textPixelSizeFor(session_.strokeStyle()));
+    font.setPixelSize(textPixelSizeFor(style));
     font.setBold(true);
     textEditor_->setFont(font);
     textEditor_->setStyleSheet(
         QStringLiteral("QLineEdit { background: rgba(0,0,0,140); color: %1;"
                        "  border: 1px dashed #AAA; padding: 1px 4px; }")
-            .arg(session_.strokeStyle().color.name()));
+            .arg(style.color.name()));
     textEditor_->setMinimumWidth(120);
     textEditor_->move(globalPos - geometry().topLeft() - QPoint(4, 4));
+    if (editExisting && session_.selectedIsText()) {
+        textEditor_->setText(
+            static_cast<const TextItem*>(session_.selectedItem())->text);
+        textEditor_->selectAll();
+    }
     textEditor_->installEventFilter(this);
     connect(textEditor_, &QLineEdit::returnPressed, this,
             [this] { finishTextEditing(true); });
@@ -296,10 +391,17 @@ void OverlayWindow::finishTextEditing(bool accept) {
     }
     QLineEdit* editor = textEditor_;
     textEditor_ = nullptr; // 先置空,防 focus 链路重入
+    const bool editExisting = editingExistingText_;
+    editingExistingText_ = false;
     const QString text = editor->text().trimmed();
     editor->deleteLater();
     setFocus();
-    if (accept && !text.isEmpty()) {
+    if (!accept || text.isEmpty()) {
+        return;
+    }
+    if (editExisting) {
+        session_.editSelectedText(text);
+    } else {
         session_.document().pushAddItem(std::make_unique<TextItem>(
             session_.strokeStyle(), textPosGlobal_, text));
     }

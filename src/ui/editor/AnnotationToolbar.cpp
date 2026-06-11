@@ -91,9 +91,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
             for (QToolButton* other : colorButtons_) {
                 other->setChecked(other == btn);
             }
-            StrokeStyle style = session_.strokeStyle();
-            style.color = color;
-            session_.setStrokeStyle(style);
+            session_.chooseColor(color); // 有选中条目时同时改它(可撤销)
         });
         layout->addWidget(btn);
         colorButtons_.push_back(btn);
@@ -102,9 +100,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     widthButton_ = addButton(QString::fromUtf8(kWidthNames[widthIndex_]), [this] {
         widthIndex_ = (widthIndex_ + 1) % static_cast<int>(kWidths.size());
         widthButton_->setText(QString::fromUtf8(kWidthNames[widthIndex_]));
-        StrokeStyle style = session_.strokeStyle();
-        style.width = kWidths[static_cast<size_t>(widthIndex_)];
-        session_.setStrokeStyle(style);
+        session_.chooseWidth(kWidths[static_cast<size_t>(widthIndex_)]);
     });
 
     QToolButton* undoBtn =

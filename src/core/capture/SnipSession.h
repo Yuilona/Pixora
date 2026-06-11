@@ -67,6 +67,22 @@ public:
     void commitSelectedAnnotationMove(const QPoint& totalDelta); // 松开后入撤销栈
     void deleteSelectedAnnotation();
 
+    // —— 选中条目的几何编辑(拖拽中实时写入,松开提交撤销栈)——
+    const AnnotationItem* selectedItem() const; // 未选中返回 nullptr
+    bool selectedIsShape() const;  // 矩形/椭圆/马赛克/模糊(可手柄缩放)
+    bool selectedIsArrow() const;
+    bool selectedIsText() const;
+    void setSelectedShapeRect(const QRect& rect);
+    void setSelectedArrowEndpoints(const QPoint& from, const QPoint& to);
+    void commitSelectedShapeRect(const QRect& oldRect);
+    void commitSelectedArrow(const QPoint& oldFrom, const QPoint& oldTo);
+
+    // —— 选中条目的样式/文字(点击即提交)——
+    // 有选中条目时同时改该条目(入撤销栈)与默认样式;否则只改默认样式
+    void chooseColor(const QColor& color);
+    void chooseWidth(int width);
+    void editSelectedText(const QString& text);
+
 signals:
     void selectionChanged(const QRect& rect);
     void hoverChanged(const QRect& rect);
