@@ -17,11 +17,10 @@ namespace pixora {
 
 namespace {
 
-// jpg/webp 用设置的质量;png 的 quality 语义是压缩级别,交给默认值
+// jpg 用设置的质量;png 的 quality 语义是压缩级别,交给默认值
 int qualityFor(const QString& path, const SettingsService* settings) {
     const QString ext = QFileInfo(path).suffix().toLower();
-    if (ext == QLatin1String("jpg") || ext == QLatin1String("jpeg") ||
-        ext == QLatin1String("webp")) {
+    if (ext == QLatin1String("jpg") || ext == QLatin1String("jpeg")) {
         return settings ? settings->outputQuality() : 90;
     }
     return -1;
@@ -52,8 +51,7 @@ QString OutputService::saveWithDialog(const QImage& image) {
     // 设置的格式排在过滤器首位 → 成为对话框默认格式
     const QString preferred = settings_ ? settings_->outputFormat() : QStringLiteral("png");
     QStringList filters = {QStringLiteral("PNG 图片 (*.png)"),
-                           QStringLiteral("JPEG 图片 (*.jpg)"),
-                           QStringLiteral("WebP 图片 (*.webp)")};
+                           QStringLiteral("JPEG 图片 (*.jpg)")};
     for (int i = 1; i < filters.size(); ++i) {
         if (filters[i].contains(QStringLiteral("*.%1").arg(preferred))) {
             filters.move(i, 0);

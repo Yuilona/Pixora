@@ -61,7 +61,6 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     formatCombo_ = new QComboBox(this);
     formatCombo_->addItem(QStringLiteral("PNG"), QStringLiteral("png"));
     formatCombo_->addItem(QStringLiteral("JPEG"), QStringLiteral("jpg"));
-    formatCombo_->addItem(QStringLiteral("WebP"), QStringLiteral("webp"));
     formatCombo_->setCurrentIndex(
         std::max(0, formatCombo_->findData(settings_.outputFormat())));
     qualitySpin_ = new QSpinBox(this);

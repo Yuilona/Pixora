@@ -79,10 +79,9 @@ void SettingsService::setFileNameTemplate(const QString& tmpl) {
 }
 
 QString SettingsService::outputFormat() const {
+    // 仅 png/jpg:本机 Qt 未装 qtimageformats 模块,WebP 编码不可用
     const QString fmt = value(keys::outputFormat, QStringLiteral("png")).toString();
-    return (fmt == QLatin1String("jpg") || fmt == QLatin1String("webp"))
-               ? fmt
-               : QStringLiteral("png");
+    return fmt == QLatin1String("jpg") ? fmt : QStringLiteral("png");
 }
 
 void SettingsService::setOutputFormat(const QString& format) {
