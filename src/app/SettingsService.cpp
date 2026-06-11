@@ -7,14 +7,12 @@ namespace pixora {
 namespace {
 namespace keys {
 const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
-const QString hotkeyScrollCapture = QStringLiteral("hotkeys/scrollCapture");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
 const QString outputDir = QStringLiteral("output/dir");
 } // namespace keys
 
-// 默认热键对标 Snipaste:F1 截图、F3 贴图;F2 为长截图。
+// 默认热键对标 Snipaste:F1 截图、F3 贴图;长截图走截图工具栏,无独立热键。
 const QString defaultCaptureRegion = QStringLiteral("F1");
-const QString defaultScrollCapture = QStringLiteral("F2");
 const QString defaultPinFromClipboard = QStringLiteral("F3");
 
 QKeySequence toKeySequence(const QVariant& v) {
@@ -35,20 +33,12 @@ QKeySequence SettingsService::hotkeyCaptureRegion() const {
     return toKeySequence(value(keys::hotkeyCaptureRegion, defaultCaptureRegion));
 }
 
-QKeySequence SettingsService::hotkeyScrollCapture() const {
-    return toKeySequence(value(keys::hotkeyScrollCapture, defaultScrollCapture));
-}
-
 QKeySequence SettingsService::hotkeyPinFromClipboard() const {
     return toKeySequence(value(keys::hotkeyPinFromClipboard, defaultPinFromClipboard));
 }
 
 void SettingsService::setHotkeyCaptureRegion(const QKeySequence& seq) {
     setValue(keys::hotkeyCaptureRegion, seq.toString(QKeySequence::PortableText));
-}
-
-void SettingsService::setHotkeyScrollCapture(const QKeySequence& seq) {
-    setValue(keys::hotkeyScrollCapture, seq.toString(QKeySequence::PortableText));
 }
 
 void SettingsService::setHotkeyPinFromClipboard(const QKeySequence& seq) {

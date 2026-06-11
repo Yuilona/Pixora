@@ -29,7 +29,6 @@ private:
     ISystemIntegration* system_;
 
     QKeySequenceEdit* captureEdit_ = nullptr;
-    QKeySequenceEdit* scrollEdit_ = nullptr;
     QKeySequenceEdit* pinEdit_ = nullptr;
     QLineEdit* outputDirEdit_ = nullptr;
     QCheckBox* autoStartCheck_ = nullptr;

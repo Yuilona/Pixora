@@ -69,14 +69,23 @@ int main(int argc, char* argv[]) {
     const auto hotkeyBackend = pixora::createGlobalHotkey();
     pixora::HotkeyService hotkeys(settings, hotkeyBackend.get());
 
+    const auto inputInjector = pixora::createInputInjector();
+    pixora::ScrollCaptureService scrollCapture(*screenCapturer, inputInjector.get(),
+                                               &settings);
+    // 截图热键身兼两职:平时发起截图;长截图拼接中等同点[复制]完成
     QObject::connect(&hotkeys, &pixora::HotkeyService::captureRequested, &capture,
-                     [&capture] {
+                     [&capture, &scrollCapture] {
                          spdlog::info("hotkey: capture requested");
+                         if (scrollCapture.isActive()) {
+                             scrollCapture.finish();
+                             return;
+                         }
                          capture.start();
                      });
-    const auto inputInjector = pixora::createInputInjector();
-    pixora::ScrollCaptureService scrollCapture(*screenCapturer, windowEnumerator.get(),
-                                               inputInjector.get(), &settings);
+    // 工具栏[长截图]:截图选区移交给滚动拼接
+    QObject::connect(&capture, &pixora::CaptureService::scrollCaptureRequested,
+                     &scrollCapture,
+                     [&scrollCapture](const QRect& region) { scrollCapture.start(region); });
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::copiedToClipboard,
                      &tray, [&tray](int height) {
                          tray.notify(QStringLiteral("Pixora"),
@@ -88,11 +97,6 @@ int main(int argc, char* argv[]) {
                      [&tray](const QString& path) {
                          tray.notify(QStringLiteral("Pixora"),
                                      QStringLiteral("长截图已保存:%1").arg(path));
-                     });
-    QObject::connect(&hotkeys, &pixora::HotkeyService::scrollCaptureRequested,
-                     &scrollCapture, [&scrollCapture] {
-                         spdlog::info("hotkey: scroll capture requested");
-                         scrollCapture.start();
                      });
     QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &pins,
                      [&pins, &tray] {

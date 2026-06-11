@@ -9,7 +9,7 @@ namespace pixora {
 
 TrayService::TrayService(QObject* parent) : QObject(parent) {
     auto* title = menu_.addAction(
-        QStringLiteral("Pixora %1 (M0)").arg(QApplication::applicationVersion()));
+        QStringLiteral("Pixora %1").arg(QApplication::applicationVersion()));
     title->setEnabled(false);
     menu_.addSeparator();
     menu_.addAction(QStringLiteral("截图\tF1"), this, [this] { emit captureRequested(); });

@@ -18,7 +18,7 @@ scroll_cases/
 ```powershell
 $env:PIXORA_RECORD_FRAMES = "D:\scroll-record"
 .\pixora.exe
-# F2 → 框选 → 滚动 → 完成;D:\scroll-record\case_<时间戳>\ 即为用例
+# F1 框选 → 工具栏[长截图] → 滚动 → 完成;D:\scroll-record\case_<时间戳>\ 即为用例
 ```
 
 人工确认 `expected.png` 拼接无误后,把整个目录改名拷入本目录提交。

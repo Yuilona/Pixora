@@ -6,9 +6,9 @@
 namespace pixora {
 
 // 全局热键动作标识。数值同时用作平台层注册 id(Windows: RegisterHotKey id)。
+// (id=2 曾是独立的长截图热键,已并入截图工具栏入口,保留空号)
 enum class HotkeyId {
     CaptureRegion = 1,
-    ScrollCapture = 2,
     PinFromClipboard = 3,
 };
 

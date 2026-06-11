@@ -25,10 +25,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     auto* form = new QFormLayout;
 
     captureEdit_ = new QKeySequenceEdit(settings_.hotkeyCaptureRegion(), this);
-    scrollEdit_ = new QKeySequenceEdit(settings_.hotkeyScrollCapture(), this);
     pinEdit_ = new QKeySequenceEdit(settings_.hotkeyPinFromClipboard(), this);
     form->addRow(QStringLiteral("截图热键"), captureEdit_);
-    form->addRow(QStringLiteral("长截图热键"), scrollEdit_);
     form->addRow(QStringLiteral("贴图热键"), pinEdit_);
 
     auto* dirRow = new QHBoxLayout;
@@ -73,9 +71,6 @@ void SettingsDialog::apply() {
     // 空热键保持原值(避免误清空导致功能不可达)
     if (!captureEdit_->keySequence().isEmpty()) {
         settings_.setHotkeyCaptureRegion(captureEdit_->keySequence());
-    }
-    if (!scrollEdit_->keySequence().isEmpty()) {
-        settings_.setHotkeyScrollCapture(scrollEdit_->keySequence());
     }
     if (!pinEdit_->keySequence().isEmpty()) {
         settings_.setHotkeyPinFromClipboard(pinEdit_->keySequence());

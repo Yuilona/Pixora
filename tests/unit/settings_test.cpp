@@ -14,7 +14,6 @@ TEST_CASE("settings defaults match Snipaste-style hotkeys", "[settings]") {
     SettingsService s(dir.filePath("test.ini"));
 
     CHECK(s.hotkeyCaptureRegion() == QKeySequence("F1"));
-    CHECK(s.hotkeyScrollCapture() == QKeySequence("F2"));
     CHECK(s.hotkeyPinFromClipboard() == QKeySequence("F3"));
 }
 

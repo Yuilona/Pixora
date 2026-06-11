@@ -34,9 +34,10 @@ public:
     void updateHover(const QPoint& globalLogical);
     QRect hoverRect() const { return hover_; }
 
-    void confirm();     // 确认选区 → 复制输出
-    void requestSave(); // 确认选区 → 另存输出
-    void requestPin();  // 确认选区 → 贴图输出
+    void confirm();       // 确认选区 → 复制输出
+    void requestSave();   // 确认选区 → 另存输出
+    void requestPin();    // 确认选区 → 贴图输出
+    void requestScroll(); // 确认选区 → 转入长截图(滚动拼接)
     void cancel();
 
     // UI 在一次拖拽交互(框选/吸附/调整)结束时调用,工具条据此显示。
@@ -70,6 +71,7 @@ signals:
     void confirmed(const QRect& rect);
     void saveRequested(const QRect& rect);
     void pinRequested(const QRect& rect);
+    void scrollRequested(const QRect& rect);
     void cancelled();
     void activeToolChanged();
     void annotationsChanged(); // 文档或进行中标注变化

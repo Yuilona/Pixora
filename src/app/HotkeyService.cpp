@@ -17,9 +17,6 @@ HotkeyService::HotkeyService(SettingsService& settings, IGlobalHotkey* backend,
         case HotkeyId::CaptureRegion:
             emit captureRequested();
             break;
-        case HotkeyId::ScrollCapture:
-            emit scrollCaptureRequested();
-            break;
         case HotkeyId::PinFromClipboard:
             emit pinRequested();
             break;
@@ -45,7 +42,6 @@ void HotkeyService::registerAll() {
         const char* name;
     } entries[] = {
         {HotkeyId::CaptureRegion, settings_.hotkeyCaptureRegion(), "capture"},
-        {HotkeyId::ScrollCapture, settings_.hotkeyScrollCapture(), "scroll-capture"},
         {HotkeyId::PinFromClipboard, settings_.hotkeyPinFromClipboard(), "pin"},
     };
     for (const auto& e : entries) {

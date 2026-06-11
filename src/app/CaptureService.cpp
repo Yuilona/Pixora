@@ -69,6 +69,11 @@ void CaptureService::start() {
                 teardown();
                 emit pinCaptured(image, topLeft); // 贴图出现在原选区位置
             });
+    connect(session_.get(), &SnipSession::scrollRequested, this,
+            [this](const QRect& region) {
+                teardown(); // 先拆遮罩,让目标窗口可滚动
+                emit scrollCaptureRequested(region);
+            });
     connect(session_.get(), &SnipSession::cancelled, this, [this] {
         spdlog::info("snip session cancelled");
         teardown();

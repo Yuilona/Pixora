@@ -118,6 +118,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     connect(&session_.document().undoStack(), &QUndoStack::canRedoChanged, redoBtn,
             &QToolButton::setEnabled);
 
+    addButton(QStringLiteral("长截图"), [this] { session_.requestScroll(); });
     addButton(QStringLiteral("贴图"), [this] { session_.requestPin(); });
     addButton(QStringLiteral("另存"), [this] { session_.requestSave(); });
     addButton(QStringLiteral("复制"), [this] { session_.confirm(); });

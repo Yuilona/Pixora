@@ -8,26 +8,20 @@
 #include <QRect>
 #include <QTimer>
 
-#include <memory>
-#include <vector>
-
 class QScreen;
 
 namespace pixora {
 
 class IInputInjector;
 class IScreenCapturer;
-class IWindowEnumerator;
-class OverlayWindow;
 class RegionIndicator;
 class ScrollCaptureBar;
 class SettingsService;
-class SnipSession;
 
 // 长截图编排(见 ARCHITECTURE §5.3.1):
-// F2 → 复用遮罩选区确定目标区域(支持窗口吸附)→ 区域指示框 + 控制条
-// → ~15fps 抓帧喂给 Stitcher(无位移帧由拼接器丢弃)→ 完成后复制。
-// 再按一次 F2 等同点[完成]。
+// 选区来自截图工具栏的[长截图]按钮(CaptureService 拆遮罩后移交)→
+// 区域指示框 + 控制条 → ~15fps 抓帧喂给 Stitcher(无位移帧由拼接器
+// 丢弃)→ 完成后经所选出口输出。拼接中再按截图热键等同点[复制]。
 //
 // 手动模式(默认):用户自己滚动。
 // 自动模式(injector 可用时,控制条开关):注入滚轮 → 等待画面稳定 →
@@ -35,12 +29,13 @@ class SnipSession;
 class ScrollCaptureService : public QObject {
     Q_OBJECT
 public:
-    ScrollCaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
-                         IInputInjector* injector, const SettingsService* settings,
-                         QObject* parent = nullptr);
+    ScrollCaptureService(IScreenCapturer& capturer, IInputInjector* injector,
+                         const SettingsService* settings, QObject* parent = nullptr);
     ~ScrollCaptureService() override;
 
-    void start();
+    void start(const QRect& regionGlobal); // 全局逻辑坐标选区
+    bool isActive() const { return timer_.isActive(); }
+    void finish(); // 等同控制条[复制]
 
     enum class Outlet { Copy, Pin, Save };
 
@@ -50,24 +45,16 @@ signals:
     void savedToFile(const QString& path);
 
 private:
-    void beginScrollPhase(QRect regionGlobal);
     void tick();
     void tickAuto(const QImage& frame);
     void handleAppend(Stitcher::AppendResult result);
     void finishCapture(Outlet outlet = Outlet::Copy);
-    void teardownSelection();
     void teardownScroll();
 
     IScreenCapturer& capturer_;
-    IWindowEnumerator* enumerator_;
     IInputInjector* injector_;
     OutputService output_;
 
-    // 选区阶段
-    std::unique_ptr<SnipSession> session_;
-    std::vector<OverlayWindow*> overlays_;
-
-    // 滚动阶段
     QScreen* screen_ = nullptr;
     QRect regionGlobal_;
     Stitcher stitcher_;

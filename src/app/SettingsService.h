@@ -17,10 +17,8 @@ public:
     explicit SettingsService(const QString& iniPath = {}, QObject* parent = nullptr);
 
     QKeySequence hotkeyCaptureRegion() const;
-    QKeySequence hotkeyScrollCapture() const;
     QKeySequence hotkeyPinFromClipboard() const;
     void setHotkeyCaptureRegion(const QKeySequence& seq);
-    void setHotkeyScrollCapture(const QKeySequence& seq);
     void setHotkeyPinFromClipboard(const QKeySequence& seq);
 
     // 截图保存目录;空串表示使用系统图片目录

@@ -1,11 +1,7 @@
 #include "app/ScrollCaptureService.h"
 
-#include "core/capture/DesktopSnapshot.h"
-#include "core/capture/SnipSession.h"
 #include "platform/interface/InputInjector.h"
 #include "platform/interface/ScreenCapturer.h"
-#include "platform/interface/WindowEnumerator.h"
-#include "ui/overlay/OverlayWindow.h"
 #include "ui/scroll/RegionIndicator.h"
 #include "ui/scroll/ScrollCaptureBar.h"
 
@@ -36,62 +32,28 @@ int autoScrollDelta(int regionLogicalHeight) {
 } // namespace
 
 ScrollCaptureService::ScrollCaptureService(IScreenCapturer& capturer,
-                                           IWindowEnumerator* enumerator,
                                            IInputInjector* injector,
                                            const SettingsService* settings,
                                            QObject* parent)
-    : QObject(parent), capturer_(capturer), enumerator_(enumerator),
-      injector_(injector), output_(settings) {
+    : QObject(parent), capturer_(capturer), injector_(injector), output_(settings) {
     timer_.setInterval(kFrameIntervalMs);
     connect(&timer_, &QTimer::timeout, this, &ScrollCaptureService::tick);
 }
 
 ScrollCaptureService::~ScrollCaptureService() {
-    teardownSelection();
     teardownScroll();
 }
 
-void ScrollCaptureService::start() {
-    if (timer_.isActive()) {
-        finishCapture(); // 再按一次 F2 = 完成
-        return;
-    }
-    if (session_) {
-        return; // 选区阶段进行中
-    }
-
-    std::vector<ScreenSnap> snaps;
-    for (QScreen* screen : QGuiApplication::screens()) {
-        snaps.push_back(ScreenSnap{capturer_.grabScreen(screen), screen->geometry(),
-                                   screen->devicePixelRatio()});
-    }
-    session_ = std::make_unique<SnipSession>(DesktopSnapshot(std::move(snaps)));
-    if (enumerator_) {
-        session_->setWindowCandidates(enumerator_->topLevelWindows());
-    }
-    spdlog::info("scroll capture: selecting region");
-
-    connect(session_.get(), &SnipSession::confirmed, this, [this](const QRect& region) {
-        teardownSelection();
-        beginScrollPhase(region);
-    });
-    connect(session_.get(), &SnipSession::cancelled, this, [this] {
-        spdlog::info("scroll capture cancelled at selection phase");
-        teardownSelection();
-    });
-
-    for (const ScreenSnap& snap : session_->snapshot().screens()) {
-        auto* overlay = new OverlayWindow(snap, *session_);
-        overlays_.push_back(overlay);
-        overlay->show();
-    }
-    if (!overlays_.empty()) {
-        overlays_.front()->activateWindow();
-        overlays_.front()->raise();
+void ScrollCaptureService::finish() {
+    if (isActive()) {
+        finishCapture(Outlet::Copy);
     }
 }
 
-void ScrollCaptureService::beginScrollPhase(QRect regionGlobal) {
+void ScrollCaptureService::start(const QRect& regionGlobal) {
+    if (isActive()) {
+        return;
+    }
     screen_ = QGuiApplication::screenAt(regionGlobal.center());
     if (!screen_) {
         screen_ = QGuiApplication::primaryScreen();
@@ -322,17 +284,6 @@ void ScrollCaptureService::finishCapture(Outlet outlet) {
         }
         break;
     }
-    }
-}
-
-void ScrollCaptureService::teardownSelection() {
-    for (OverlayWindow* overlay : overlays_) {
-        overlay->close();
-    }
-    overlays_.clear();
-    if (session_) {
-        session_->disconnect(this);
-        session_.release()->deleteLater();
     }
 }
 

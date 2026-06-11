@@ -3,6 +3,7 @@
 #include "app/OutputService.h"
 
 #include <QObject>
+#include <QRect>
 #include <QString>
 
 #include <memory>
@@ -34,6 +35,8 @@ signals:
     void copiedToClipboard();
     void savedToFile(const QString& path);
     void pinCaptured(const QImage& image, const QPoint& topLeftLogical);
+    // 工具栏[长截图]:拆掉遮罩后把选区交给 ScrollCaptureService 接管
+    void scrollCaptureRequested(const QRect& regionGlobal);
 
 private:
     QImage renderResult(const QRect& region) const; // 截取 + 平铺标注

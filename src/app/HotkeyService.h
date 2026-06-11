@@ -21,7 +21,6 @@ public:
 
 signals:
     void captureRequested();
-    void scrollCaptureRequested();
     void pinRequested();
 
 private:

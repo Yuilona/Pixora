@@ -70,6 +70,12 @@ void SnipSession::requestPin() {
     }
 }
 
+void SnipSession::requestScroll() {
+    if (hasSelection()) {
+        emit scrollRequested(selection_);
+    }
+}
+
 void SnipSession::cancel() {
     emit cancelled();
 }
