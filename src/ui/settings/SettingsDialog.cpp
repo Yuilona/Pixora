@@ -4,15 +4,19 @@
 #include "platform/interface/SystemIntegration.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QKeySequenceEdit>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QStandardPaths>
+
+#include <algorithm>
 
 namespace pixora {
 
@@ -47,6 +51,38 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     dirRow->addWidget(outputDirEdit_, 1);
     dirRow->addWidget(browseBtn);
     form->addRow(QStringLiteral("保存目录"), dirRow);
+
+    fileTemplateEdit_ = new QLineEdit(settings_.fileNameTemplate(), this);
+    fileTemplateEdit_->setPlaceholderText(
+        QStringLiteral("Pixora_{yyyy}{MM}{dd}_{HH}{mm}{ss}"));
+    form->addRow(QStringLiteral("文件名模板"), fileTemplateEdit_);
+
+    auto* formatRow = new QHBoxLayout;
+    formatCombo_ = new QComboBox(this);
+    formatCombo_->addItem(QStringLiteral("PNG"), QStringLiteral("png"));
+    formatCombo_->addItem(QStringLiteral("JPEG"), QStringLiteral("jpg"));
+    formatCombo_->addItem(QStringLiteral("WebP"), QStringLiteral("webp"));
+    formatCombo_->setCurrentIndex(
+        std::max(0, formatCombo_->findData(settings_.outputFormat())));
+    qualitySpin_ = new QSpinBox(this);
+    qualitySpin_->setRange(10, 100);
+    qualitySpin_->setSuffix(QStringLiteral("%"));
+    qualitySpin_->setValue(settings_.outputQuality());
+    auto syncQualityEnabled = [this] {
+        // PNG 无损,质量项只对 jpg/webp 生效
+        qualitySpin_->setEnabled(formatCombo_->currentData().toString() !=
+                                 QLatin1String("png"));
+    };
+    connect(formatCombo_, &QComboBox::currentIndexChanged, this, syncQualityEnabled);
+    syncQualityEnabled();
+    formatRow->addWidget(formatCombo_, 1);
+    formatRow->addWidget(new QLabel(QStringLiteral("质量"), this));
+    formatRow->addWidget(qualitySpin_);
+    form->addRow(QStringLiteral("保存格式"), formatRow);
+
+    autoSaveCheck_ = new QCheckBox(QStringLiteral("复制时自动保存到保存目录"), this);
+    autoSaveCheck_->setChecked(settings_.autoSave());
+    form->addRow(QString(), autoSaveCheck_);
 
     historyLimitSpin_ = new QSpinBox(this);
     historyLimitSpin_->setRange(0, 100);
@@ -83,6 +119,10 @@ void SettingsDialog::apply() {
         settings_.setHotkeyPinFromClipboard(pinEdit_->keySequence());
     }
     settings_.setOutputDir(outputDirEdit_->text().trimmed());
+    settings_.setFileNameTemplate(fileTemplateEdit_->text().trimmed());
+    settings_.setOutputFormat(formatCombo_->currentData().toString());
+    settings_.setOutputQuality(qualitySpin_->value());
+    settings_.setAutoSave(autoSaveCheck_->isChecked());
     settings_.setHistoryLimit(historyLimitSpin_->value());
     if (system_) {
         system_->setAutoStart(autoStartCheck_->isChecked());

@@ -44,6 +44,10 @@ public:
     int resultHeight() const { return usedHeight_; }
     QImage result() const;
 
+    // 实时预览用:已拼内容的尾部 maxRows 行(物理像素)。
+    // 只拷贝尾部,避免长画布全量拷贝拖慢抓帧节奏。
+    QImage tail(int maxRows) const;
+
 private:
     void ensureCapacity(int neededHeight);
 

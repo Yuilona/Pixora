@@ -186,6 +186,14 @@ void Stitcher::ensureCapacity(int neededHeight) {
     canvas_ = std::move(bigger);
 }
 
+QImage Stitcher::tail(int maxRows) const {
+    if (!active() || maxRows <= 0) {
+        return {};
+    }
+    const int rows = std::min(maxRows, usedHeight_);
+    return canvas_.copy(0, usedHeight_ - rows, canvas_.width(), rows);
+}
+
 QImage Stitcher::result() const {
     if (!active()) {
         return {};

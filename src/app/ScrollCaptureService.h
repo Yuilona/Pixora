@@ -17,6 +17,7 @@ class IInputInjector;
 class IScreenCapturer;
 class RegionIndicator;
 class ScrollCaptureBar;
+class ScrollPreview;
 class SettingsService;
 
 // 长截图编排(见 ARCHITECTURE §5.3.1):
@@ -66,6 +67,9 @@ private:
     int frames_ = 0;
     RegionIndicator* indicator_ = nullptr;
     ScrollCaptureBar* bar_ = nullptr;
+    ScrollPreview* preview_ = nullptr; // 两侧放不下时为空
+    qint64 lastPreviewMs_ = 0;         // 预览节流(手动快滚时限频)
+    void updatePreview();
 
     // 录帧(回归样本采集):PIXORA_RECORD_FRAMES=目录 时,把每个
     // 喂给拼接器的帧和最终成图存盘,直接作为 tests/fixtures 用例

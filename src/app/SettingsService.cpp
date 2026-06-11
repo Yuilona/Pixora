@@ -2,6 +2,8 @@
 
 #include <QJsonValue>
 
+#include <algorithm>
+
 namespace pixora {
 
 namespace {
@@ -10,6 +12,10 @@ const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
 const QString outputDir = QStringLiteral("output/dir");
 const QString historyLimit = QStringLiteral("history/limit");
+const QString fileNameTemplate = QStringLiteral("output/fileTemplate");
+const QString outputFormat = QStringLiteral("output/format");
+const QString outputQuality = QStringLiteral("output/quality");
+const QString autoSave = QStringLiteral("output/autoSave");
 } // namespace keys
 
 // 默认热键对标 Snipaste:F1 截图、F3 贴图;长截图走截图工具栏,无独立热键。
@@ -60,6 +66,43 @@ int SettingsService::historyLimit() const {
 
 void SettingsService::setHistoryLimit(int count) {
     setValue(keys::historyLimit, count);
+}
+
+QString SettingsService::fileNameTemplate() const {
+    return value(keys::fileNameTemplate,
+                 QStringLiteral("Pixora_{yyyy}{MM}{dd}_{HH}{mm}{ss}"))
+        .toString();
+}
+
+void SettingsService::setFileNameTemplate(const QString& tmpl) {
+    setValue(keys::fileNameTemplate, tmpl);
+}
+
+QString SettingsService::outputFormat() const {
+    const QString fmt = value(keys::outputFormat, QStringLiteral("png")).toString();
+    return (fmt == QLatin1String("jpg") || fmt == QLatin1String("webp"))
+               ? fmt
+               : QStringLiteral("png");
+}
+
+void SettingsService::setOutputFormat(const QString& format) {
+    setValue(keys::outputFormat, format);
+}
+
+int SettingsService::outputQuality() const {
+    return std::clamp(value(keys::outputQuality, 90).toInt(), 1, 100);
+}
+
+void SettingsService::setOutputQuality(int quality) {
+    setValue(keys::outputQuality, quality);
+}
+
+bool SettingsService::autoSave() const {
+    return value(keys::autoSave, false).toBool();
+}
+
+void SettingsService::setAutoSave(bool enabled) {
+    setValue(keys::autoSave, enabled);
 }
 
 QJsonObject SettingsService::exportToJson() const {

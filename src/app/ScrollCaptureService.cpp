@@ -5,6 +5,7 @@
 #include "platform/interface/ScreenCapturer.h"
 #include "ui/scroll/RegionIndicator.h"
 #include "ui/scroll/ScrollCaptureBar.h"
+#include "ui/scroll/ScrollPreview.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -90,6 +91,14 @@ void ScrollCaptureService::start(const QRect& regionGlobal) {
 
     indicator_ = new RegionIndicator(regionGlobal_);
     indicator_->show();
+    // 实时预览条:区域两侧都放不下(如全宽窗口)则不显示
+    if (ScrollPreview::fitsBeside(regionGlobal_, screen_->virtualGeometry())) {
+        preview_ = new ScrollPreview(regionGlobal_, screen_->virtualGeometry());
+        preview_->show();
+    } else {
+        spdlog::info("scroll preview skipped: no room beside region");
+    }
+    lastPreviewMs_ = 0;
     bar_ = new ScrollCaptureBar(regionGlobal_, screen_->virtualGeometry(),
                                 injector_ != nullptr);
     connect(bar_, &ScrollCaptureBar::finishRequested, this,
@@ -135,6 +144,7 @@ void ScrollCaptureService::tick() {
         frames_ = 1;
         lastGrab_ = frame;
         recordFrame(frame);
+        updatePreview();
         bar_->setStatus(QStringLiteral("已捕获首帧,滚动目标窗口…"));
         if (autoMode_ && injector_) {
             injectStep();
@@ -158,6 +168,22 @@ void ScrollCaptureService::tick() {
     lastGrab_ = frame;
     recordFrame(frame);
     handleAppend(stitcher_.append(frame));
+}
+
+void ScrollCaptureService::updatePreview() {
+    if (!preview_) {
+        return;
+    }
+    // 节流:手动快速滚动时拼接可达 ~15次/秒,尾部拷贝+缩放别跟满
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - lastPreviewMs_ < 150) {
+        return;
+    }
+    lastPreviewMs_ = now;
+    const qreal dpr = screen_->devicePixelRatio();
+    const int canvasWidthPhysical = qRound(regionGlobal_.width() * dpr);
+    const QImage tail = stitcher_.tail(preview_->tailRowsFor(canvasWidthPhysical));
+    preview_->updateContent(tail, qRound(stitcher_.resultHeight() / dpr));
 }
 
 void ScrollCaptureService::recordFrame(const QImage& frame) {
@@ -212,6 +238,7 @@ void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
         ++frames_;
         noNewStreak_ = 0;
         failStreak_ = 0;
+        updatePreview();
         const int logicalHeight =
             qRound(stitcher_.resultHeight() / screen_->devicePixelRatio());
         bar_->setStatus(QStringLiteral("已拼接 %1 px(%2 帧)%3")
@@ -275,10 +302,15 @@ void ScrollCaptureService::finishCapture(Outlet outlet) {
     }
 
     switch (outlet) {
-    case Outlet::Copy:
+    case Outlet::Copy: {
         output_.copyToClipboard(result);
         emit copiedToClipboard(qRound(result.height() / dpr));
+        const QString autoSaved = output_.autoSave(result);
+        if (!autoSaved.isEmpty()) {
+            emit savedToFile(autoSaved);
+        }
         break;
+    }
     case Outlet::Pin:
         emit pinCaptured(result, regionTopLeft); // 贴在原捕获区位置
         break;
@@ -302,6 +334,11 @@ void ScrollCaptureService::teardownScroll() {
         bar_->close();
         bar_->deleteLater();
         bar_ = nullptr;
+    }
+    if (preview_) {
+        preview_->close();
+        preview_->deleteLater();
+        preview_ = nullptr;
     }
     lastGrab_ = {};
 }

@@ -16,10 +16,14 @@ public:
 
     void copyToClipboard(const QImage& image);
 
-    // 弹出另存对话框;返回保存路径,用户取消返回空串。
+    // 弹出另存对话框(默认格式跟随设置);返回保存路径,取消返回空串。
     QString saveWithDialog(const QImage& image);
 
-    // 默认目录(设置的保存目录,否则图片库),文件名含时间戳。
+    // 自动存盘开关开启时静默保存到保存目录(重名自动加序号),
+    // 返回保存路径;开关关闭返回空串。复制出口调用。
+    QString autoSave(const QImage& image);
+
+    // 默认目录(设置的保存目录,否则图片库)+ 模板展开的文件名。
     QString suggestedFileName() const;
 
 private:

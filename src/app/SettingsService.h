@@ -29,6 +29,20 @@ public:
     int historyLimit() const;
     void setHistoryLimit(int count);
 
+    // 文件名模板:{yyyy}{MM}{dd}{HH}{mm}{ss} 占位符(见 FileNameTemplate.h)
+    QString fileNameTemplate() const;
+    void setFileNameTemplate(const QString& tmpl);
+
+    // 保存格式 "png"/"jpg"/"webp" 与质量(jpg/webp 用,1-100)
+    QString outputFormat() const;
+    void setOutputFormat(const QString& format);
+    int outputQuality() const;
+    void setOutputQuality(int quality);
+
+    // 复制出口同时自动保存到保存目录
+    bool autoSave() const;
+    void setAutoSave(bool enabled);
+
     QJsonObject exportToJson() const;
     void importFromJson(const QJsonObject& json);
 

@@ -3,6 +3,7 @@
 #include <QDialog>
 
 class QCheckBox;
+class QComboBox;
 class QKeySequenceEdit;
 class QLineEdit;
 class QSpinBox;
@@ -32,6 +33,10 @@ private:
     QKeySequenceEdit* captureEdit_ = nullptr;
     QKeySequenceEdit* pinEdit_ = nullptr;
     QLineEdit* outputDirEdit_ = nullptr;
+    QLineEdit* fileTemplateEdit_ = nullptr;
+    QComboBox* formatCombo_ = nullptr;
+    QSpinBox* qualitySpin_ = nullptr;
+    QCheckBox* autoSaveCheck_ = nullptr;
     QSpinBox* historyLimitSpin_ = nullptr;
     QCheckBox* autoStartCheck_ = nullptr;
 };

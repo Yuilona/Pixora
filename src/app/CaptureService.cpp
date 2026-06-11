@@ -56,6 +56,10 @@ void CaptureService::start() {
         teardown();
         output_.copyToClipboard(image);
         emit copiedToClipboard();
+        const QString autoSaved = output_.autoSave(image);
+        if (!autoSaved.isEmpty()) {
+            emit savedToFile(autoSaved);
+        }
     });
     connect(session_.get(), &SnipSession::saveRequested, this,
             [this](const QRect& region) {

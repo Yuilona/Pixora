@@ -4,6 +4,7 @@ add_executable(pixora_tests
     unit/smoke_test.cpp
     unit/settings_test.cpp
     unit/history_test.cpp
+    unit/filename_template_test.cpp
     unit/desktop_snapshot_test.cpp
     unit/selection_handles_test.cpp
     unit/snip_session_test.cpp

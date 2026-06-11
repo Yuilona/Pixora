@@ -5,6 +5,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     common/Log.cpp
     app/CaptureService.h
     app/CaptureService.cpp
+    app/FileNameTemplate.h
     app/HistoryService.h
     app/HistoryService.cpp
     app/HotkeyService.h
@@ -47,6 +48,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/settings/SettingsDialog.cpp
     ui/scroll/ScrollCaptureBar.h
     ui/scroll/ScrollCaptureBar.cpp
+    ui/scroll/ScrollPreview.h
+    ui/scroll/ScrollPreview.cpp
     ui/overlay/Magnifier.h
     ui/overlay/Magnifier.cpp
     ui/overlay/OverlayWindow.h
