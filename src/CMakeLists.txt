@@ -59,6 +59,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
 
 if(WIN32)
     target_sources(pixora PRIVATE
+        platform/windows/WinCoordinates.h
+        platform/windows/WinCoordinates.cpp
         platform/windows/WinGlobalHotkey.h
         platform/windows/WinGlobalHotkey.cpp
         platform/windows/WinInputInjector.h
