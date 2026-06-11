@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QScreen>
+#include <QTimer>
 #include <QToolButton>
 #include <QToolTip>
 
@@ -43,11 +44,13 @@ constexpr std::array<ToolSpec, 9> kTools = {{
 const QColor kIconColor(0xDD, 0xDD, 0xDD);
 
 QIcon makeIcon(const std::function<void(QPainter&)>& draw) {
-    QPixmap pm(32, 32);
+    // 逻辑 20x20、2x 渲染;绘制代码仍用 16 单位坐标系,整体缩放适配
+    QPixmap pm(40, 40);
     pm.setDevicePixelRatio(2.0);
     pm.fill(Qt::transparent);
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing);
+    p.scale(20.0 / 16.0, 20.0 / 16.0);
     p.setPen(QPen(kIconColor, 1.6));
     p.setBrush(Qt::NoBrush);
     draw(p);
@@ -158,7 +161,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     setStyleSheet(QStringLiteral(
         "QWidget { background: #2B2B2B; }"
         "QToolButton { color: #DDD; background: transparent; border: none;"
-        "  padding: 4px 8px; font-size: 12px; }"
+        "  padding: 6px 10px; font-size: 13px; }"
         "QToolButton:hover { background: #3D3D3D; }"
         "QToolButton:checked { background: #1E88E5; color: white; }"));
 
@@ -179,7 +182,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     for (const ToolSpec& spec : kTools) {
         auto* btn = new QToolButton(this);
         btn->setIcon(toolIcon(spec.tool));
-        btn->setIconSize(QSize(16, 16));
+        btn->setIconSize(QSize(20, 20));
         btn->setToolTip(QString::fromUtf8(spec.label));
         btn->setCheckable(true);
         btn->installEventFilter(this); // 自管理悬浮提示
@@ -191,7 +194,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
 
     for (const QColor& color : kPalette) {
         auto* btn = new QToolButton(this);
-        btn->setFixedSize(20, 20);
+        btn->setFixedSize(24, 24);
         btn->setCheckable(true);
         btn->setChecked(color == session_.strokeStyle().color);
         btn->setStyleSheet(QStringLiteral("QToolButton { background: %1; border: 1px "
@@ -210,7 +213,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
 
     widthButton_ = new QToolButton(this);
     widthButton_->setIcon(widthIcon(kWidths[static_cast<size_t>(widthIndex_)]));
-    widthButton_->setIconSize(QSize(16, 16));
+    widthButton_->setIconSize(QSize(20, 20));
     widthButton_->installEventFilter(this);
     widthButton_->setToolTip(
         QStringLiteral("线条粗细:%1(点击切换)").arg(QString::fromUtf8(kWidthNames[widthIndex_])));
@@ -260,10 +263,16 @@ bool AnnotationToolbar::eventFilter(QObject* watched, QEvent* event) {
     switch (event->type()) {
     case QEvent::Enter:
         // 即时显示,不做延迟
-        QToolTip::showText(QCursor::pos() + QPoint(0, 14), btn->toolTip(), btn);
+        QToolTip::showText(QCursor::pos() + QPoint(0, 16), btn->toolTip(), btn);
+        break;
+    case QEvent::MouseButtonRelease:
+        // Qt 的提示标签在鼠标按下时会自动隐藏;松开后重新弹出
+        // (延后到事件处理完,粗细按钮的提示文本此时已是新档位)
+        QTimer::singleShot(0, btn, [btn] {
+            QToolTip::showText(QCursor::pos() + QPoint(0, 16), btn->toolTip(), btn);
+        });
         break;
     case QEvent::Leave:
-    case QEvent::MouseButtonPress:
         QToolTip::hideText();
         break;
     case QEvent::ToolTip:
