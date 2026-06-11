@@ -5,10 +5,12 @@
 #include "ui/overlay/Magnifier.h"
 
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QPainter>
 
 #include <algorithm>
+#include <memory>
 
 namespace pixora {
 
@@ -74,9 +76,9 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
         painter.save();
         painter.setClipRect(active);
         painter.translate(-geometry().topLeft());
-        AnnotationRenderer::render(painter, session_.document());
+        AnnotationRenderer::render(painter, session_.document(), &session_.snapshot());
         if (const AnnotationItem* pending = session_.pendingAnnotation()) {
-            AnnotationRenderer::renderItem(painter, *pending);
+            AnnotationRenderer::renderItem(painter, *pending, &session_.snapshot());
         }
         painter.restore();
     }
@@ -127,12 +129,21 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
     pressGlobal_ = event->globalPosition().toPoint();
     moved_ = false;
 
-    // 标注工具激活时,选区内按下 = 开始绘制
+    // 标注工具激活时,选区内按下:点击型工具直接落子,拖拽型进入绘制
     if (session_.hasSelection() && session_.activeTool() &&
         session_.selection().contains(pressGlobal_)) {
-        mode_ = Mode::Drawing;
-        session_.beginAnnotation(pressGlobal_);
-        return;
+        switch (*session_.activeTool()) {
+        case AnnotationTool::Text:
+            startTextEditing(pressGlobal_);
+            return;
+        case AnnotationTool::Badge:
+            addBadge(pressGlobal_);
+            return;
+        default:
+            mode_ = Mode::Drawing;
+            session_.beginAnnotation(pressGlobal_);
+            return;
+        }
     }
 
     if (session_.hasSelection()) {
@@ -224,6 +235,65 @@ void OverlayWindow::mouseDoubleClickEvent(QMouseEvent* event) {
         session_.selection().contains(event->globalPosition().toPoint())) {
         session_.confirm();
     }
+}
+
+void OverlayWindow::startTextEditing(const QPoint& globalPos) {
+    finishTextEditing(true); // 已有未提交文本先落盘
+
+    textPosGlobal_ = globalPos;
+    textEditor_ = new QLineEdit(this);
+    QFont font;
+    font.setPixelSize(textPixelSizeFor(session_.strokeStyle()));
+    font.setBold(true);
+    textEditor_->setFont(font);
+    textEditor_->setStyleSheet(
+        QStringLiteral("QLineEdit { background: rgba(0,0,0,140); color: %1;"
+                       "  border: 1px dashed #AAA; padding: 1px 4px; }")
+            .arg(session_.strokeStyle().color.name()));
+    textEditor_->setMinimumWidth(120);
+    textEditor_->move(globalPos - geometry().topLeft() - QPoint(4, 4));
+    textEditor_->installEventFilter(this);
+    connect(textEditor_, &QLineEdit::returnPressed, this,
+            [this] { finishTextEditing(true); });
+    textEditor_->show();
+    textEditor_->setFocus();
+}
+
+void OverlayWindow::finishTextEditing(bool accept) {
+    if (!textEditor_) {
+        return;
+    }
+    QLineEdit* editor = textEditor_;
+    textEditor_ = nullptr; // 先置空,防 focus 链路重入
+    const QString text = editor->text().trimmed();
+    editor->deleteLater();
+    setFocus();
+    if (accept && !text.isEmpty()) {
+        session_.document().pushAddItem(std::make_unique<TextItem>(
+            session_.strokeStyle(), textPosGlobal_, text));
+    }
+}
+
+void OverlayWindow::addBadge(const QPoint& globalPos) {
+    int number = 1;
+    for (const auto& item : session_.document().items()) {
+        if (item->tool() == AnnotationTool::Badge) {
+            ++number;
+        }
+    }
+    session_.document().pushAddItem(
+        std::make_unique<BadgeItem>(session_.strokeStyle(), globalPos, number));
+}
+
+bool OverlayWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == textEditor_ && event->type() == QEvent::KeyPress) {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Escape) {
+            finishTextEditing(false);
+            return true;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 void OverlayWindow::keyPressEvent(QKeyEvent* event) {

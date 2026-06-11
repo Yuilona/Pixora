@@ -2,7 +2,10 @@
 
 #include "core/annotate/AnnotationDocument.h"
 #include "core/annotate/AnnotationItem.h"
+#include "core/capture/DesktopSnapshot.h"
 
+#include <QFont>
+#include <QFontMetrics>
 #include <QPainter>
 #include <QPainterPath>
 
@@ -39,9 +42,86 @@ void drawArrow(QPainter& painter, const ArrowItem& arrow) {
     painter.fillPath(headPath, arrow.style().color);
 }
 
+QPainterPath polylinePath(const QPolygon& points) {
+    QPainterPath path(points.first());
+    for (int i = 1; i < points.size(); ++i) {
+        path.lineTo(points.at(i));
+    }
+    return path;
+}
+
+void drawMarker(QPainter& painter, const PenItem& marker) {
+    if (marker.points.isEmpty()) {
+        return;
+    }
+    QColor color = marker.style().color;
+    color.setAlpha(110);
+    // 整条折线作为单一路径描边,避免分段叠加导致接头加深
+    QPen pen(color, marker.style().width * 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    painter.strokePath(polylinePath(marker.points), pen);
+}
+
+void drawText(QPainter& painter, const TextItem& item) {
+    if (item.text.isEmpty()) {
+        return;
+    }
+    QFont font = painter.font();
+    font.setPixelSize(textPixelSizeFor(item.style()));
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(item.style().color);
+    const QFontMetrics fm(font);
+    painter.drawText(QPoint(item.pos.x(), item.pos.y() + fm.ascent()), item.text);
+}
+
+void drawBadge(QPainter& painter, const BadgeItem& badge) {
+    const int r = badgeRadiusFor(badge.style());
+    painter.setPen(QPen(Qt::white, 2));
+    painter.setBrush(badge.style().color);
+    painter.drawEllipse(badge.center, r, r);
+
+    QFont font = painter.font();
+    font.setPixelSize(r);
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(Qt::white);
+    painter.drawText(QRect(badge.center - QPoint(r, r), QSize(2 * r, 2 * r)),
+                     Qt::AlignCenter, QString::number(badge.number));
+}
+
+// 栅格效果:从冻结快照取原始底图,降采样后回放(非破坏性,见 §5.2)。
+// 注:采样自原始底图而非已叠加标注的合成图,M2 先取此简化语义。
+void drawEffect(QPainter& painter, const ShapeItem& item, const DesktopSnapshot* snapshot) {
+    const QRect rect = item.rect.normalized();
+    if (rect.width() < 4 || rect.height() < 4) {
+        return;
+    }
+    if (!snapshot) {
+        painter.setPen(QPen(Qt::gray, 1, Qt::DashLine));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawRect(rect);
+        return;
+    }
+    const QImage src = snapshot->copyRegionLogical(rect);
+    if (src.isNull()) {
+        return;
+    }
+    const int factor = std::max(2, effectStrengthFor(item.style()));
+    const QSize small =
+        (src.size() / factor).expandedTo(QSize(1, 1)); // src.size() 为物理像素
+    const bool mosaic = item.tool() == AnnotationTool::Mosaic;
+    const Qt::TransformationMode mode =
+        mosaic ? Qt::FastTransformation : Qt::SmoothTransformation;
+    QImage out = src.scaled(small, Qt::IgnoreAspectRatio, mode)
+                     .scaled(src.size(), Qt::IgnoreAspectRatio, mode);
+    out.setDevicePixelRatio(src.devicePixelRatio());
+    painter.drawImage(rect, out);
+}
+
 } // namespace
 
-void renderItem(QPainter& painter, const AnnotationItem& item) {
+void renderItem(QPainter& painter, const AnnotationItem& item,
+                const DesktopSnapshot* snapshot) {
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing);
     QPen pen(item.style().color, item.style().width, Qt::SolidLine, Qt::RoundCap,
@@ -63,29 +143,43 @@ void renderItem(QPainter& painter, const AnnotationItem& item) {
         const QPolygon& pts = static_cast<const PenItem&>(item).points;
         if (pts.size() == 1) {
             painter.drawPoint(pts.first());
-        } else {
-            painter.drawPolyline(pts);
+        } else if (!pts.isEmpty()) {
+            painter.strokePath(polylinePath(pts), pen);
         }
         break;
     }
+    case AnnotationTool::Marker:
+        drawMarker(painter, static_cast<const PenItem&>(item));
+        break;
+    case AnnotationTool::Text:
+        drawText(painter, static_cast<const TextItem&>(item));
+        break;
+    case AnnotationTool::Badge:
+        drawBadge(painter, static_cast<const BadgeItem&>(item));
+        break;
+    case AnnotationTool::Mosaic:
+    case AnnotationTool::Blur:
+        drawEffect(painter, static_cast<const ShapeItem&>(item), snapshot);
+        break;
     }
     painter.restore();
 }
 
-void render(QPainter& painter, const AnnotationDocument& document) {
+void render(QPainter& painter, const AnnotationDocument& document,
+            const DesktopSnapshot* snapshot) {
     for (const auto& item : document.items()) {
-        renderItem(painter, *item);
+        renderItem(painter, *item, snapshot);
     }
 }
 
 QImage flatten(QImage base, const AnnotationDocument& document,
-               const QPoint& regionTopLeft) {
+               const QPoint& regionTopLeft, const DesktopSnapshot& snapshot) {
     if (document.isEmpty()) {
         return base;
     }
     QPainter painter(&base);
     painter.translate(-regionTopLeft);
-    render(painter, document);
+    render(painter, document, &snapshot);
     return base;
 }
 

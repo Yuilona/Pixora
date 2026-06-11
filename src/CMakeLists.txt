@@ -40,6 +40,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     platform/interface/PlatformFactory.h
     platform/interface/PlatformTypes.h
     platform/interface/ScreenCapturer.h
+    platform/interface/SystemIntegration.h
     platform/interface/WindowEnumerator.h
     platform/shared/QtScreenCapturer.h
     platform/shared/QtScreenCapturer.cpp
@@ -49,6 +50,8 @@ if(WIN32)
     target_sources(pixora PRIVATE
         platform/windows/WinGlobalHotkey.h
         platform/windows/WinGlobalHotkey.cpp
+        platform/windows/WinSystemIntegration.h
+        platform/windows/WinSystemIntegration.cpp
         platform/windows/WinWindowEnumerator.h
         platform/windows/WinWindowEnumerator.cpp
         platform/windows/PlatformFactory.cpp

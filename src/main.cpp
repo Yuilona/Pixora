@@ -7,6 +7,7 @@
 #include "common/Log.h"
 #include "platform/interface/PlatformFactory.h"
 #include "platform/interface/ScreenCapturer.h"
+#include "platform/interface/SystemIntegration.h"
 #include "platform/interface/WindowEnumerator.h"
 
 #include <QApplication>
@@ -52,9 +53,12 @@ int main(int argc, char* argv[]) {
     QObject::connect(&tray, &pixora::TrayService::captureRequested, &capture,
                      [&capture] { capture.start(); });
 
-    pixora::PinService pins;
+    const auto systemIntegration = pixora::createSystemIntegration();
+    pixora::PinService pins(systemIntegration.get());
     QObject::connect(&capture, &pixora::CaptureService::pinCaptured, &pins,
                      &pixora::PinService::pinImage);
+    QObject::connect(&tray, &pixora::TrayService::closeAllPinsRequested, &pins,
+                     &pixora::PinService::closeAll);
 
     const auto hotkeyBackend = pixora::createGlobalHotkey();
     pixora::HotkeyService hotkeys(settings, hotkeyBackend.get());

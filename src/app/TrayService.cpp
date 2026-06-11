@@ -14,6 +14,8 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     title->setEnabled(false);
     menu_.addSeparator();
     menu_.addAction(QStringLiteral("截图\tF1"), this, [this] { emit captureRequested(); });
+    menu_.addAction(QStringLiteral("关闭所有贴图"), this,
+                    [this] { emit closeAllPinsRequested(); });
     menu_.addSeparator();
     menu_.addAction(QStringLiteral("退出"), [] { QCoreApplication::quit(); });
 

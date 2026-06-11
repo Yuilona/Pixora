@@ -7,6 +7,8 @@
 #include <QRect>
 #include <QWidget>
 
+class QLineEdit;
+
 namespace pixora {
 
 class SnipSession;
@@ -30,6 +32,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     enum class Mode { Idle, Creating, Moving, Resizing, Drawing };
@@ -37,6 +40,9 @@ private:
     QRect selectionLocal() const;
     QRect toLocal(const QRect& globalRect) const;
     bool magnifierVisible() const;
+    void startTextEditing(const QPoint& globalPos);
+    void finishTextEditing(bool accept);
+    void addBadge(const QPoint& globalPos);
 
     SnipSession& session_;
     QImage frozen_;     // 含 DPR 标记,按逻辑尺寸绘制
@@ -51,6 +57,8 @@ private:
     bool moved_ = false;
     QPoint cursorLocal_;
     bool hasCursor_ = false;
+    QLineEdit* textEditor_ = nullptr;
+    QPoint textPosGlobal_;
 };
 
 } // namespace pixora

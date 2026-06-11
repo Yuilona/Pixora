@@ -19,11 +19,16 @@ struct ToolSpec {
     const char* label;
 };
 
-constexpr std::array<ToolSpec, 4> kTools = {{
+constexpr std::array<ToolSpec, 9> kTools = {{
     {AnnotationTool::Rect, "矩形"},
     {AnnotationTool::Ellipse, "椭圆"},
     {AnnotationTool::Arrow, "箭头"},
     {AnnotationTool::Pen, "画笔"},
+    {AnnotationTool::Marker, "马克笔"},
+    {AnnotationTool::Text, "文字"},
+    {AnnotationTool::Badge, "序号"},
+    {AnnotationTool::Mosaic, "马赛克"},
+    {AnnotationTool::Blur, "模糊"},
 }};
 
 const std::array<QColor, 6> kPalette = {

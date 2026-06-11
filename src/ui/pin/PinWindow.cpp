@@ -1,6 +1,7 @@
 #include "ui/pin/PinWindow.h"
 
 #include "app/OutputService.h"
+#include "platform/interface/SystemIntegration.h"
 
 #include <QClipboard>
 #include <QContextMenuEvent>
@@ -21,7 +22,9 @@ constexpr qreal kMinScale = 0.1;
 constexpr qreal kMaxScale = 5.0;
 } // namespace
 
-PinWindow::PinWindow(const QImage& image, const QPoint& topLeftLogical) : image_(image) {
+PinWindow::PinWindow(const QImage& image, const QPoint& topLeftLogical,
+                     ISystemIntegration* system)
+    : image_(image), system_(system) {
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle(QStringLiteral("Pixora 贴图"));
@@ -67,6 +70,12 @@ void PinWindow::mouseDoubleClickEvent(QMouseEvent* event) {
 }
 
 void PinWindow::wheelEvent(QWheelEvent* event) {
+    if (event->modifiers() & Qt::ControlModifier) {
+        // Ctrl+滚轮:透明度 20%–100%
+        const qreal delta = event->angleDelta().y() > 0 ? 0.1 : -0.1;
+        setWindowOpacity(std::clamp(windowOpacity() + delta, 0.2, 1.0));
+        return;
+    }
     const qreal factor = std::pow(1.1, event->angleDelta().y() / 120.0);
     applyScale(scale_ * factor);
 }
@@ -88,6 +97,12 @@ void PinWindow::contextMenuEvent(QContextMenuEvent* event) {
         OutputService output;
         output.saveWithDialog(image_);
     });
+    if (system_) {
+        menu.addSeparator();
+        menu.addAction(QStringLiteral("点击穿透(经托盘菜单关闭)"), [this] {
+            system_->setClickThrough(windowHandle(), true);
+        });
+    }
     menu.addSeparator();
     menu.addAction(QStringLiteral("关闭贴图"), [this] { close(); });
     menu.exec(event->globalPos());

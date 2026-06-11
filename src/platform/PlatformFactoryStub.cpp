@@ -2,6 +2,7 @@
 // 热键暂无实现返回 nullptr,上层降级为"无全局热键";抓屏用跨平台 Qt 实现。
 #include "platform/interface/GlobalHotkey.h"
 #include "platform/interface/PlatformFactory.h"
+#include "platform/interface/SystemIntegration.h"
 #include "platform/interface/WindowEnumerator.h"
 #include "platform/shared/QtScreenCapturer.h"
 
@@ -16,6 +17,10 @@ std::unique_ptr<IScreenCapturer> createScreenCapturer() {
 }
 
 std::unique_ptr<IWindowEnumerator> createWindowEnumerator() {
+    return nullptr;
+}
+
+std::unique_ptr<ISystemIntegration> createSystemIntegration() {
     return nullptr;
 }
 

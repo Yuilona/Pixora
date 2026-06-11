@@ -90,14 +90,20 @@ void SnipSession::beginAnnotation(const QPoint& globalPos) {
     switch (*tool_) {
     case AnnotationTool::Rect:
     case AnnotationTool::Ellipse:
+    case AnnotationTool::Mosaic:
+    case AnnotationTool::Blur:
         pending_ = std::make_unique<ShapeItem>(*tool_, style_, QRect(globalPos, globalPos));
         break;
     case AnnotationTool::Arrow:
         pending_ = std::make_unique<ArrowItem>(style_, globalPos, globalPos);
         break;
     case AnnotationTool::Pen:
-        pending_ = std::make_unique<PenItem>(style_, QPolygon{globalPos});
+    case AnnotationTool::Marker:
+        pending_ = std::make_unique<PenItem>(*tool_, style_, QPolygon{globalPos});
         break;
+    case AnnotationTool::Text:
+    case AnnotationTool::Badge:
+        return; // 点击型工具,由遮罩窗直接提交,不走拖拽流程
     }
     emit annotationsChanged();
 }
@@ -109,18 +115,24 @@ void SnipSession::updateAnnotation(const QPoint& globalPos) {
     switch (pending_->tool()) {
     case AnnotationTool::Rect:
     case AnnotationTool::Ellipse:
+    case AnnotationTool::Mosaic:
+    case AnnotationTool::Blur:
         static_cast<ShapeItem*>(pending_.get())->rect.setBottomRight(globalPos);
         break;
     case AnnotationTool::Arrow:
         static_cast<ArrowItem*>(pending_.get())->to = globalPos;
         break;
-    case AnnotationTool::Pen: {
+    case AnnotationTool::Pen:
+    case AnnotationTool::Marker: {
         QPolygon& pts = static_cast<PenItem*>(pending_.get())->points;
         if (pts.isEmpty() || (globalPos - pts.last()).manhattanLength() >= 2) {
             pts << globalPos;
         }
         break;
     }
+    case AnnotationTool::Text:
+    case AnnotationTool::Badge:
+        break;
     }
     emit annotationsChanged();
 }

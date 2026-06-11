@@ -89,7 +89,7 @@ void CaptureService::start() {
 QImage CaptureService::renderResult(const QRect& region) const {
     QImage image = session_->snapshot().copyRegionLogical(region);
     return AnnotationRenderer::flatten(std::move(image), session_->document(),
-                                       region.topLeft());
+                                       region.topLeft(), session_->snapshot());
 }
 
 void CaptureService::teardown() {

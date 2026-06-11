@@ -65,6 +65,6 @@ TEST_CASE("item bounds reflect geometry", "[annotate]") {
 
     QPolygon pts;
     pts << QPoint(5, 5) << QPoint(30, 8) << QPoint(12, 40);
-    const PenItem pen(StrokeStyle{}, pts);
+    const PenItem pen(AnnotationTool::Pen, StrokeStyle{}, pts);
     CHECK(pen.bounds() == QRect(5, 5, 26, 36));
 }

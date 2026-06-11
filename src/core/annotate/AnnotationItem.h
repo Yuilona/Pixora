@@ -5,8 +5,10 @@
 #include <QPoint>
 #include <QPolygon>
 #include <QRect>
+#include <QString>
 
 #include <algorithm>
+#include <utility>
 
 namespace pixora {
 
@@ -54,14 +56,44 @@ public:
     QPoint to;
 };
 
+// 画笔 / 马克笔(自由折线)
 class PenItem : public AnnotationItem {
 public:
-    PenItem(StrokeStyle style, const QPolygon& points)
-        : AnnotationItem(AnnotationTool::Pen, style), points(points) {}
+    PenItem(AnnotationTool tool, StrokeStyle style, const QPolygon& points)
+        : AnnotationItem(tool, style), points(points) {}
 
     QRect bounds() const override { return points.boundingRect(); }
 
     QPolygon points;
+};
+
+class TextItem : public AnnotationItem {
+public:
+    TextItem(StrokeStyle style, const QPoint& pos, QString text)
+        : AnnotationItem(AnnotationTool::Text, style), pos(pos), text(std::move(text)) {}
+
+    // 粗略包围盒(精确测量需字体引擎,属 UI 层);仅用于退化判定
+    QRect bounds() const override {
+        const int h = textPixelSizeFor(style());
+        return QRect(pos, QSize(std::max(1, int(text.size()) * h), h + h / 2));
+    }
+
+    QPoint pos; // 文本框左上角
+    QString text;
+};
+
+class BadgeItem : public AnnotationItem {
+public:
+    BadgeItem(StrokeStyle style, const QPoint& center, int number)
+        : AnnotationItem(AnnotationTool::Badge, style), center(center), number(number) {}
+
+    QRect bounds() const override {
+        const int r = badgeRadiusFor(style());
+        return QRect(center - QPoint(r, r), QSize(2 * r, 2 * r));
+    }
+
+    QPoint center;
+    int number;
 };
 
 } // namespace pixora
