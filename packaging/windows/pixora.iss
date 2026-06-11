@@ -3,7 +3,7 @@
 ; 再以本脚本编译:iscc packaging\windows\pixora.iss
 ; (需安装 Inno Setup 6: https://jrsoftware.org/isinfo.php)
 
-#define AppVersion "0.1.0"
+#define AppVersion "0.2.0"
 #define DistDir "..\..\build\dist\Pixora-" + AppVersion + "-win64-portable"
 
 [Setup]
