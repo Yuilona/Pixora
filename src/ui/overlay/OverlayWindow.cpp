@@ -1,6 +1,7 @@
 #include "ui/overlay/OverlayWindow.h"
 
 #include "core/capture/SnipSession.h"
+#include "platform/interface/ElementLocator.h"
 #include "ui/editor/AnnotationRenderer.h"
 #include "ui/overlay/Magnifier.h"
 
@@ -20,9 +21,12 @@ const QColor kBorderColor(45, 124, 246); // Snipaste 风格蓝
 constexpr int kDragThreshold = 4;        // 区分"点击吸附"与"拖拽选区"
 } // namespace
 
-OverlayWindow::OverlayWindow(const ScreenSnap& snap, SnipSession& session)
-    : session_(session), frozen_(snap.image), physical_(snap.image), dpr_(snap.dpr) {
+OverlayWindow::OverlayWindow(const ScreenSnap& snap, SnipSession& session,
+                             IElementLocator* elementLocator)
+    : session_(session), elementLocator_(elementLocator), frozen_(snap.image),
+      physical_(snap.image), dpr_(snap.dpr) {
     frozen_.setDevicePixelRatio(snap.dpr);
+    elementThrottle_.start();
 
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_DeleteOnClose);
@@ -296,6 +300,8 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
                         SelectionHandles::hitTest(selectionLocal(), event->pos())));
                 }
             }
+        } else if (elementLocator_ && (event->modifiers() & Qt::ShiftModifier)) {
+            updateElementHover(global); // Shift:吸附窗口内 UI 元素
         } else {
             session_.updateHover(global);
         }
@@ -492,8 +498,46 @@ void OverlayWindow::keyPressEvent(QKeyEvent* event) {
     case Qt::Key_Down:
         nudgeSelection(event);
         break;
+    case Qt::Key_Shift:
+        // 不动鼠标按下 Shift 也立即切到元素级高亮
+        if (!event->isAutoRepeat() && elementLocator_ && !session_.hasSelection() &&
+            hasCursor_ && mode_ == Mode::Idle) {
+            updateElementHover(cursorLocal_ + geometry().topLeft(), /*force=*/true);
+            update();
+        }
+        break;
     default:
         QWidget::keyPressEvent(event);
+    }
+}
+
+void OverlayWindow::keyReleaseEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Shift && !event->isAutoRepeat() &&
+        !session_.hasSelection() && hasCursor_ && mode_ == Mode::Idle) {
+        session_.updateHover(cursorLocal_ + geometry().topLeft()); // 回窗口级
+        update();
+        return;
+    }
+    QWidget::keyReleaseEvent(event);
+}
+
+// Shift 按住时的元素级吸附:经 UIA 在悬停窗口内下钻光标处元素。
+// UIA 查询可能慢(几十 ms),节流 100ms;失败退回窗口级。
+void OverlayWindow::updateElementHover(const QPoint& globalLogical, bool force) {
+    if (!force && elementThrottle_.elapsed() < 100) {
+        return; // 保持上一次的高亮
+    }
+    elementThrottle_.restart();
+    const quintptr windowId = session_.windowIdAt(globalLogical);
+    QRect rect;
+    if (windowId) {
+        rect = elementLocator_->elementAt(windowId, globalLogical);
+    }
+    if (rect.isValid() && rect.contains(globalLogical) && rect.width() >= 8 &&
+        rect.height() >= 8) {
+        session_.setHoverRect(rect);
+    } else {
+        session_.updateHover(globalLogical); // 退回窗口级
     }
 }
 

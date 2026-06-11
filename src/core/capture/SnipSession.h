@@ -34,6 +34,11 @@ public:
     void updateHover(const QPoint& globalLogical);
     QRect hoverRect() const { return hover_; }
 
+    // 元素级吸附辅助:点位所在顶层窗口的原生句柄(无命中返回 0);
+    // setHoverRect 由 UI 用元素矩形直写悬停高亮(绕过窗口候选)。
+    quintptr windowIdAt(const QPoint& globalLogical) const;
+    void setHoverRect(const QRect& rect);
+
     void confirm();       // 确认选区 → 复制输出
     void requestSave();   // 确认选区 → 另存输出
     void requestPin();    // 确认选区 → 贴图输出

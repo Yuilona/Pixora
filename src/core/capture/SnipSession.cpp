@@ -45,10 +45,23 @@ void SnipSession::updateHover(const QPoint& globalLogical) {
             break;
         }
     }
-    if (hover_ == hit) {
+    setHoverRect(hit);
+}
+
+quintptr SnipSession::windowIdAt(const QPoint& globalLogical) const {
+    for (const WindowInfo& w : candidates_) {
+        if (w.frameLogical.contains(globalLogical)) {
+            return w.id;
+        }
+    }
+    return 0;
+}
+
+void SnipSession::setHoverRect(const QRect& rect) {
+    if (hover_ == rect) {
         return;
     }
-    hover_ = hit;
+    hover_ = rect;
     emit hoverChanged(hover_);
 }
 

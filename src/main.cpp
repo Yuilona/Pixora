@@ -9,6 +9,7 @@
 #include "common/Log.h"
 #include "ui/history/HistoryWindow.h"
 #include "ui/settings/SettingsDialog.h"
+#include "platform/interface/ElementLocator.h"
 #include "platform/interface/InputInjector.h"
 #include "platform/interface/PlatformFactory.h"
 #include "platform/interface/ScreenCapturer.h"
@@ -50,9 +51,10 @@ int main(int argc, char* argv[]) {
 
     const auto screenCapturer = pixora::createScreenCapturer();
     const auto windowEnumerator = pixora::createWindowEnumerator();
+    const auto elementLocator = pixora::createElementLocator();
     pixora::HistoryService history(&settings);
-    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(), &settings,
-                                   &history);
+    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(),
+                                   elementLocator.get(), &settings, &history);
     QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
         tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图已复制到剪贴板"));
     });

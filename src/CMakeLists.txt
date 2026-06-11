@@ -56,6 +56,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/overlay/OverlayWindow.cpp
     ui/overlay/SelectionHandles.h
     ui/overlay/SelectionHandles.cpp
+    platform/interface/ElementLocator.h
     platform/interface/GlobalHotkey.h
     platform/interface/InputInjector.h
     platform/interface/PlatformFactory.h
@@ -72,6 +73,8 @@ if(WIN32)
         ${CMAKE_SOURCE_DIR}/resources/windows/pixora.rc
         platform/windows/WinCoordinates.h
         platform/windows/WinCoordinates.cpp
+        platform/windows/WinElementLocator.h
+        platform/windows/WinElementLocator.cpp
         platform/windows/WinGlobalHotkey.h
         platform/windows/WinGlobalHotkey.cpp
         platform/windows/WinInputInjector.h

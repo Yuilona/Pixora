@@ -1,6 +1,7 @@
 #include "platform/interface/PlatformFactory.h"
 
 #include "platform/shared/QtScreenCapturer.h"
+#include "platform/windows/WinElementLocator.h"
 #include "platform/windows/WinGlobalHotkey.h"
 #include "platform/windows/WinInputInjector.h"
 #include "platform/windows/WinSystemIntegration.h"
@@ -26,6 +27,11 @@ std::unique_ptr<ISystemIntegration> createSystemIntegration() {
 
 std::unique_ptr<IInputInjector> createInputInjector() {
     return std::make_unique<WinInputInjector>();
+}
+
+std::unique_ptr<IElementLocator> createElementLocator() {
+    auto locator = std::make_unique<WinElementLocator>();
+    return locator->available() ? std::move(locator) : nullptr;
 }
 
 } // namespace pixora

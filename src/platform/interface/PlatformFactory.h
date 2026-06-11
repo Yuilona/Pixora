@@ -4,6 +4,7 @@
 
 namespace pixora {
 
+class IElementLocator;
 class IGlobalHotkey;
 class IInputInjector;
 class IScreenCapturer;
@@ -17,5 +18,6 @@ std::unique_ptr<IScreenCapturer> createScreenCapturer();
 std::unique_ptr<IWindowEnumerator> createWindowEnumerator();
 std::unique_ptr<ISystemIntegration> createSystemIntegration();
 std::unique_ptr<IInputInjector> createInputInjector();
+std::unique_ptr<IElementLocator> createElementLocator();
 
 } // namespace pixora

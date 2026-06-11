@@ -19,10 +19,11 @@
 namespace pixora {
 
 CaptureService::CaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
+                               IElementLocator* elementLocator,
                                const SettingsService* settings, HistoryService* history,
                                QObject* parent)
-    : QObject(parent), capturer_(capturer), enumerator_(enumerator), output_(settings),
-      history_(history) {}
+    : QObject(parent), capturer_(capturer), enumerator_(enumerator),
+      elementLocator_(elementLocator), output_(settings), history_(history) {}
 
 CaptureService::~CaptureService() {
     teardown();
@@ -93,7 +94,7 @@ void CaptureService::start() {
     });
 
     for (const ScreenSnap& snap : session_->snapshot().screens()) {
-        auto* overlay = new OverlayWindow(snap, *session_);
+        auto* overlay = new OverlayWindow(snap, *session_, elementLocator_);
         overlays_.push_back(overlay);
         overlay->show();
     }

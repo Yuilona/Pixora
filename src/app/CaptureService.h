@@ -13,6 +13,7 @@ namespace pixora {
 
 class AnnotationToolbar;
 class HistoryService;
+class IElementLocator;
 class IScreenCapturer;
 class IWindowEnumerator;
 class OverlayWindow;
@@ -22,13 +23,13 @@ class SnipSession;
 // 截图编排:热键/托盘触发 → 冻结全部屏幕 → 每屏遮罩窗 →
 // 选区确认后经 OutputService 输出(见 ARCHITECTURE §8 数据流)。
 // enumerator 可为 nullptr(平台无实现)→ 无窗口吸附,仅自由选区。
-// history 可为 nullptr → 不留底。
+// history / elementLocator 可为 nullptr → 不留底 / 仅窗口级吸附。
 class CaptureService : public QObject {
     Q_OBJECT
 public:
     CaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
-                   const SettingsService* settings, HistoryService* history,
-                   QObject* parent = nullptr);
+                   IElementLocator* elementLocator, const SettingsService* settings,
+                   HistoryService* history, QObject* parent = nullptr);
     ~CaptureService() override;
 
     void start();
@@ -50,6 +51,7 @@ private:
 
     IScreenCapturer& capturer_;
     IWindowEnumerator* enumerator_;
+    IElementLocator* elementLocator_;
     OutputService output_;
     HistoryService* history_;
     std::unique_ptr<SnipSession> session_;
