@@ -50,6 +50,7 @@ private:
     QRect toLocal(const QRect& globalRect) const;
     QRect selectedItemHandleRect() const; // 选中条目手柄区(本窗局部坐标)
     bool magnifierVisible() const;
+    void nudgeSelection(QKeyEvent* event); // 方向键微调选区(Ctrl 调大小)
     void startTextEditing(const QPoint& globalPos, bool editExisting);
     void finishTextEditing(bool accept);
     void addBadge(const QPoint& globalPos);

@@ -486,9 +486,49 @@ void OverlayWindow::keyPressEvent(QKeyEvent* event) {
             session_.document().undoStack().redo();
         }
         break;
+    case Qt::Key_Left:
+    case Qt::Key_Right:
+    case Qt::Key_Up:
+    case Qt::Key_Down:
+        nudgeSelection(event);
+        break;
     default:
         QWidget::keyPressEvent(event);
     }
+}
+
+// 方向键微调选区:移动 1px;Ctrl=调整大小(右/下边);Shift=步长x10。
+// 配合放大镜做像素级精确选区。
+void OverlayWindow::nudgeSelection(QKeyEvent* event) {
+    if (!session_.hasSelection() || session_.activeTool()) {
+        return;
+    }
+    const int step = (event->modifiers() & Qt::ShiftModifier) ? 10 : 1;
+    int dx = 0;
+    int dy = 0;
+    switch (event->key()) {
+    case Qt::Key_Left: dx = -step; break;
+    case Qt::Key_Right: dx = step; break;
+    case Qt::Key_Up: dy = -step; break;
+    case Qt::Key_Down: dy = step; break;
+    default: return;
+    }
+
+    const QRect bounds = session_.snapshot().virtualGeometryLogical();
+    QRect sel = session_.selection();
+    if (event->modifiers() & Qt::ControlModifier) {
+        // 调整大小:动右边和下边,保持左上角不动
+        sel.setRight(std::clamp(sel.right() + dx, sel.left(), bounds.right()));
+        sel.setBottom(std::clamp(sel.bottom() + dy, sel.top(), bounds.bottom()));
+    } else {
+        QPoint topLeft = sel.topLeft() + QPoint(dx, dy);
+        topLeft.setX(std::clamp(topLeft.x(), bounds.left(),
+                                bounds.right() - sel.width() + 1));
+        topLeft.setY(std::clamp(topLeft.y(), bounds.top(),
+                                bounds.bottom() - sel.height() + 1));
+        sel.moveTopLeft(topLeft);
+    }
+    session_.setSelection(sel);
 }
 
 } // namespace pixora

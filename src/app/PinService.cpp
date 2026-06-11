@@ -73,6 +73,10 @@ void PinService::pinImage(const QImage& image, const QPoint& topLeftLogical) {
 void PinService::attach(const QString& id, PinWindow* pin) {
     pins_.push_back(Tracked{id, pin});
     connect(pin, &PinWindow::stateChanged, this, [this] { saveTimer_.start(); });
+    // 旋转/翻转改变图像本体 → 立刻重存 PNG,清单无需记录变换
+    connect(pin, &PinWindow::imageChanged, this, [this, id, pin] {
+        pin->image().save(storageDir() + QStringLiteral("/%1.png").arg(id));
+    });
     connect(pin, &PinWindow::closedByUser, this, [this](PinWindow* closed) {
         const auto it = std::find_if(pins_.begin(), pins_.end(), [closed](const Tracked& t) {
             return t.win.data() == closed;
@@ -127,6 +131,7 @@ void PinService::saveManifest() {
         o[QStringLiteral("scale")] = t.win->scale();
         o[QStringLiteral("opacity")] = t.win->windowOpacity();
         o[QStringLiteral("dpr")] = t.win->image().devicePixelRatio();
+        o[QStringLiteral("folded")] = t.win->isFolded();
         arr.append(o);
     }
     QSaveFile file(manifestPath(dir));
@@ -165,7 +170,8 @@ int PinService::restorePins() {
 
         auto* pin = new PinWindow(image, pos, system_);
         pin->restoreState(o[QStringLiteral("scale")].toDouble(1.0),
-                          o[QStringLiteral("opacity")].toDouble(1.0));
+                          o[QStringLiteral("opacity")].toDouble(1.0),
+                          o[QStringLiteral("folded")].toBool(false));
         attach(id, pin);
         pin->show();
         ++restored;
