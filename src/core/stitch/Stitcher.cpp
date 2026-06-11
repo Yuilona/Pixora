@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace pixora {
@@ -24,6 +25,46 @@ struct BandMatch {
     int dy = 0;
     double score = 0.0;
 };
+
+// 0.5x 降采样粗定位 → 全分辨率小窗精修(见 ARCHITECTURE §5.3.2)。
+// 降采样既加速,也平滑 ClearType/分数缩放带来的光栅化相位噪声。
+// 返回 {foundY(search 坐标系), score}。
+std::pair<int, double> matchBand(const cv::Mat& search, const cv::Mat& templ) {
+    constexpr int kRefineWindow = 6;
+
+    int coarseY = 0;
+    if (templ.rows >= 16 && templ.cols >= 32) {
+        cv::Mat searchSmall;
+        cv::Mat templSmall;
+        cv::resize(search, searchSmall, {}, 0.5, 0.5, cv::INTER_AREA);
+        cv::resize(templ, templSmall, {}, 0.5, 0.5, cv::INTER_AREA);
+        if (searchSmall.rows >= templSmall.rows && searchSmall.cols >= templSmall.cols) {
+            cv::Mat scores;
+            cv::matchTemplate(searchSmall, templSmall, scores, cv::TM_CCOEFF_NORMED);
+            cv::Point loc;
+            cv::minMaxLoc(scores, nullptr, nullptr, nullptr, &loc);
+            coarseY = loc.y * 2;
+        }
+    } else {
+        // 模板过小不降采样,直接全图搜索
+        cv::Mat scores;
+        cv::matchTemplate(search, templ, scores, cv::TM_CCOEFF_NORMED);
+        double score = 0.0;
+        cv::Point loc;
+        cv::minMaxLoc(scores, nullptr, &score, nullptr, &loc);
+        return {loc.y, score};
+    }
+
+    const int y0 = std::clamp(coarseY - kRefineWindow, 0, search.rows - templ.rows);
+    const int y1 = std::clamp(coarseY + kRefineWindow, y0, search.rows - templ.rows);
+    const cv::Mat slice = search(cv::Rect(0, y0, search.cols, y1 - y0 + templ.rows));
+    cv::Mat scores;
+    cv::matchTemplate(slice, templ, scores, cv::TM_CCOEFF_NORMED);
+    double score = 0.0;
+    cv::Point loc;
+    cv::minMaxLoc(scores, nullptr, &score, nullptr, &loc);
+    return {y0 + loc.y, score};
+}
 
 } // namespace
 
@@ -72,23 +113,24 @@ Stitcher::AppendResult Stitcher::append(const QImage& rawFrame) {
     const int bandCount = searchWidth >= 96 ? 3 : 1;
     const int bandWidth = searchWidth / bandCount;
     std::vector<BandMatch> matches;
+    std::vector<double> bandScores;
     for (int i = 0; i < bandCount; ++i) {
         const int bx = i * bandWidth;
         const cv::Mat templ =
             grayView(lastGray)(cv::Rect(bx, stripTop, bandWidth, stripH));
         const cv::Mat search =
             grayView(frameGray)(cv::Rect(bx, fixedTop, bandWidth, searchHeight));
-        cv::Mat scores;
-        cv::matchTemplate(search, templ, scores, cv::TM_CCOEFF_NORMED);
-        double maxScore = 0.0;
-        cv::Point maxLoc;
-        cv::minMaxLoc(scores, nullptr, &maxScore, nullptr, &maxLoc);
-        if (maxScore >= config_.minMatchScore) {
-            matches.push_back(BandMatch{stripTop - (fixedTop + maxLoc.y), maxScore});
+        const auto [foundY, score] = matchBand(search, templ);
+        bandScores.push_back(score);
+        if (score >= config_.minMatchScore) {
+            matches.push_back(BandMatch{stripTop - (fixedTop + foundY), score});
         }
     }
     if (matches.empty()) {
-        spdlog::debug("stitcher: all {} band(s) below threshold", bandCount);
+        spdlog::debug("stitcher: match failed, band scores: {:.3f} {:.3f} {:.3f}",
+                      bandScores.size() > 0 ? bandScores[0] : 0.0,
+                      bandScores.size() > 1 ? bandScores[1] : 0.0,
+                      bandScores.size() > 2 ? bandScores[2] : 0.0);
         return AppendResult::MatchFailed;
     }
 

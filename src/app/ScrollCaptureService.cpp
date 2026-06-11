@@ -14,14 +14,23 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+
 namespace pixora {
 
 namespace {
 constexpr int kFrameIntervalMs = 66;     // ~15fps
-constexpr int kAutoScrollDelta = -360;   // 每步 3 格滚轮
 constexpr int kStableTimeoutMs = 800;    // 稳定等待超时(懒加载兜底)
+constexpr int kAutoStepIntervalMs = 400; // 两次注入滚轮的最小间隔(节奏限制)
 constexpr int kAutoFinishStreak = 3;     // 连续无新内容 → 判定到底
 constexpr int kAutoFailStreak = 3;       // 连续匹配失败 → 退回手动
+
+// 每步滚轮格数随区域高度自适应:小区域滚 1 格防止一步跳过重叠带,
+// 大区域最多 3 格(浏览器一格约滚 100+ 逻辑像素)。
+int autoScrollDelta(int regionLogicalHeight) {
+    const int notches = std::clamp(regionLogicalHeight / 250, 1, 3);
+    return -120 * notches;
+}
 } // namespace
 
 ScrollCaptureService::ScrollCaptureService(IScreenCapturer& capturer,
@@ -112,6 +121,7 @@ void ScrollCaptureService::beginScrollPhase(QRect regionGlobal) {
     connect(bar_, &ScrollCaptureBar::autoToggled, this, [this](bool enabled) {
         autoMode_ = enabled;
         awaitingStable_ = false;
+        sinceInjectMs_ = kAutoStepIntervalMs; // 开关切换后立即可注入
         noNewStreak_ = 0;
         failStreak_ = 0;
         spdlog::info("scroll capture auto mode: {}", enabled ? "on" : "off");
@@ -141,9 +151,11 @@ void ScrollCaptureService::tick() {
         lastGrab_ = frame;
         bar_->setStatus(QStringLiteral("已捕获首帧,滚动目标窗口…"));
         if (autoMode_ && injector_) {
-            injector_->sendScroll(regionGlobal_.center(), kAutoScrollDelta);
+            injector_->sendScroll(regionGlobal_.center(),
+                                  autoScrollDelta(regionGlobal_.height()));
             awaitingStable_ = true;
             stableWaitMs_ = 0;
+            sinceInjectMs_ = 0;
             prevTickFrame_ = frame;
         }
         return;
@@ -162,8 +174,11 @@ void ScrollCaptureService::tick() {
     handleAppend(stitcher_.append(frame));
 }
 
-// 自动模式:注入滚轮后等待画面稳定(连续两帧一致或超时),再拼接下一步
+// 自动模式:注入滚轮 → 等画面稳定(连续两帧一致或超时)→ 拼接 →
+// 满足最小步间隔后再注入下一步
 void ScrollCaptureService::tickAuto(const QImage& frame) {
+    sinceInjectMs_ += kFrameIntervalMs;
+
     if (awaitingStable_) {
         const bool stable = (frame == prevTickFrame_);
         stableWaitMs_ += kFrameIntervalMs;
@@ -177,9 +192,14 @@ void ScrollCaptureService::tickAuto(const QImage& frame) {
             return; // handleAppend 内部可能已自动完成
         }
     }
-    injector_->sendScroll(regionGlobal_.center(), kAutoScrollDelta);
+    if (sinceInjectMs_ < kAutoStepIntervalMs) {
+        return; // 节奏限制,避免滚动过快
+    }
+    injector_->sendScroll(regionGlobal_.center(),
+                          autoScrollDelta(regionGlobal_.height()));
     awaitingStable_ = true;
     stableWaitMs_ = 0;
+    sinceInjectMs_ = 0;
     prevTickFrame_ = frame;
 }
 

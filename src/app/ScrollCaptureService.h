@@ -75,6 +75,7 @@ private:
     bool autoMode_ = false;
     bool awaitingStable_ = false; // 已注入滚轮,等待画面稳定
     int stableWaitMs_ = 0;
+    int sinceInjectMs_ = 0;       // 距上次注入的时间(节奏限制用)
     QImage prevTickFrame_;
     int noNewStreak_ = 0;
     int failStreak_ = 0;

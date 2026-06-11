@@ -24,7 +24,9 @@ public:
         int templateStripHeight = 60; // 模板带高度(px)
         int bottomGuard = 12;         // 底部保护带:避开闪烁光标/状态栏
         int rightGuard = 24;          // 右侧保护带:避开滚动条
-        double minMatchScore = 0.90;  // NCC 阈值,低于判为失败帧
+        // NCC 阈值。真实场景中 ClearType/分数缩放导致同一内容两次
+        // 渲染并非逐字节一致,阈值过高会永久失配无法恢复。
+        double minMatchScore = 0.80;
         int maxCanvasHeight = 32000;  // 画布上限保护
     };
 
