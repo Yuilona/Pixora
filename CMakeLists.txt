@@ -14,6 +14,7 @@ endif()
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Network)
 find_package(spdlog CONFIG REQUIRED)
+find_package(OpenCV CONFIG REQUIRED) # core + imgproc(拼接模板匹配用)
 
 qt_standard_project_setup()
 

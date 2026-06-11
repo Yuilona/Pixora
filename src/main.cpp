@@ -1,6 +1,7 @@
 #include "app/CaptureService.h"
 #include "app/HotkeyService.h"
 #include "app/PinService.h"
+#include "app/ScrollCaptureService.h"
 #include "app/SettingsService.h"
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
@@ -68,10 +69,17 @@ int main(int argc, char* argv[]) {
                          spdlog::info("hotkey: capture requested");
                          capture.start();
                      });
-    QObject::connect(&hotkeys, &pixora::HotkeyService::scrollCaptureRequested, &tray, [&tray] {
-        spdlog::info("hotkey: scroll capture requested");
-        tray.notify(QStringLiteral("Pixora"), QStringLiteral("长截图热键已触发(M3 实现长截图)"));
-    });
+    pixora::ScrollCaptureService scrollCapture(*screenCapturer, windowEnumerator.get());
+    QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::copiedToClipboard,
+                     &tray, [&tray](int height) {
+                         tray.notify(QStringLiteral("Pixora"),
+                                     QStringLiteral("长截图已复制(高 %1 px)").arg(height));
+                     });
+    QObject::connect(&hotkeys, &pixora::HotkeyService::scrollCaptureRequested,
+                     &scrollCapture, [&scrollCapture] {
+                         spdlog::info("hotkey: scroll capture requested");
+                         scrollCapture.start();
+                     });
     QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &pins,
                      [&pins, &tray] {
                          spdlog::info("hotkey: pin requested");

@@ -10,6 +10,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     app/OutputService.cpp
     app/PinService.h
     app/PinService.cpp
+    app/ScrollCaptureService.h
+    app/ScrollCaptureService.cpp
     app/SettingsService.h
     app/SettingsService.cpp
     app/SingleInstanceGuard.h
@@ -24,12 +26,18 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/capture/DesktopSnapshot.cpp
     core/capture/SnipSession.h
     core/capture/SnipSession.cpp
+    core/stitch/Stitcher.h
+    core/stitch/Stitcher.cpp
     ui/editor/AnnotationRenderer.h
     ui/editor/AnnotationRenderer.cpp
     ui/editor/AnnotationToolbar.h
     ui/editor/AnnotationToolbar.cpp
     ui/pin/PinWindow.h
     ui/pin/PinWindow.cpp
+    ui/scroll/RegionIndicator.h
+    ui/scroll/RegionIndicator.cpp
+    ui/scroll/ScrollCaptureBar.h
+    ui/scroll/ScrollCaptureBar.cpp
     ui/overlay/Magnifier.h
     ui/overlay/Magnifier.cpp
     ui/overlay/OverlayWindow.h
@@ -70,6 +78,7 @@ target_link_libraries(pixora PRIVATE
     Qt6::Widgets
     Qt6::Network
     spdlog::spdlog
+    ${OpenCV_LIBS}
 )
 
 if(WIN32)

@@ -10,6 +10,7 @@ namespace pixora {
 class QtScreenCapturer : public IScreenCapturer {
 public:
     QImage grabScreen(QScreen* screen) override;
+    QImage grabScreenRegion(QScreen* screen, const QRect& regionLocal) override;
 };
 
 } // namespace pixora

@@ -7,8 +7,11 @@ add_executable(pixora_tests
     unit/selection_handles_test.cpp
     unit/snip_session_test.cpp
     unit/annotation_document_test.cpp
+    unit/stitcher_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.h
+    ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.cpp
     ${CMAKE_SOURCE_DIR}/src/core/annotate/AnnotationDocument.h
     ${CMAKE_SOURCE_DIR}/src/core/annotate/AnnotationDocument.cpp
     ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.h
@@ -24,6 +27,8 @@ target_include_directories(pixora_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(pixora_tests PRIVATE
     Catch2::Catch2WithMain
     Qt6::Gui
+    spdlog::spdlog
+    ${OpenCV_LIBS}
 )
 
 include(Catch)
