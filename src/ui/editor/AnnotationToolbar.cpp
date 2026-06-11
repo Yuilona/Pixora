@@ -2,12 +2,15 @@
 
 #include "core/capture/SnipSession.h"
 
+#include <QCursor>
+#include <QEvent>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QPainterPath>
 #include <QScreen>
 #include <QToolButton>
+#include <QToolTip>
 
 #include <algorithm>
 #include <array>
@@ -173,12 +176,22 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
         return btn;
     };
 
+    tipTimer_.setSingleShot(true);
+    tipTimer_.setInterval(600);
+    connect(&tipTimer_, &QTimer::timeout, this, [this] {
+        if (tipButton_) {
+            QToolTip::showText(QCursor::pos() + QPoint(0, 14), tipButton_->toolTip(),
+                               tipButton_);
+        }
+    });
+
     for (const ToolSpec& spec : kTools) {
         auto* btn = new QToolButton(this);
         btn->setIcon(toolIcon(spec.tool));
         btn->setIconSize(QSize(16, 16));
         btn->setToolTip(QString::fromUtf8(spec.label));
         btn->setCheckable(true);
+        btn->installEventFilter(this); // 自管理悬浮提示
         connect(btn, &QToolButton::clicked, this,
                 [this, spec](bool checked) { chooseTool(spec.tool, checked); });
         layout->addWidget(btn);
@@ -207,6 +220,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     widthButton_ = new QToolButton(this);
     widthButton_->setIcon(widthIcon(kWidths[static_cast<size_t>(widthIndex_)]));
     widthButton_->setIconSize(QSize(16, 16));
+    widthButton_->installEventFilter(this);
     widthButton_->setToolTip(
         QStringLiteral("线条粗细:%1(点击切换)").arg(QString::fromUtf8(kWidthNames[widthIndex_])));
     connect(widthButton_, &QToolButton::clicked, this, [this] {
@@ -245,6 +259,30 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
             reposition();
         }
     });
+}
+
+bool AnnotationToolbar::eventFilter(QObject* watched, QEvent* event) {
+    auto* btn = qobject_cast<QToolButton*>(watched);
+    if (!btn || btn->toolTip().isEmpty()) {
+        return QWidget::eventFilter(watched, event);
+    }
+    switch (event->type()) {
+    case QEvent::Enter:
+        tipButton_ = btn;
+        tipTimer_.start();
+        break;
+    case QEvent::Leave:
+    case QEvent::MouseButtonPress:
+        tipTimer_.stop();
+        tipButton_ = nullptr;
+        QToolTip::hideText();
+        break;
+    case QEvent::ToolTip:
+        return true; // 接管默认 tooltip 通道,避免双重显示
+    default:
+        break;
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 void AnnotationToolbar::chooseTool(AnnotationTool tool, bool checked) {
