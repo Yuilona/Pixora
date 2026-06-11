@@ -19,7 +19,10 @@
 namespace pixora {
 
 namespace {
-constexpr int kFrameIntervalMs = 66;     // ~15fps
+// ~30fps:帧间位移减半 → 手动快速滚动的失配容忍度翻倍
+// (失配条件 = 帧间位移超过"区域高 - 模板带 - 保护带")。
+// 仅变化帧才进拼接,空转 tick 只付一次区域抓屏的代价。
+constexpr int kFrameIntervalMs = 33;
 constexpr int kStableTimeoutMs = 800;    // 稳定等待超时(懒加载兜底)
 constexpr int kAutoStepIntervalMs = 400; // 两次注入滚轮的最小间隔(节奏限制)
 constexpr int kAutoFinishStreak = 3;     // 连续无新内容 → 判定到底
