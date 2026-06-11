@@ -52,25 +52,35 @@ void SnipSession::updateHover(const QPoint& globalLogical) {
     emit hoverChanged(hover_);
 }
 
+void SnipSession::promoteHoverToSelection() {
+    if (!hasSelection() && !hover_.isEmpty()) {
+        setSelection(hover_);
+    }
+}
+
 void SnipSession::confirm() {
+    promoteHoverToSelection();
     if (hasSelection()) {
         emit confirmed(selection_);
     }
 }
 
 void SnipSession::requestSave() {
+    promoteHoverToSelection();
     if (hasSelection()) {
         emit saveRequested(selection_);
     }
 }
 
 void SnipSession::requestPin() {
+    promoteHoverToSelection();
     if (hasSelection()) {
         emit pinRequested(selection_);
     }
 }
 
 void SnipSession::requestScroll() {
+    promoteHoverToSelection();
     if (hasSelection()) {
         emit scrollRequested(selection_);
     }
@@ -78,6 +88,10 @@ void SnipSession::requestScroll() {
 
 void SnipSession::cancel() {
     emit cancelled();
+}
+
+void SnipSession::notifyInteractionStarted() {
+    emit interactionStarted();
 }
 
 void SnipSession::notifyInteractionFinished() {
@@ -89,6 +103,9 @@ void SnipSession::notifyInteractionFinished() {
 void SnipSession::setActiveTool(std::optional<AnnotationTool> tool) {
     if (tool_ == tool) {
         return;
+    }
+    if (tool) {
+        promoteHoverToSelection(); // 悬停状态直接选工具 = 先锁定该窗口
     }
     tool_ = tool;
     emit activeToolChanged();

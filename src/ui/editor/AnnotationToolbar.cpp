@@ -133,6 +133,21 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
             reposition();
         }
     });
+    // 悬停高亮窗口时直接亮出工具条,免去"先点一下确认"——
+    // 点任意按钮时会话会把悬停窗口提升为正式选区
+    connect(&session_, &SnipSession::hoverChanged, this, [this](const QRect& rect) {
+        if (session_.hasSelection()) {
+            return;
+        }
+        if (rect.isEmpty()) {
+            hide();
+            return;
+        }
+        reposition();
+        show();
+    });
+    // 按下开始框选/吸附:先藏起来,拖拽过程不跟随乱跳,松手后再现
+    connect(&session_, &SnipSession::interactionStarted, this, &QWidget::hide);
 }
 
 void AnnotationToolbar::chooseTool(AnnotationTool tool, bool checked) {
@@ -148,17 +163,27 @@ void AnnotationToolbar::chooseTool(AnnotationTool tool, bool checked) {
 
 void AnnotationToolbar::reposition() {
     adjustSize();
-    const QRect sel = session_.selection();
+    const bool locked = session_.hasSelection();
+    const QRect sel = locked ? session_.selection() : session_.hoverRect();
     const QRect bounds = session_.snapshot().virtualGeometryLogical();
 
-    QPoint pos(sel.right() - width() + 1, sel.bottom() + 8);
-    if (pos.y() + height() > bounds.bottom()) {
-        pos.setY(sel.top() - height() - 8); // 下方放不下 → 选区上方
-    }
-    if (pos.y() < bounds.top()) {
-        pos.setY(sel.bottom() - height() - 8); // 还不行 → 选区内部底边
+    QPoint pos;
+    if (locked) {
+        pos = QPoint(sel.right() - width() + 1, sel.bottom() + 8);
+        if (pos.y() + height() > bounds.bottom()) {
+            pos.setY(sel.top() - height() - 8); // 下方放不下 → 选区上方
+        }
+        if (pos.y() < bounds.top()) {
+            pos.setY(sel.bottom() - height() - 8); // 还不行 → 选区内部底边
+        }
+    } else {
+        // 悬停预览:放在窗口内部右下角——光标移过去点按钮的路径
+        // 始终在该窗口内,悬停目标不会中途切换导致工具条被"追着跑"
+        pos = QPoint(sel.right() - width() + 1, sel.bottom() - height() - 8);
+        pos.setY(std::max(pos.y(), sel.top()));
     }
     pos.setX(std::clamp(pos.x(), bounds.left(), bounds.right() - width() + 1));
+    pos.setY(std::clamp(pos.y(), bounds.top(), bounds.bottom() - height() + 1));
     move(pos);
 }
 

@@ -141,6 +141,10 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
     pressGlobal_ = event->globalPosition().toPoint();
     moved_ = false;
 
+    if (!session_.hasSelection()) {
+        session_.notifyInteractionStarted(); // 悬停工具条先藏起,免得拖拽中跟随
+    }
+
     // 标注工具激活时,选区内按下:点击型工具直接落子,拖拽型进入绘制
     if (session_.hasSelection() && session_.activeTool() &&
         session_.selection().contains(pressGlobal_)) {
