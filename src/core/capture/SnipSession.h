@@ -40,6 +40,9 @@ public:
     void requestScroll(); // 确认选区 → 转入长截图(滚动拼接)
     void cancel();
 
+    // 取色器:复制光标处色值并结束会话(text 已是最终剪贴板文本)
+    void pickColor(const QString& text);
+
     // UI 在一次拖拽交互(框选/吸附/调整)结束时调用,工具条据此显示。
     void notifyInteractionFinished();
 
@@ -72,6 +75,7 @@ signals:
     void saveRequested(const QRect& rect);
     void pinRequested(const QRect& rect);
     void scrollRequested(const QRect& rect);
+    void colorPicked(const QString& text);
     void cancelled();
     void activeToolChanged();
     void annotationsChanged(); // 文档或进行中标注变化

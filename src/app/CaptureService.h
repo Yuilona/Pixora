@@ -37,6 +37,7 @@ signals:
     void pinCaptured(const QImage& image, const QPoint& topLeftLogical);
     // 工具栏[长截图]:拆掉遮罩后把选区交给 ScrollCaptureService 接管
     void scrollCaptureRequested(const QRect& regionGlobal);
+    void colorCopied(const QString& text); // 取色器出口(C 键)
 
 private:
     QImage renderResult(const QRect& region) const; // 截取 + 平铺标注

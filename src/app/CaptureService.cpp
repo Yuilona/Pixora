@@ -8,6 +8,7 @@
 #include "ui/editor/AnnotationToolbar.h"
 #include "ui/overlay/OverlayWindow.h"
 
+#include <QClipboard>
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QScreen>
@@ -74,6 +75,11 @@ void CaptureService::start() {
                 teardown(); // 先拆遮罩,让目标窗口可滚动
                 emit scrollCaptureRequested(region);
             });
+    connect(session_.get(), &SnipSession::colorPicked, this, [this](const QString& text) {
+        teardown();
+        QGuiApplication::clipboard()->setText(text);
+        emit colorCopied(text);
+    });
     connect(session_.get(), &SnipSession::cancelled, this, [this] {
         spdlog::info("snip session cancelled");
         teardown();

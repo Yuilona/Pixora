@@ -4,10 +4,12 @@
 #include "platform/interface/SystemIntegration.h"
 
 #include <QClipboard>
+#include <QCloseEvent>
 #include <QContextMenuEvent>
 #include <QGuiApplication>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QMoveEvent>
 #include <QPainter>
 #include <QWheelEvent>
 
@@ -41,6 +43,25 @@ void PinWindow::applyScale(qreal scale) {
     scale_ = std::clamp(scale, kMinScale, kMaxScale);
     resize(scaledSize());
     update();
+    emit stateChanged();
+}
+
+void PinWindow::restoreState(qreal scale, qreal opacity) {
+    scale_ = std::clamp(scale, kMinScale, kMaxScale);
+    resize(scaledSize());
+    setWindowOpacity(std::clamp(opacity, 0.2, 1.0));
+}
+
+void PinWindow::moveEvent(QMoveEvent* event) {
+    QWidget::moveEvent(event);
+    emit stateChanged();
+}
+
+void PinWindow::closeEvent(QCloseEvent* event) {
+    // 仅用户主动关闭走到这里(Esc/双击/菜单/托盘关闭全部);
+    // 程序退出不触发 closeEvent → 清单保留,下次启动恢复
+    emit closedByUser(this);
+    QWidget::closeEvent(event);
 }
 
 void PinWindow::paintEvent(QPaintEvent* /*event*/) {
@@ -74,6 +95,7 @@ void PinWindow::wheelEvent(QWheelEvent* event) {
         // Ctrl+滚轮:透明度 20%–100%
         const qreal delta = event->angleDelta().y() > 0 ? 0.1 : -0.1;
         setWindowOpacity(std::clamp(windowOpacity() + delta, 0.2, 1.0));
+        emit stateChanged();
         return;
     }
     const qreal factor = std::pow(1.1, event->angleDelta().y() / 120.0);

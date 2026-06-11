@@ -80,6 +80,10 @@ void SnipSession::cancel() {
     emit cancelled();
 }
 
+void SnipSession::pickColor(const QString& text) {
+    emit colorPicked(text);
+}
+
 void SnipSession::notifyInteractionFinished() {
     if (hasSelection()) {
         emit interactionFinished();

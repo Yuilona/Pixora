@@ -82,6 +82,10 @@ void draw(QPainter& painter, const Context& ctx) {
                      posText);
     painter.drawText(infoRect.adjusted(8 + 14, kInfoHeight / 2, -8, -2), Qt::AlignVCenter,
                      rgbText);
+    painter.setPen(QColor(255, 255, 255, 140));
+    painter.drawText(infoRect.adjusted(8, kInfoHeight / 2, -8, -2),
+                     Qt::AlignVCenter | Qt::AlignRight, QStringLiteral("C 取色"));
+    painter.setPen(Qt::white);
     painter.setBrush(color);
     painter.setPen(QPen(Qt::white, 1));
     painter.drawRect(QRect(infoRect.left() + 8, infoRect.top() + kInfoHeight / 2 + 4, 9, 9));

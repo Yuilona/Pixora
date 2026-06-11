@@ -65,6 +65,12 @@ int main(int argc, char* argv[]) {
                      &pixora::PinService::pinImage);
     QObject::connect(&tray, &pixora::TrayService::closeAllPinsRequested, &pins,
                      &pixora::PinService::closeAll);
+    QObject::connect(&capture, &pixora::CaptureService::colorCopied, &tray,
+                     [&tray](const QString& text) {
+                         tray.notify(QStringLiteral("Pixora"),
+                                     QStringLiteral("已复制颜色 %1").arg(text));
+                     });
+    pins.restorePins(); // 恢复上次会话留下的贴图
 
     const auto hotkeyBackend = pixora::createGlobalHotkey();
     pixora::HotkeyService hotkeys(settings, hotkeyBackend.get());

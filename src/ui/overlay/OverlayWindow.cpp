@@ -350,6 +350,23 @@ void OverlayWindow::keyPressEvent(QKeyEvent* event) {
     case Qt::Key_F3:
         session_.requestPin();
         break;
+    case Qt::Key_C: {
+        // 取色器:复制放大镜中心像素色值(C=HEX,Shift+C=RGB)
+        if (!magnifierVisible()) {
+            break;
+        }
+        QPoint phys(qRound(cursorLocal_.x() * dpr_), qRound(cursorLocal_.y() * dpr_));
+        phys.setX(std::clamp(phys.x(), 0, physical_.width() - 1));
+        phys.setY(std::clamp(phys.y(), 0, physical_.height() - 1));
+        const QColor color = physical_.pixelColor(phys);
+        session_.pickColor(event->modifiers() & Qt::ShiftModifier
+                               ? QStringLiteral("%1, %2, %3")
+                                     .arg(color.red())
+                                     .arg(color.green())
+                                     .arg(color.blue())
+                               : color.name(QColor::HexRgb).toUpper());
+        break;
+    }
     case Qt::Key_S:
         if (event->modifiers() & Qt::ControlModifier) {
             session_.requestSave();
