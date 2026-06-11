@@ -176,15 +176,6 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
         return btn;
     };
 
-    tipTimer_.setSingleShot(true);
-    tipTimer_.setInterval(200);
-    connect(&tipTimer_, &QTimer::timeout, this, [this] {
-        if (tipButton_) {
-            QToolTip::showText(QCursor::pos() + QPoint(0, 14), tipButton_->toolTip(),
-                               tipButton_);
-        }
-    });
-
     for (const ToolSpec& spec : kTools) {
         auto* btn = new QToolButton(this);
         btn->setIcon(toolIcon(spec.tool));
@@ -268,13 +259,11 @@ bool AnnotationToolbar::eventFilter(QObject* watched, QEvent* event) {
     }
     switch (event->type()) {
     case QEvent::Enter:
-        tipButton_ = btn;
-        tipTimer_.start();
+        // 即时显示,不做延迟
+        QToolTip::showText(QCursor::pos() + QPoint(0, 14), btn->toolTip(), btn);
         break;
     case QEvent::Leave:
     case QEvent::MouseButtonPress:
-        tipTimer_.stop();
-        tipButton_ = nullptr;
         QToolTip::hideText();
         break;
     case QEvent::ToolTip:
