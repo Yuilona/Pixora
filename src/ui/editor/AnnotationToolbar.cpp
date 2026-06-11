@@ -74,12 +74,22 @@ QIcon toolIcon(AnnotationTool tool) {
         });
     case AnnotationTool::Pen:
         return makeIcon([](QPainter& p) {
-            p.drawLine(QPointF(5, 11), QPointF(12, 4));
-            QPainterPath nib(QPointF(4.2, 11.8));
-            nib.lineTo(QPointF(3, 13));
-            nib.lineTo(QPointF(4.8, 12.6));
-            nib.closeSubpath();
-            p.fillPath(nib, kIconColor);
+            // 斜置铅笔:描边笔身 + 实心笔尖 + 尾部橡皮分隔线
+            p.setPen(QPen(kIconColor, 1.2, Qt::SolidLine, Qt::RoundCap,
+                          Qt::RoundJoin));
+            QPainterPath body;
+            body.moveTo(QPointF(3.4, 10.2));
+            body.lineTo(QPointF(10.8, 2.8));
+            body.lineTo(QPointF(13.2, 5.2));
+            body.lineTo(QPointF(5.8, 12.6));
+            body.closeSubpath();
+            p.drawPath(body);
+            QPainterPath tip(QPointF(2.4, 13.6)); // 笔尖收于左下
+            tip.lineTo(QPointF(3.4, 10.2));
+            tip.lineTo(QPointF(5.8, 12.6));
+            tip.closeSubpath();
+            p.fillPath(tip, kIconColor);
+            p.drawLine(QPointF(9.2, 4.4), QPointF(11.6, 6.8)); // 橡皮分隔
         });
     case AnnotationTool::Marker:
         return makeIcon([](QPainter& p) {
