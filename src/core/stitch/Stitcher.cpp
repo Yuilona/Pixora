@@ -68,6 +68,8 @@ std::pair<int, double> matchBand(const cv::Mat& search, const cv::Mat& templ) {
 
 } // namespace
 
+Stitcher::Stitcher() : Stitcher(Config{}) {}
+
 Stitcher::Stitcher(Config config) : config_(config) {}
 
 void Stitcher::begin(const QImage& firstFrame) {

@@ -32,7 +32,10 @@ public:
 
     enum class AppendResult { Appended, NoNewContent, MatchFailed };
 
-    explicit Stitcher(Config config = {});
+    // 不在类内用 "= {}" 默认参数:Config 的默认成员初始化器在
+    // 未完成类上下文中,GCC/Clang 拒绝(MSVC 放行)
+    Stitcher();
+    explicit Stitcher(Config config);
 
     void begin(const QImage& firstFrame);
     AppendResult append(const QImage& frame);
