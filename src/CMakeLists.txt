@@ -8,16 +8,28 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     app/HotkeyService.cpp
     app/OutputService.h
     app/OutputService.cpp
+    app/PinService.h
+    app/PinService.cpp
     app/SettingsService.h
     app/SettingsService.cpp
     app/SingleInstanceGuard.h
     app/SingleInstanceGuard.cpp
     app/TrayService.h
     app/TrayService.cpp
+    core/annotate/AnnotationTypes.h
+    core/annotate/AnnotationItem.h
+    core/annotate/AnnotationDocument.h
+    core/annotate/AnnotationDocument.cpp
     core/capture/DesktopSnapshot.h
     core/capture/DesktopSnapshot.cpp
     core/capture/SnipSession.h
     core/capture/SnipSession.cpp
+    ui/editor/AnnotationRenderer.h
+    ui/editor/AnnotationRenderer.cpp
+    ui/editor/AnnotationToolbar.h
+    ui/editor/AnnotationToolbar.cpp
+    ui/pin/PinWindow.h
+    ui/pin/PinWindow.cpp
     ui/overlay/Magnifier.h
     ui/overlay/Magnifier.cpp
     ui/overlay/OverlayWindow.h

@@ -6,8 +6,11 @@ add_executable(pixora_tests
     unit/desktop_snapshot_test.cpp
     unit/selection_handles_test.cpp
     unit/snip_session_test.cpp
+    unit/annotation_document_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/annotate/AnnotationDocument.h
+    ${CMAKE_SOURCE_DIR}/src/core/annotate/AnnotationDocument.cpp
     ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.h
     ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.cpp
     ${CMAKE_SOURCE_DIR}/src/core/capture/SnipSession.h

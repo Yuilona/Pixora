@@ -10,6 +10,7 @@
 
 namespace pixora {
 
+class AnnotationToolbar;
 class IScreenCapturer;
 class IWindowEnumerator;
 class OverlayWindow;
@@ -31,8 +32,10 @@ public:
 signals:
     void copiedToClipboard();
     void savedToFile(const QString& path);
+    void pinCaptured(const QImage& image, const QPoint& topLeftLogical);
 
 private:
+    QImage renderResult(const QRect& region) const; // 截取 + 平铺标注
     void teardown();
 
     IScreenCapturer& capturer_;
@@ -40,6 +43,7 @@ private:
     OutputService output_;
     std::unique_ptr<SnipSession> session_;
     std::vector<OverlayWindow*> overlays_;
+    AnnotationToolbar* toolbar_ = nullptr;
 };
 
 } // namespace pixora

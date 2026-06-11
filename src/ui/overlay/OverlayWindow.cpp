@@ -1,6 +1,7 @@
 #include "ui/overlay/OverlayWindow.h"
 
 #include "core/capture/SnipSession.h"
+#include "ui/editor/AnnotationRenderer.h"
 #include "ui/overlay/Magnifier.h"
 
 #include <QKeyEvent>
@@ -30,6 +31,11 @@ OverlayWindow::OverlayWindow(const ScreenSnap& snap, SnipSession& session)
     connect(&session_, &SnipSession::selectionChanged, this,
             qOverload<>(&QWidget::update));
     connect(&session_, &SnipSession::hoverChanged, this, qOverload<>(&QWidget::update));
+    connect(&session_, &SnipSession::annotationsChanged, this,
+            qOverload<>(&QWidget::update));
+    connect(&session_, &SnipSession::activeToolChanged, this, [this] {
+        setCursor(session_.activeTool() ? Qt::CrossCursor : Qt::ArrowCursor);
+    });
 }
 
 QRect OverlayWindow::toLocal(const QRect& globalRect) const {
@@ -63,11 +69,23 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
     painter.fillRect(rect(), kMaskColor);
     painter.setClipping(false);
 
+    // 标注内容(裁剪到选区;条目为全局逻辑坐标 → 平移到本窗局部)
+    if (hasSelection && !active.isEmpty()) {
+        painter.save();
+        painter.setClipRect(active);
+        painter.translate(-geometry().topLeft());
+        AnnotationRenderer::render(painter, session_.document());
+        if (const AnnotationItem* pending = session_.pendingAnnotation()) {
+            AnnotationRenderer::renderItem(painter, *pending);
+        }
+        painter.restore();
+    }
+
     if (!active.isEmpty()) {
         painter.setPen(QPen(kBorderColor, 2));
         painter.drawRect(QRectF(active).adjusted(0.5, 0.5, -0.5, -0.5));
 
-        if (hasSelection && mode_ != Mode::Creating) {
+        if (hasSelection && mode_ != Mode::Creating && !session_.activeTool()) {
             SelectionHandles::paint(painter, active, kBorderColor);
         }
 
@@ -108,6 +126,14 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
     }
     pressGlobal_ = event->globalPosition().toPoint();
     moved_ = false;
+
+    // 标注工具激活时,选区内按下 = 开始绘制
+    if (session_.hasSelection() && session_.activeTool() &&
+        session_.selection().contains(pressGlobal_)) {
+        mode_ = Mode::Drawing;
+        session_.beginAnnotation(pressGlobal_);
+        return;
+    }
 
     if (session_.hasSelection()) {
         const SelectionHandles::Hit hit =
@@ -158,10 +184,15 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
         session_.setSelection(
             SelectionHandles::resized(baseSelection_, activeHandle_, global - pressGlobal_));
         break;
+    case Mode::Drawing:
+        session_.updateAnnotation(global);
+        break;
     case Mode::Idle:
         if (session_.hasSelection()) {
-            setCursor(SelectionHandles::cursorFor(
-                SelectionHandles::hitTest(selectionLocal(), event->pos())));
+            if (!session_.activeTool()) {
+                setCursor(SelectionHandles::cursorFor(
+                    SelectionHandles::hitTest(selectionLocal(), event->pos())));
+            }
         } else {
             session_.updateHover(global);
         }
@@ -174,12 +205,18 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() != Qt::LeftButton) {
         return;
     }
+    if (mode_ == Mode::Drawing) {
+        session_.endAnnotation();
+        mode_ = Mode::Idle;
+        return;
+    }
     // 单击(未拖出阈值)且悬停命中窗口 → 吸附为选区
     if (mode_ == Mode::Creating && !moved_ && !session_.hasSelection() &&
         !session_.hoverRect().isEmpty()) {
         session_.setSelection(session_.hoverRect());
     }
     mode_ = Mode::Idle;
+    session_.notifyInteractionFinished();
 }
 
 void OverlayWindow::mouseDoubleClickEvent(QMouseEvent* event) {
@@ -192,15 +229,35 @@ void OverlayWindow::mouseDoubleClickEvent(QMouseEvent* event) {
 void OverlayWindow::keyPressEvent(QKeyEvent* event) {
     switch (event->key()) {
     case Qt::Key_Escape:
-        session_.cancel();
+        // 有激活的标注工具时先退出工具,再按才取消会话
+        if (session_.activeTool()) {
+            session_.setActiveTool(std::nullopt);
+        } else {
+            session_.cancel();
+        }
         break;
     case Qt::Key_Return:
     case Qt::Key_Enter:
         session_.confirm();
         break;
+    case Qt::Key_F3:
+        session_.requestPin();
+        break;
     case Qt::Key_S:
         if (event->modifiers() & Qt::ControlModifier) {
             session_.requestSave();
+        }
+        break;
+    case Qt::Key_Z:
+        if (event->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier)) {
+            session_.document().undoStack().redo();
+        } else if (event->modifiers() & Qt::ControlModifier) {
+            session_.document().undoStack().undo();
+        }
+        break;
+    case Qt::Key_Y:
+        if (event->modifiers() & Qt::ControlModifier) {
+            session_.document().undoStack().redo();
         }
         break;
     default:

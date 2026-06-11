@@ -4,6 +4,8 @@
 #include "core/capture/SnipSession.h"
 #include "platform/interface/ScreenCapturer.h"
 #include "platform/interface/WindowEnumerator.h"
+#include "ui/editor/AnnotationRenderer.h"
+#include "ui/editor/AnnotationToolbar.h"
 #include "ui/overlay/OverlayWindow.h"
 
 #include <QElapsedTimer>
@@ -46,19 +48,26 @@ void CaptureService::start() {
     }
 
     connect(session_.get(), &SnipSession::confirmed, this, [this](const QRect& region) {
-        const QImage image = session_->snapshot().copyRegionLogical(region);
+        const QImage image = renderResult(region);
         teardown();
         output_.copyToClipboard(image);
         emit copiedToClipboard();
     });
     connect(session_.get(), &SnipSession::saveRequested, this,
             [this](const QRect& region) {
-                const QImage image = session_->snapshot().copyRegionLogical(region);
+                const QImage image = renderResult(region);
                 teardown();
                 const QString path = output_.saveWithDialog(image);
                 if (!path.isEmpty()) {
                     emit savedToFile(path);
                 }
+            });
+    connect(session_.get(), &SnipSession::pinRequested, this,
+            [this](const QRect& region) {
+                const QImage image = renderResult(region);
+                const QPoint topLeft = region.topLeft();
+                teardown();
+                emit pinCaptured(image, topLeft); // 贴图出现在原选区位置
             });
     connect(session_.get(), &SnipSession::cancelled, this, [this] {
         spdlog::info("snip session cancelled");
@@ -74,6 +83,13 @@ void CaptureService::start() {
         overlays_.front()->activateWindow();
         overlays_.front()->raise();
     }
+    toolbar_ = new AnnotationToolbar(*session_); // 选区交互结束后自行显示
+}
+
+QImage CaptureService::renderResult(const QRect& region) const {
+    QImage image = session_->snapshot().copyRegionLogical(region);
+    return AnnotationRenderer::flatten(std::move(image), session_->document(),
+                                       region.topLeft());
 }
 
 void CaptureService::teardown() {
@@ -81,6 +97,11 @@ void CaptureService::teardown() {
         overlay->close(); // WA_DeleteOnClose
     }
     overlays_.clear();
+    if (toolbar_) {
+        toolbar_->close();
+        toolbar_->deleteLater();
+        toolbar_ = nullptr;
+    }
     if (session_) {
         session_->disconnect(this);
         session_.release()->deleteLater();

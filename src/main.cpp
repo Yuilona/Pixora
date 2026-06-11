@@ -1,5 +1,6 @@
 #include "app/CaptureService.h"
 #include "app/HotkeyService.h"
+#include "app/PinService.h"
 #include "app/SettingsService.h"
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
@@ -51,6 +52,10 @@ int main(int argc, char* argv[]) {
     QObject::connect(&tray, &pixora::TrayService::captureRequested, &capture,
                      [&capture] { capture.start(); });
 
+    pixora::PinService pins;
+    QObject::connect(&capture, &pixora::CaptureService::pinCaptured, &pins,
+                     &pixora::PinService::pinImage);
+
     const auto hotkeyBackend = pixora::createGlobalHotkey();
     pixora::HotkeyService hotkeys(settings, hotkeyBackend.get());
 
@@ -63,10 +68,14 @@ int main(int argc, char* argv[]) {
         spdlog::info("hotkey: scroll capture requested");
         tray.notify(QStringLiteral("Pixora"), QStringLiteral("长截图热键已触发(M3 实现长截图)"));
     });
-    QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &tray, [&tray] {
-        spdlog::info("hotkey: pin requested");
-        tray.notify(QStringLiteral("Pixora"), QStringLiteral("贴图热键已触发(M2 实现贴图)"));
-    });
+    QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &pins,
+                     [&pins, &tray] {
+                         spdlog::info("hotkey: pin requested");
+                         if (!pins.pinFromClipboard()) {
+                             tray.notify(QStringLiteral("Pixora"),
+                                         QStringLiteral("剪贴板中没有图像"));
+                         }
+                     });
     hotkeys.registerAll();
 
     const int rc = QApplication::exec();

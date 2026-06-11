@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/annotate/AnnotationDocument.h"
+#include "core/annotate/AnnotationTypes.h"
 #include "core/capture/DesktopSnapshot.h"
 #include "platform/interface/PlatformTypes.h"
 
@@ -7,6 +9,8 @@
 #include <QPoint>
 #include <QRect>
 
+#include <memory>
+#include <optional>
 #include <vector>
 
 namespace pixora {
@@ -32,20 +36,46 @@ public:
 
     void confirm();     // 确认选区 → 复制输出
     void requestSave(); // 确认选区 → 另存输出
+    void requestPin();  // 确认选区 → 贴图输出
     void cancel();
+
+    // UI 在一次拖拽交互(框选/吸附/调整)结束时调用,工具条据此显示。
+    void notifyInteractionFinished();
+
+    // —— 标注(Annotating)——
+    AnnotationDocument& document() { return document_; }
+    std::optional<AnnotationTool> activeTool() const { return tool_; }
+    void setActiveTool(std::optional<AnnotationTool> tool);
+    StrokeStyle strokeStyle() const { return style_; }
+    void setStrokeStyle(const StrokeStyle& style) { style_ = style; }
+
+    // 进行中的标注(按下→拖动→松开);跨屏遮罩窗共享预览。
+    void beginAnnotation(const QPoint& globalPos);
+    void updateAnnotation(const QPoint& globalPos);
+    void endAnnotation(); // 提交至撤销栈
+    const AnnotationItem* pendingAnnotation() const { return pending_.get(); }
 
 signals:
     void selectionChanged(const QRect& rect);
     void hoverChanged(const QRect& rect);
+    void interactionFinished();
     void confirmed(const QRect& rect);
     void saveRequested(const QRect& rect);
+    void pinRequested(const QRect& rect);
     void cancelled();
+    void activeToolChanged();
+    void annotationsChanged(); // 文档或进行中标注变化
 
 private:
     DesktopSnapshot snapshot_;
     QRect selection_;
     QRect hover_;
     std::vector<WindowInfo> candidates_;
+
+    AnnotationDocument document_;
+    std::optional<AnnotationTool> tool_;
+    StrokeStyle style_;
+    std::unique_ptr<AnnotationItem> pending_;
 };
 
 } // namespace pixora

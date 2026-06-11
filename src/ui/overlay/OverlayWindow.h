@@ -32,7 +32,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
 
 private:
-    enum class Mode { Idle, Creating, Moving, Resizing };
+    enum class Mode { Idle, Creating, Moving, Resizing, Drawing };
 
     QRect selectionLocal() const;
     QRect toLocal(const QRect& globalRect) const;
