@@ -19,6 +19,7 @@ public:
 signals:
     void captureRequested();
     void closeAllPinsRequested();
+    void historyRequested();
     void settingsRequested();
 
 private:

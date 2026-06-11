@@ -1,5 +1,6 @@
 #include "app/CaptureService.h"
 
+#include "app/HistoryService.h"
 #include "core/capture/DesktopSnapshot.h"
 #include "core/capture/SnipSession.h"
 #include "platform/interface/ScreenCapturer.h"
@@ -18,8 +19,10 @@
 namespace pixora {
 
 CaptureService::CaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
-                               const SettingsService* settings, QObject* parent)
-    : QObject(parent), capturer_(capturer), enumerator_(enumerator), output_(settings) {}
+                               const SettingsService* settings, HistoryService* history,
+                               QObject* parent)
+    : QObject(parent), capturer_(capturer), enumerator_(enumerator), output_(settings),
+      history_(history) {}
 
 CaptureService::~CaptureService() {
     teardown();
@@ -49,14 +52,14 @@ void CaptureService::start() {
     }
 
     connect(session_.get(), &SnipSession::confirmed, this, [this](const QRect& region) {
-        const QImage image = renderResult(region);
+        const QImage image = renderAndRecord(region);
         teardown();
         output_.copyToClipboard(image);
         emit copiedToClipboard();
     });
     connect(session_.get(), &SnipSession::saveRequested, this,
             [this](const QRect& region) {
-                const QImage image = renderResult(region);
+                const QImage image = renderAndRecord(region);
                 teardown();
                 const QString path = output_.saveWithDialog(image);
                 if (!path.isEmpty()) {
@@ -65,7 +68,7 @@ void CaptureService::start() {
             });
     connect(session_.get(), &SnipSession::pinRequested, this,
             [this](const QRect& region) {
-                const QImage image = renderResult(region);
+                const QImage image = renderAndRecord(region);
                 const QPoint topLeft = region.topLeft();
                 teardown();
                 emit pinCaptured(image, topLeft); // 贴图出现在原选区位置
@@ -101,6 +104,14 @@ QImage CaptureService::renderResult(const QRect& region) const {
     QImage image = session_->snapshot().copyRegionLogical(region);
     return AnnotationRenderer::flatten(std::move(image), session_->document(),
                                        region.topLeft(), session_->snapshot());
+}
+
+QImage CaptureService::renderAndRecord(const QRect& region) {
+    QImage image = renderResult(region);
+    if (history_) {
+        history_->record(image);
+    }
+    return image;
 }
 
 void CaptureService::teardown() {

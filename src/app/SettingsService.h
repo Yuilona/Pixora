@@ -25,6 +25,10 @@ public:
     QString outputDir() const;
     void setOutputDir(const QString& dir);
 
+    // 截图历史保留张数;0 = 关闭历史
+    int historyLimit() const;
+    void setHistoryLimit(int count);
+
     QJsonObject exportToJson() const;
     void importFromJson(const QJsonObject& json);
 

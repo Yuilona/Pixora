@@ -5,6 +5,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     common/Log.cpp
     app/CaptureService.h
     app/CaptureService.cpp
+    app/HistoryService.h
+    app/HistoryService.cpp
     app/HotkeyService.h
     app/HotkeyService.cpp
     app/OutputService.h
@@ -35,6 +37,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/editor/AnnotationRenderer.cpp
     ui/editor/AnnotationToolbar.h
     ui/editor/AnnotationToolbar.cpp
+    ui/history/HistoryWindow.h
+    ui/history/HistoryWindow.cpp
     ui/pin/PinWindow.h
     ui/pin/PinWindow.cpp
     ui/scroll/RegionIndicator.h

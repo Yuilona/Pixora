@@ -16,6 +16,7 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     menu_.addAction(QStringLiteral("关闭所有贴图"), this,
                     [this] { emit closeAllPinsRequested(); });
     menu_.addSeparator();
+    menu_.addAction(QStringLiteral("历史…"), this, [this] { emit historyRequested(); });
     menu_.addAction(QStringLiteral("设置…"), this, [this] { emit settingsRequested(); });
     menu_.addSeparator();
     menu_.addAction(QStringLiteral("退出"), [] { QCoreApplication::quit(); });

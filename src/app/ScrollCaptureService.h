@@ -12,6 +12,7 @@ class QScreen;
 
 namespace pixora {
 
+class HistoryService;
 class IInputInjector;
 class IScreenCapturer;
 class RegionIndicator;
@@ -30,7 +31,8 @@ class ScrollCaptureService : public QObject {
     Q_OBJECT
 public:
     ScrollCaptureService(IScreenCapturer& capturer, IInputInjector* injector,
-                         const SettingsService* settings, QObject* parent = nullptr);
+                         const SettingsService* settings, HistoryService* history,
+                         QObject* parent = nullptr);
     ~ScrollCaptureService() override;
 
     void start(const QRect& regionGlobal); // 全局逻辑坐标选区
@@ -54,6 +56,7 @@ private:
     IScreenCapturer& capturer_;
     IInputInjector* injector_;
     OutputService output_;
+    HistoryService* history_;
 
     QScreen* screen_ = nullptr;
     QRect regionGlobal_;

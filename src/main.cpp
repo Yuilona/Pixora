@@ -1,4 +1,5 @@
 #include "app/CaptureService.h"
+#include "app/HistoryService.h"
 #include "app/HotkeyService.h"
 #include "app/PinService.h"
 #include "app/ScrollCaptureService.h"
@@ -6,6 +7,7 @@
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
 #include "common/Log.h"
+#include "ui/history/HistoryWindow.h"
 #include "ui/settings/SettingsDialog.h"
 #include "platform/interface/InputInjector.h"
 #include "platform/interface/PlatformFactory.h"
@@ -14,6 +16,7 @@
 #include "platform/interface/WindowEnumerator.h"
 
 #include <QApplication>
+#include <QCursor>
 #include <QIcon>
 #include <QPointer>
 
@@ -47,7 +50,9 @@ int main(int argc, char* argv[]) {
 
     const auto screenCapturer = pixora::createScreenCapturer();
     const auto windowEnumerator = pixora::createWindowEnumerator();
-    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(), &settings);
+    pixora::HistoryService history(&settings);
+    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(), &settings,
+                                   &history);
     QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
         tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图已复制到剪贴板"));
     });
@@ -77,7 +82,7 @@ int main(int argc, char* argv[]) {
 
     const auto inputInjector = pixora::createInputInjector();
     pixora::ScrollCaptureService scrollCapture(*screenCapturer, inputInjector.get(),
-                                               &settings);
+                                               &settings, &history);
     // 截图热键身兼两职:平时发起截图;长截图拼接中等同点[复制]完成
     QObject::connect(&hotkeys, &pixora::HotkeyService::captureRequested, &capture,
                      [&capture, &scrollCapture] {
@@ -113,6 +118,26 @@ int main(int argc, char* argv[]) {
                          }
                      });
     hotkeys.registerAll();
+
+    QPointer<pixora::HistoryWindow> historyWindow;
+    QObject::connect(&tray, &pixora::TrayService::historyRequested, &tray,
+                     [&history, &settings, &pins, &historyWindow] {
+                         if (historyWindow) {
+                             historyWindow->raise();
+                             historyWindow->activateWindow();
+                             return;
+                         }
+                         historyWindow = new pixora::HistoryWindow(history, &settings);
+                         QObject::connect(historyWindow,
+                                          &pixora::HistoryWindow::pinRequested, &pins,
+                                          [&pins](const QImage& image) {
+                                              pins.pinImage(image,
+                                                            QCursor::pos() + QPoint(20, 20));
+                                          });
+                         historyWindow->show();
+                         historyWindow->raise();
+                         historyWindow->activateWindow();
+                     });
 
     QPointer<pixora::SettingsDialog> settingsDialog;
     QObject::connect(&tray, &pixora::TrayService::settingsRequested, &tray,

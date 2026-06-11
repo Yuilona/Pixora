@@ -3,6 +3,7 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(pixora_tests
     unit/smoke_test.cpp
     unit/settings_test.cpp
+    unit/history_test.cpp
     unit/desktop_snapshot_test.cpp
     unit/selection_handles_test.cpp
     unit/snip_session_test.cpp
@@ -11,6 +12,8 @@ add_executable(pixora_tests
     unit/stitcher_fixture_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/HistoryService.h
+    ${CMAKE_SOURCE_DIR}/src/app/HistoryService.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.h
     ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.h

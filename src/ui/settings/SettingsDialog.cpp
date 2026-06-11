@@ -11,6 +11,7 @@
 #include <QKeySequenceEdit>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QStandardPaths>
 
 namespace pixora {
@@ -47,6 +48,12 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     dirRow->addWidget(browseBtn);
     form->addRow(QStringLiteral("保存目录"), dirRow);
 
+    historyLimitSpin_ = new QSpinBox(this);
+    historyLimitSpin_->setRange(0, 100);
+    historyLimitSpin_->setValue(settings_.historyLimit());
+    historyLimitSpin_->setSpecialValueText(QStringLiteral("关闭"));
+    form->addRow(QStringLiteral("历史保留张数"), historyLimitSpin_);
+
     autoStartCheck_ = new QCheckBox(QStringLiteral("开机自动启动"), this);
     autoStartCheck_->setEnabled(system_ != nullptr);
     autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
@@ -76,6 +83,7 @@ void SettingsDialog::apply() {
         settings_.setHotkeyPinFromClipboard(pinEdit_->keySequence());
     }
     settings_.setOutputDir(outputDirEdit_->text().trimmed());
+    settings_.setHistoryLimit(historyLimitSpin_->value());
     if (system_) {
         system_->setAutoStart(autoStartCheck_->isChecked());
     }

@@ -5,6 +5,7 @@
 class QCheckBox;
 class QKeySequenceEdit;
 class QLineEdit;
+class QSpinBox;
 
 namespace pixora {
 
@@ -31,6 +32,7 @@ private:
     QKeySequenceEdit* captureEdit_ = nullptr;
     QKeySequenceEdit* pinEdit_ = nullptr;
     QLineEdit* outputDirEdit_ = nullptr;
+    QSpinBox* historyLimitSpin_ = nullptr;
     QCheckBox* autoStartCheck_ = nullptr;
 };
 

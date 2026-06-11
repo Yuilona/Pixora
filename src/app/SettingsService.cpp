@@ -9,6 +9,7 @@ namespace keys {
 const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
 const QString outputDir = QStringLiteral("output/dir");
+const QString historyLimit = QStringLiteral("history/limit");
 } // namespace keys
 
 // 默认热键对标 Snipaste:F1 截图、F3 贴图;长截图走截图工具栏,无独立热键。
@@ -51,6 +52,14 @@ QString SettingsService::outputDir() const {
 
 void SettingsService::setOutputDir(const QString& dir) {
     setValue(keys::outputDir, dir);
+}
+
+int SettingsService::historyLimit() const {
+    return value(keys::historyLimit, 20).toInt();
+}
+
+void SettingsService::setHistoryLimit(int count) {
+    setValue(keys::historyLimit, count);
 }
 
 QJsonObject SettingsService::exportToJson() const {

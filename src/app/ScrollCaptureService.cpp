@@ -1,5 +1,6 @@
 #include "app/ScrollCaptureService.h"
 
+#include "app/HistoryService.h"
 #include "platform/interface/InputInjector.h"
 #include "platform/interface/ScreenCapturer.h"
 #include "ui/scroll/RegionIndicator.h"
@@ -34,8 +35,9 @@ int autoScrollDelta(int regionLogicalHeight) {
 ScrollCaptureService::ScrollCaptureService(IScreenCapturer& capturer,
                                            IInputInjector* injector,
                                            const SettingsService* settings,
-                                           QObject* parent)
-    : QObject(parent), capturer_(capturer), injector_(injector), output_(settings) {
+                                           HistoryService* history, QObject* parent)
+    : QObject(parent), capturer_(capturer), injector_(injector), output_(settings),
+      history_(history) {
     timer_.setInterval(kFrameIntervalMs);
     connect(&timer_, &QTimer::timeout, this, &ScrollCaptureService::tick);
 }
@@ -267,6 +269,9 @@ void ScrollCaptureService::finishCapture(Outlet outlet) {
                  result.height(), frames_);
     if (!recordDir_.isEmpty()) {
         result.save(QDir(recordDir_).filePath(QStringLiteral("expected.png")));
+    }
+    if (history_) {
+        history_->record(result);
     }
 
     switch (outlet) {
