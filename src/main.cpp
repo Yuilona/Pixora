@@ -6,6 +6,7 @@
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
 #include "common/Log.h"
+#include "platform/interface/InputInjector.h"
 #include "platform/interface/PlatformFactory.h"
 #include "platform/interface/ScreenCapturer.h"
 #include "platform/interface/SystemIntegration.h"
@@ -69,7 +70,9 @@ int main(int argc, char* argv[]) {
                          spdlog::info("hotkey: capture requested");
                          capture.start();
                      });
-    pixora::ScrollCaptureService scrollCapture(*screenCapturer, windowEnumerator.get());
+    const auto inputInjector = pixora::createInputInjector();
+    pixora::ScrollCaptureService scrollCapture(*screenCapturer, windowEnumerator.get(),
+                                               inputInjector.get());
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::copiedToClipboard,
                      &tray, [&tray](int height) {
                          tray.notify(QStringLiteral("Pixora"),

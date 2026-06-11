@@ -1,6 +1,7 @@
 #include "core/stitch/Stitcher.h"
 
 #include <QImage>
+#include <QPainter>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -86,6 +87,103 @@ TEST_CASE("scrolling back up: slight = NoNewContent, far = MatchFailed", "[stitc
     // 大幅回滚:模板带(上一帧底部)已滚出视野 → 匹配失败
     CHECK(stitcher.append(viewport(content, 50, 300)) ==
           Stitcher::AppendResult::MatchFailed);
+}
+
+namespace {
+
+// 组装带 sticky 头/尾的帧:header + 内容窗口 + footer
+QImage frameWithChrome(const QImage& content, int contentTop, int vp,
+                       const QImage& header, const QImage& footer) {
+    const int headerH = header.isNull() ? 0 : header.height();
+    const int footerH = footer.isNull() ? 0 : footer.height();
+    QImage frame(content.width(), vp, QImage::Format_ARGB32);
+    QPainter p(&frame);
+    if (headerH > 0) {
+        p.drawImage(0, 0, header);
+    }
+    p.drawImage(0, headerH, content, 0, contentTop, content.width(),
+                vp - headerH - footerH);
+    if (footerH > 0) {
+        p.drawImage(0, vp - footerH, footer);
+    }
+    return frame;
+}
+
+} // namespace
+
+TEST_CASE("sticky footer is deduplicated and kept once at bottom", "[stitch]") {
+    const QImage content = makeContent(320, 1500);
+    const QImage footer = makeContent(320, 40, 99);
+    constexpr int vp = 300;
+    constexpr int contentVp = vp - 40; // 260
+
+    Stitcher stitcher;
+    stitcher.begin(frameWithChrome(content, 0, vp, {}, footer));
+    int top = 0;
+    for (int i = 0; i < 6; ++i) {
+        top += 120;
+        REQUIRE(stitcher.append(frameWithChrome(content, top, vp, {}, footer)) ==
+                Stitcher::AppendResult::Appended);
+    }
+
+    const QImage result = stitcher.result();
+    // 成图 = 连续内容 + 底栏一次
+    REQUIRE(result.height() == top + contentVp + 40);
+    CHECK(result.copy(0, 0, 320, top + contentVp) ==
+          content.copy(0, 0, 320, top + contentVp)
+              .convertToFormat(QImage::Format_ARGB32));
+    CHECK(result.copy(0, top + contentVp, 320, 40) ==
+          footer.convertToFormat(QImage::Format_ARGB32));
+}
+
+TEST_CASE("sticky header stays once and does not break matching", "[stitch]") {
+    const QImage content = makeContent(320, 1500);
+    const QImage header = makeContent(320, 40, 77);
+    constexpr int vp = 300;
+    constexpr int contentVp = vp - 40;
+
+    Stitcher stitcher;
+    stitcher.begin(frameWithChrome(content, 0, vp, header, {}));
+    int top = 0;
+    for (int i = 0; i < 6; ++i) {
+        top += 120;
+        REQUIRE(stitcher.append(frameWithChrome(content, top, vp, header, {})) ==
+                Stitcher::AppendResult::Appended);
+    }
+
+    const QImage result = stitcher.result();
+    REQUIRE(result.height() == 40 + top + contentVp);
+    CHECK(result.copy(0, 0, 320, 40) == header.convertToFormat(QImage::Format_ARGB32));
+    CHECK(result.copy(0, 40, 320, top + contentVp) ==
+          content.copy(0, 0, 320, top + contentVp)
+              .convertToFormat(QImage::Format_ARGB32));
+}
+
+TEST_CASE("local animation in one band is outvoted by median", "[stitch]") {
+    const QImage content = makeContent(330, 1200);
+    constexpr int vp = 300;
+    const int noiseX = 330 - 24 - 100; // 噪声区落在右带内(右保护带之外)
+
+    auto frameAt = [&](int top, quint32 animSeed) {
+        QImage frame = content.copy(0, top, 330, vp);
+        QPainter p(&frame);
+        p.drawImage(noiseX, 60, makeContent(100, 180, animSeed)); // 模拟 gif 动画
+        return frame;
+    };
+
+    Stitcher stitcher;
+    stitcher.begin(frameAt(0, 1000));
+    int top = 0;
+    for (int i = 1; i <= 5; ++i) {
+        top += 130;
+        REQUIRE(stitcher.append(frameAt(top, 1000 + static_cast<quint32>(i))) ==
+                Stitcher::AppendResult::Appended);
+    }
+    // 左带未受污染,逐像素验证拼接对齐正确
+    const QImage result = stitcher.result();
+    REQUIRE(result.height() == top + vp);
+    CHECK(result.copy(0, 0, noiseX, top + vp) ==
+          content.copy(0, 0, noiseX, top + vp).convertToFormat(QImage::Format_ARGB32));
 }
 
 TEST_CASE("max canvas height caps growth", "[stitch]") {

@@ -2,6 +2,7 @@
 
 #include "core/capture/DesktopSnapshot.h"
 #include "core/capture/SnipSession.h"
+#include "platform/interface/InputInjector.h"
 #include "platform/interface/ScreenCapturer.h"
 #include "platform/interface/WindowEnumerator.h"
 #include "ui/overlay/OverlayWindow.h"
@@ -16,13 +17,18 @@
 namespace pixora {
 
 namespace {
-constexpr int kFrameIntervalMs = 66; // ~15fps
+constexpr int kFrameIntervalMs = 66;     // ~15fps
+constexpr int kAutoScrollDelta = -360;   // 每步 3 格滚轮
+constexpr int kStableTimeoutMs = 800;    // 稳定等待超时(懒加载兜底)
+constexpr int kAutoFinishStreak = 3;     // 连续无新内容 → 判定到底
+constexpr int kAutoFailStreak = 3;       // 连续匹配失败 → 退回手动
 } // namespace
 
 ScrollCaptureService::ScrollCaptureService(IScreenCapturer& capturer,
                                            IWindowEnumerator* enumerator,
-                                           QObject* parent)
-    : QObject(parent), capturer_(capturer), enumerator_(enumerator) {
+                                           IInputInjector* injector, QObject* parent)
+    : QObject(parent), capturer_(capturer), enumerator_(enumerator),
+      injector_(injector) {
     timer_.setInterval(kFrameIntervalMs);
     connect(&timer_, &QTimer::timeout, this, &ScrollCaptureService::tick);
 }
@@ -87,14 +93,32 @@ void ScrollCaptureService::beginScrollPhase(QRect regionGlobal) {
     lastGrab_ = {};
     frames_ = 0;
 
+    autoMode_ = false;
+    awaitingStable_ = false;
+    noNewStreak_ = 0;
+    failStreak_ = 0;
+    prevTickFrame_ = {};
+
     indicator_ = new RegionIndicator(regionGlobal_);
     indicator_->show();
-    bar_ = new ScrollCaptureBar(regionGlobal_, screen_->virtualGeometry());
+    bar_ = new ScrollCaptureBar(regionGlobal_, screen_->virtualGeometry(),
+                                injector_ != nullptr);
     connect(bar_, &ScrollCaptureBar::finishRequested, this,
             &ScrollCaptureService::finishCapture);
     connect(bar_, &ScrollCaptureBar::cancelRequested, this, [this] {
         spdlog::info("scroll capture cancelled");
         teardownScroll();
+    });
+    connect(bar_, &ScrollCaptureBar::autoToggled, this, [this](bool enabled) {
+        autoMode_ = enabled;
+        awaitingStable_ = false;
+        noNewStreak_ = 0;
+        failStreak_ = 0;
+        spdlog::info("scroll capture auto mode: {}", enabled ? "on" : "off");
+        if (bar_) {
+            bar_->setStatus(enabled ? QStringLiteral("自动滚动中…")
+                                    : QStringLiteral("滚动目标窗口继续拼接…"));
+        }
     });
     bar_->show();
 
@@ -110,31 +134,87 @@ void ScrollCaptureService::tick() {
     if (frame.isNull()) {
         return;
     }
-    if (!lastGrab_.isNull() && frame == lastGrab_) {
-        return; // 画面静止,跳过
-    }
-    lastGrab_ = frame;
 
     if (!stitcher_.active()) {
         stitcher_.begin(frame);
         frames_ = 1;
+        lastGrab_ = frame;
         bar_->setStatus(QStringLiteral("已捕获首帧,滚动目标窗口…"));
+        if (autoMode_ && injector_) {
+            injector_->sendScroll(regionGlobal_.center(), kAutoScrollDelta);
+            awaitingStable_ = true;
+            stableWaitMs_ = 0;
+            prevTickFrame_ = frame;
+        }
         return;
     }
-    switch (stitcher_.append(frame)) {
+
+    if (autoMode_ && injector_) {
+        tickAuto(frame);
+        return;
+    }
+
+    // 手动模式:画面有变化才喂拼接器
+    if (!lastGrab_.isNull() && frame == lastGrab_) {
+        return;
+    }
+    lastGrab_ = frame;
+    handleAppend(stitcher_.append(frame));
+}
+
+// 自动模式:注入滚轮后等待画面稳定(连续两帧一致或超时),再拼接下一步
+void ScrollCaptureService::tickAuto(const QImage& frame) {
+    if (awaitingStable_) {
+        const bool stable = (frame == prevTickFrame_);
+        stableWaitMs_ += kFrameIntervalMs;
+        prevTickFrame_ = frame;
+        if (!stable && stableWaitMs_ < kStableTimeoutMs) {
+            return; // 滚动动画/懒加载未完成
+        }
+        awaitingStable_ = false;
+        handleAppend(stitcher_.append(frame));
+        if (!timer_.isActive()) {
+            return; // handleAppend 内部可能已自动完成
+        }
+    }
+    injector_->sendScroll(regionGlobal_.center(), kAutoScrollDelta);
+    awaitingStable_ = true;
+    stableWaitMs_ = 0;
+    prevTickFrame_ = frame;
+}
+
+void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
+    switch (result) {
     case Stitcher::AppendResult::Appended: {
         ++frames_;
+        noNewStreak_ = 0;
+        failStreak_ = 0;
         const int logicalHeight =
             qRound(stitcher_.resultHeight() / screen_->devicePixelRatio());
-        bar_->setStatus(QStringLiteral("已拼接 %1 px(%2 帧),完成后点[完成]")
+        bar_->setStatus(QStringLiteral("已拼接 %1 px(%2 帧)%3")
                             .arg(logicalHeight)
-                            .arg(frames_));
+                            .arg(frames_)
+                            .arg(autoMode_ ? QStringLiteral(",自动滚动中…")
+                                           : QStringLiteral(",完成后点[完成]")));
         break;
     }
     case Stitcher::AppendResult::NoNewContent:
+        if (autoMode_ && ++noNewStreak_ >= kAutoFinishStreak) {
+            spdlog::info("scroll capture: bottom reached, auto-finishing");
+            finishCapture();
+        }
         break;
     case Stitcher::AppendResult::MatchFailed:
-        bar_->setStatus(QStringLiteral("未能对齐:请往回滚动少许,放慢速度"));
+        if (autoMode_) {
+            if (++failStreak_ >= kAutoFailStreak) {
+                autoMode_ = false;
+                bar_->setAutoChecked(false);
+                bar_->setStatus(
+                    QStringLiteral("自动滚动对齐失败,已切回手动,请手动滚动"));
+            }
+        } else {
+            bar_->setStatus(QStringLiteral("未能对齐:请往回滚动少许,放慢速度"));
+        }
         break;
     }
 }

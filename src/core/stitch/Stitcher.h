@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/stitch/FixedRegionDetector.h"
+
 #include <QImage>
 
 namespace pixora {
@@ -8,10 +10,14 @@ namespace pixora {
 // (NCC, OpenCV matchTemplate)定位垂直偏移,增量拼接到画布
 // (见 ARCHITECTURE §5.3.2)。
 //
+// 鲁棒性:
+// - 三条水平模板带分别匹配,偏移取中位数 → 抵抗局部动画干扰;
+// - 固定区域检测:sticky header 排除出搜索范围(防误匹配),
+//   sticky footer 从增量中裁剪、成图时只在底部保留一次。
+//
 // 纯算法模块:输入帧序列 → 输出长图,不依赖 Qt 事件循环,
 // 便于用合成图像与录制帧序列做回归测试。
 // 输入帧必须同宽同高(物理像素)。
-// M3 第一刀:单模板带;三带中位数与固定区域检测随后续切片。
 class Stitcher {
 public:
     struct Config {
@@ -40,6 +46,8 @@ private:
     QImage canvas_; // 预分配增长式画布(2x 扩容)
     int usedHeight_ = 0;
     QImage lastFrame_;
+    FixedRegionDetector fixedDetector_;
+    bool footerTrimmed_ = false; // 画布尾部的首帧底栏是否已剔除
 };
 
 } // namespace pixora

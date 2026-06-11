@@ -10,6 +10,8 @@ add_executable(pixora_tests
     unit/stitcher_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.h
+    ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.h
     ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.cpp
     ${CMAKE_SOURCE_DIR}/src/core/annotate/AnnotationDocument.h

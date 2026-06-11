@@ -2,6 +2,7 @@
 
 #include "platform/shared/QtScreenCapturer.h"
 #include "platform/windows/WinGlobalHotkey.h"
+#include "platform/windows/WinInputInjector.h"
 #include "platform/windows/WinSystemIntegration.h"
 #include "platform/windows/WinWindowEnumerator.h"
 
@@ -21,6 +22,10 @@ std::unique_ptr<IWindowEnumerator> createWindowEnumerator() {
 
 std::unique_ptr<ISystemIntegration> createSystemIntegration() {
     return std::make_unique<WinSystemIntegration>();
+}
+
+std::unique_ptr<IInputInjector> createInputInjector() {
+    return std::make_unique<WinInputInjector>();
 }
 
 } // namespace pixora

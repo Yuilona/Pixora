@@ -26,6 +26,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/capture/DesktopSnapshot.cpp
     core/capture/SnipSession.h
     core/capture/SnipSession.cpp
+    core/stitch/FixedRegionDetector.h
+    core/stitch/FixedRegionDetector.cpp
     core/stitch/Stitcher.h
     core/stitch/Stitcher.cpp
     ui/editor/AnnotationRenderer.h
@@ -45,6 +47,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/overlay/SelectionHandles.h
     ui/overlay/SelectionHandles.cpp
     platform/interface/GlobalHotkey.h
+    platform/interface/InputInjector.h
     platform/interface/PlatformFactory.h
     platform/interface/PlatformTypes.h
     platform/interface/ScreenCapturer.h
@@ -58,6 +61,8 @@ if(WIN32)
     target_sources(pixora PRIVATE
         platform/windows/WinGlobalHotkey.h
         platform/windows/WinGlobalHotkey.cpp
+        platform/windows/WinInputInjector.h
+        platform/windows/WinInputInjector.cpp
         platform/windows/WinSystemIntegration.h
         platform/windows/WinSystemIntegration.cpp
         platform/windows/WinWindowEnumerator.h
