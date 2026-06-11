@@ -36,7 +36,7 @@ private:
     QToolButton* widthButton_ = nullptr;
     int widthIndex_ = 1; // 0细/1中/2粗
 
-    QTimer tipTimer_; // 悬停 0.6s 后弹提示
+    QTimer tipTimer_; // 悬停 0.2s 后弹提示
     QToolButton* tipButton_ = nullptr;
 };
 

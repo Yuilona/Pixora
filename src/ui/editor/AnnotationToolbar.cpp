@@ -177,7 +177,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     };
 
     tipTimer_.setSingleShot(true);
-    tipTimer_.setInterval(600);
+    tipTimer_.setInterval(200);
     connect(&tipTimer_, &QTimer::timeout, this, [this] {
         if (tipButton_) {
             QToolTip::showText(QCursor::pos() + QPoint(0, 14), tipButton_->toolTip(),
