@@ -9,7 +9,8 @@ namespace pixora {
 class ISystemIntegration;
 
 // 贴图窗:无边框置顶悬浮显示一张图像。
-// 交互:左键拖动移动 / 滚轮缩放(10%–500%)/ Ctrl+滚轮调透明度 /
+// 交互:左键拖动移动 / 边缘与角落拖拽缩放(等比,如普通窗口)/
+// 滚轮缩放(10%–500%)/ Ctrl+滚轮调透明度 /
 // 双击或 Esc 关闭(折叠态双击=展开)/ Space 折叠为小条 /
 // R 旋转 90° / H 水平翻转 / 右键菜单(复制、另存、折叠、旋转、
 // 翻转、点击穿透、关闭)。
@@ -36,6 +37,7 @@ protected:
     void paintEvent(QPaintEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
@@ -44,6 +46,22 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private:
+    // 边缘/角落拖拽缩放(图像定比,缩放统一作用于 scale_)
+    enum class Edge {
+        None,
+        Left,
+        Right,
+        Top,
+        Bottom,
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight
+    };
+    Edge edgeAt(const QPoint& pos) const;
+    Qt::CursorShape cursorForEdge(Edge edge) const;
+    void performResize(const QPoint& globalPos);
+
     QSize scaledSize() const;
     void applyScale(qreal scale);
     void toggleFolded();
@@ -58,6 +76,10 @@ private:
     qreal scale_ = 1.0;
     bool folded_ = false;
     QPoint dragOffset_;
+    bool resizing_ = false;
+    Edge resizeEdge_ = Edge::None;
+    QRect baseGeometry_; // 按下时的窗口几何(锚定对侧用)
+    QPoint pressGlobal_;
 };
 
 } // namespace pixora

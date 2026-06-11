@@ -33,9 +33,99 @@ PinWindow::PinWindow(const QImage& image, const QPoint& topLeftLogical,
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle(QStringLiteral("Pixora 贴图"));
+    setMouseTracking(true); // 边缘热区光标反馈
     rebuildDisplayCache();
     resize(scaledSize());
     move(topLeftLogical);
+}
+
+PinWindow::Edge PinWindow::edgeAt(const QPoint& pos) const {
+    if (folded_) {
+        return Edge::None; // 折叠小条不缩放
+    }
+    constexpr int m = 6; // 边缘热区宽度
+    const bool left = pos.x() <= m;
+    const bool right = pos.x() >= width() - m;
+    const bool top = pos.y() <= m;
+    const bool bottom = pos.y() >= height() - m;
+    if (top && left) return Edge::TopLeft;
+    if (top && right) return Edge::TopRight;
+    if (bottom && left) return Edge::BottomLeft;
+    if (bottom && right) return Edge::BottomRight;
+    if (left) return Edge::Left;
+    if (right) return Edge::Right;
+    if (top) return Edge::Top;
+    if (bottom) return Edge::Bottom;
+    return Edge::None;
+}
+
+Qt::CursorShape PinWindow::cursorForEdge(Edge edge) const {
+    switch (edge) {
+    case Edge::Left:
+    case Edge::Right:
+        return Qt::SizeHorCursor;
+    case Edge::Top:
+    case Edge::Bottom:
+        return Qt::SizeVerCursor;
+    case Edge::TopLeft:
+    case Edge::BottomRight:
+        return Qt::SizeFDiagCursor;
+    case Edge::TopRight:
+    case Edge::BottomLeft:
+        return Qt::SizeBDiagCursor;
+    case Edge::None:
+        break;
+    }
+    return Qt::ArrowCursor;
+}
+
+// 图像定比:任何边/角的拖拽都换算为统一 scale_;
+// 拖左/上侧时锚定对侧边角不动,手感与普通窗口一致。
+void PinWindow::performResize(const QPoint& globalPos) {
+    const QPoint d = globalPos - pressGlobal_;
+    const QSizeF imgLogical = image_.deviceIndependentSize();
+    if (imgLogical.width() < 1 || imgLogical.height() < 1) {
+        return;
+    }
+
+    qreal targetW = baseGeometry_.width();
+    qreal targetH = baseGeometry_.height();
+    const bool hasLeft = resizeEdge_ == Edge::Left || resizeEdge_ == Edge::TopLeft ||
+                         resizeEdge_ == Edge::BottomLeft;
+    const bool hasRight = resizeEdge_ == Edge::Right || resizeEdge_ == Edge::TopRight ||
+                          resizeEdge_ == Edge::BottomRight;
+    const bool hasTop = resizeEdge_ == Edge::Top || resizeEdge_ == Edge::TopLeft ||
+                        resizeEdge_ == Edge::TopRight;
+    const bool hasBottom = resizeEdge_ == Edge::Bottom ||
+                           resizeEdge_ == Edge::BottomLeft ||
+                           resizeEdge_ == Edge::BottomRight;
+    if (hasRight) targetW += d.x();
+    if (hasLeft) targetW -= d.x();
+    if (hasBottom) targetH += d.y();
+    if (hasTop) targetH -= d.y();
+
+    qreal scale = scale_;
+    const bool horizontal = hasLeft || hasRight;
+    const bool vertical = hasTop || hasBottom;
+    if (horizontal && vertical) {
+        scale = std::max(targetW / imgLogical.width(), targetH / imgLogical.height());
+    } else if (horizontal) {
+        scale = targetW / imgLogical.width();
+    } else if (vertical) {
+        scale = targetH / imgLogical.height();
+    }
+    scale_ = std::clamp(scale, kMinScale, kMaxScale);
+
+    const QSize sz = scaledSize();
+    QPoint topLeft = baseGeometry_.topLeft();
+    if (hasLeft) {
+        topLeft.setX(baseGeometry_.right() - sz.width() + 1);
+    }
+    if (hasTop) {
+        topLeft.setY(baseGeometry_.bottom() - sz.height() + 1);
+    }
+    setGeometry(QRect(topLeft, sz));
+    update();
 }
 
 void PinWindow::rebuildDisplayCache() {
@@ -120,14 +210,36 @@ void PinWindow::paintEvent(QPaintEvent* /*event*/) {
 }
 
 void PinWindow::mousePressEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        dragOffset_ = event->globalPosition().toPoint() - frameGeometry().topLeft();
+    if (event->button() != Qt::LeftButton) {
+        return;
     }
+    resizeEdge_ = edgeAt(event->pos());
+    if (resizeEdge_ != Edge::None) {
+        resizing_ = true;
+        baseGeometry_ = geometry();
+        pressGlobal_ = event->globalPosition().toPoint();
+        return;
+    }
+    dragOffset_ = event->globalPosition().toPoint() - frameGeometry().topLeft();
 }
 
 void PinWindow::mouseMoveEvent(QMouseEvent* event) {
     if (event->buttons() & Qt::LeftButton) {
-        move(event->globalPosition().toPoint() - dragOffset_);
+        if (resizing_) {
+            performResize(event->globalPosition().toPoint());
+        } else {
+            move(event->globalPosition().toPoint() - dragOffset_);
+        }
+        return;
+    }
+    setCursor(cursorForEdge(edgeAt(event->pos()))); // 悬停光标反馈
+}
+
+void PinWindow::mouseReleaseEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton && resizing_) {
+        resizing_ = false;
+        resizeEdge_ = Edge::None;
+        emit stateChanged();
     }
 }
 
