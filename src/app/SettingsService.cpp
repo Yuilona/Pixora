@@ -18,7 +18,7 @@ const QString outputQuality = QStringLiteral("output/quality");
 const QString autoSave = QStringLiteral("output/autoSave");
 } // namespace keys
 
-// 默认热键对标 Snipaste:F1 截图、F3 贴图;长截图走截图工具栏,无独立热键。
+// 默认热键取通行键位习惯:F1 截图、F3 贴图;长截图走截图工具栏,无独立热键。
 const QString defaultCaptureRegion = QStringLiteral("F1");
 const QString defaultPinFromClipboard = QStringLiteral("F3");
 

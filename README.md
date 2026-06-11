@@ -5,7 +5,7 @@
 <h1 align="center">Pixora</h1>
 
 <p align="center">
-  截图 · 标注 · 贴图 · <b>长截图</b> —— 对标 Snipaste,并补上它没有的滚动截图
+  截图 · 标注 · 贴图 · <b>长截图</b> —— 轻快顺手的截图工具,把滚动长截图做成一等公民
 </p>
 
 <p align="center">

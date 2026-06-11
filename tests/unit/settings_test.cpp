@@ -8,7 +8,7 @@
 
 using pixora::SettingsService;
 
-TEST_CASE("settings defaults match Snipaste-style hotkeys", "[settings]") {
+TEST_CASE("settings default hotkeys are F1 capture and F3 pin", "[settings]") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     SettingsService s(dir.filePath("test.ini"));

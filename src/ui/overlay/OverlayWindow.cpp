@@ -17,7 +17,7 @@ namespace pixora {
 
 namespace {
 const QColor kMaskColor(0, 0, 0, 120);
-const QColor kBorderColor(45, 124, 246); // Snipaste 风格蓝
+const QColor kBorderColor(45, 124, 246); // 选区主题蓝
 constexpr int kDragThreshold = 4;        // 区分"点击吸附"与"拖拽选区"
 } // namespace
 
