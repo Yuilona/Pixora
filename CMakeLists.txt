@@ -17,6 +17,9 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED) # core + imgproc(拼接模板匹配用)
 
 qt_standard_project_setup()
+# qt_standard_project_setup 只开 AUTOMOC/AUTOUIC;不开 AUTORCC 的话
+# 源列表里的 .qrc 会被静默忽略,资源(托盘/窗口图标)加载失败
+set(CMAKE_AUTORCC ON)
 
 add_subdirectory(src)
 

@@ -2,6 +2,8 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QPixmap>
+#include <QTimer>
 
 #include <spdlog/spdlog.h>
 
@@ -21,7 +23,16 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     menu_.addSeparator();
     menu_.addAction(QStringLiteral("退出"), [] { QCoreApplication::quit(); });
 
-    tray_.setIcon(QIcon(QStringLiteral(":/icons/pixora-256.png")));
+    // QPixmap 立即加载,能探测资源缺失(QIcon 懒加载,isNull 永远为假)
+    const QPixmap pm(QStringLiteral(":/icons/pixora-256.png"));
+    if (pm.isNull()) {
+        spdlog::error("tray icon resource failed to load, using fallback");
+        QPixmap fallback(32, 32);
+        fallback.fill(QColor(0x1E, 0x88, 0xE5));
+        tray_.setIcon(QIcon(fallback));
+    } else {
+        tray_.setIcon(QIcon(pm));
+    }
     tray_.setToolTip(QStringLiteral("Pixora"));
     tray_.setContextMenu(&menu_);
 }
@@ -36,7 +47,13 @@ void TrayService::show() {
         return;
     }
     tray_.show();
-    spdlog::info("tray icon shown");
+    spdlog::info("tray icon shown (visible: {})", tray_.isVisible());
+    // 注册是异步落位的,延迟读几何:空几何 = Explorer 没接纳图标
+    QTimer::singleShot(2000, this, [this] {
+        const QRect g = tray_.geometry();
+        spdlog::info("tray icon geometry after 2s: {}x{} at ({},{}), visible: {}",
+                     g.width(), g.height(), g.x(), g.y(), tray_.isVisible());
+    });
 }
 
 } // namespace pixora
