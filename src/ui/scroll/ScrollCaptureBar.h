@@ -20,7 +20,9 @@ public:
 
 signals:
     void autoToggled(bool enabled);
-    void finishRequested();
+    void finishRequested();      // 复制(默认出口)
+    void finishPinRequested();   // 贴图
+    void finishSaveRequested();  // 另存
     void cancelRequested();
 
 private:

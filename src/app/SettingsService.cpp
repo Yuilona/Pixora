@@ -9,6 +9,7 @@ namespace keys {
 const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
 const QString hotkeyScrollCapture = QStringLiteral("hotkeys/scrollCapture");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
+const QString outputDir = QStringLiteral("output/dir");
 } // namespace keys
 
 // 默认热键对标 Snipaste:F1 截图、F3 贴图;F2 为长截图。
@@ -52,6 +53,14 @@ void SettingsService::setHotkeyScrollCapture(const QKeySequence& seq) {
 
 void SettingsService::setHotkeyPinFromClipboard(const QKeySequence& seq) {
     setValue(keys::hotkeyPinFromClipboard, seq.toString(QKeySequence::PortableText));
+}
+
+QString SettingsService::outputDir() const {
+    return value(keys::outputDir, QString()).toString();
+}
+
+void SettingsService::setOutputDir(const QString& dir) {
+    setValue(keys::outputDir, dir);
 }
 
 QJsonObject SettingsService::exportToJson() const {

@@ -7,8 +7,13 @@ namespace pixora {
 
 SnipSession::SnipSession(DesktopSnapshot snapshot, QObject* parent)
     : QObject(parent), snapshot_(std::move(snapshot)) {
-    connect(&document_, &AnnotationDocument::changed, this,
-            &SnipSession::annotationsChanged);
+    connect(&document_, &AnnotationDocument::changed, this, [this] {
+        // 撤销/重做可能使选中索引失效
+        if (selectedAnnotation_ >= static_cast<int>(document_.items().size())) {
+            selectedAnnotation_ = -1;
+        }
+        emit annotationsChanged();
+    });
 }
 
 bool SnipSession::hasSelection() const {
@@ -135,6 +140,49 @@ void SnipSession::updateAnnotation(const QPoint& globalPos) {
         break;
     }
     emit annotationsChanged();
+}
+
+bool SnipSession::selectAnnotationAt(const QPoint& globalPos) {
+    const auto& items = document_.items();
+    for (int i = static_cast<int>(items.size()) - 1; i >= 0; --i) { // 顶层优先
+        if (items[static_cast<size_t>(i)]->hitTest(globalPos)) {
+            if (selectedAnnotation_ != i) {
+                selectedAnnotation_ = i;
+                emit annotationsChanged();
+            }
+            return true;
+        }
+    }
+    clearAnnotationSelection();
+    return false;
+}
+
+void SnipSession::clearAnnotationSelection() {
+    if (selectedAnnotation_ != -1) {
+        selectedAnnotation_ = -1;
+        emit annotationsChanged();
+    }
+}
+
+void SnipSession::moveSelectedAnnotation(const QPoint& delta) {
+    if (selectedAnnotation_ < 0 || delta.isNull()) {
+        return;
+    }
+    document_.items()[static_cast<size_t>(selectedAnnotation_)]->translate(delta);
+    emit annotationsChanged();
+}
+
+void SnipSession::commitSelectedAnnotationMove(const QPoint& totalDelta) {
+    document_.pushMoveItem(selectedAnnotation_, totalDelta);
+}
+
+void SnipSession::deleteSelectedAnnotation() {
+    if (selectedAnnotation_ < 0) {
+        return;
+    }
+    const int index = selectedAnnotation_;
+    selectedAnnotation_ = -1;
+    document_.pushRemoveItem(index);
 }
 
 void SnipSession::endAnnotation() {

@@ -17,8 +17,8 @@
 namespace pixora {
 
 CaptureService::CaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
-                               QObject* parent)
-    : QObject(parent), capturer_(capturer), enumerator_(enumerator) {}
+                               const SettingsService* settings, QObject* parent)
+    : QObject(parent), capturer_(capturer), enumerator_(enumerator), output_(settings) {}
 
 CaptureService::~CaptureService() {
     teardown();

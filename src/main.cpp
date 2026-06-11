@@ -6,6 +6,7 @@
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
 #include "common/Log.h"
+#include "ui/settings/SettingsDialog.h"
 #include "platform/interface/InputInjector.h"
 #include "platform/interface/PlatformFactory.h"
 #include "platform/interface/ScreenCapturer.h"
@@ -13,6 +14,8 @@
 #include "platform/interface/WindowEnumerator.h"
 
 #include <QApplication>
+#include <QIcon>
+#include <QPointer>
 
 #include <spdlog/spdlog.h>
 
@@ -21,6 +24,7 @@ int main(int argc, char* argv[]) {
     QApplication::setOrganizationName(QStringLiteral("Pixora"));
     QApplication::setApplicationName(QStringLiteral("Pixora"));
     QApplication::setApplicationVersion(QStringLiteral(PIXORA_VERSION));
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/pixora-256.png")));
     app.setQuitOnLastWindowClosed(false);
 
     pixora::initLogging();
@@ -43,7 +47,7 @@ int main(int argc, char* argv[]) {
 
     const auto screenCapturer = pixora::createScreenCapturer();
     const auto windowEnumerator = pixora::createWindowEnumerator();
-    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get());
+    pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(), &settings);
     QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
         tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图已复制到剪贴板"));
     });
@@ -72,11 +76,18 @@ int main(int argc, char* argv[]) {
                      });
     const auto inputInjector = pixora::createInputInjector();
     pixora::ScrollCaptureService scrollCapture(*screenCapturer, windowEnumerator.get(),
-                                               inputInjector.get());
+                                               inputInjector.get(), &settings);
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::copiedToClipboard,
                      &tray, [&tray](int height) {
                          tray.notify(QStringLiteral("Pixora"),
                                      QStringLiteral("长截图已复制(高 %1 px)").arg(height));
+                     });
+    QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::pinCaptured, &pins,
+                     &pixora::PinService::pinImage);
+    QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::savedToFile, &tray,
+                     [&tray](const QString& path) {
+                         tray.notify(QStringLiteral("Pixora"),
+                                     QStringLiteral("长截图已保存:%1").arg(path));
                      });
     QObject::connect(&hotkeys, &pixora::HotkeyService::scrollCaptureRequested,
                      &scrollCapture, [&scrollCapture] {
@@ -92,6 +103,24 @@ int main(int argc, char* argv[]) {
                          }
                      });
     hotkeys.registerAll();
+
+    QPointer<pixora::SettingsDialog> settingsDialog;
+    QObject::connect(&tray, &pixora::TrayService::settingsRequested, &tray,
+                     [&settings, &hotkeys, &systemIntegration, &settingsDialog] {
+                         if (settingsDialog) {
+                             settingsDialog->raise();
+                             settingsDialog->activateWindow();
+                             return;
+                         }
+                         settingsDialog = new pixora::SettingsDialog(
+                             settings, systemIntegration.get());
+                         QObject::connect(settingsDialog,
+                                          &pixora::SettingsDialog::applied, &hotkeys,
+                                          &pixora::HotkeyService::reregisterAll);
+                         settingsDialog->show();
+                         settingsDialog->raise();
+                         settingsDialog->activateWindow();
+                     });
 
     const int rc = QApplication::exec();
     spdlog::info("Pixora exiting with code {}", rc);

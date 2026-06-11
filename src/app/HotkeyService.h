@@ -17,6 +17,7 @@ public:
                   QObject* parent = nullptr);
 
     void registerAll();
+    void reregisterAll(); // 设置变更后重新注册
 
 signals:
     void captureRequested();

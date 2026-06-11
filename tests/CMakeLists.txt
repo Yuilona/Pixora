@@ -8,6 +8,7 @@ add_executable(pixora_tests
     unit/snip_session_test.cpp
     unit/annotation_document_test.cpp
     unit/stitcher_test.cpp
+    unit/stitcher_fixture_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.h
@@ -25,6 +26,10 @@ add_executable(pixora_tests
 )
 
 target_include_directories(pixora_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+target_compile_definitions(pixora_tests PRIVATE
+    PIXORA_FIXTURES_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures"
+)
 
 target_link_libraries(pixora_tests PRIVATE
     Catch2::Catch2WithMain

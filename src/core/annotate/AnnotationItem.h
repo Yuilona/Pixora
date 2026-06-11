@@ -24,6 +24,12 @@ public:
     const StrokeStyle& style() const { return style_; }
 
     virtual QRect bounds() const = 0;
+    virtual void translate(const QPoint& delta) = 0;
+
+    // 选中命中测试(包围盒外扩 margin);后续可按条目类型精化
+    virtual bool hitTest(const QPoint& pos, int margin = 4) const {
+        return bounds().adjusted(-margin, -margin, margin, margin).contains(pos);
+    }
 
 private:
     AnnotationTool tool_;
@@ -37,6 +43,7 @@ public:
         : AnnotationItem(tool, style), rect(rect) {}
 
     QRect bounds() const override { return rect.normalized(); }
+    void translate(const QPoint& delta) override { rect.translate(delta); }
 
     QRect rect;
 };
@@ -51,6 +58,10 @@ public:
         return QRect(QPoint(std::min(from.x(), to.x()), std::min(from.y(), to.y())),
                      QPoint(std::max(from.x(), to.x()), std::max(from.y(), to.y())));
     }
+    void translate(const QPoint& delta) override {
+        from += delta;
+        to += delta;
+    }
 
     QPoint from;
     QPoint to;
@@ -63,6 +74,7 @@ public:
         : AnnotationItem(tool, style), points(points) {}
 
     QRect bounds() const override { return points.boundingRect(); }
+    void translate(const QPoint& delta) override { points.translate(delta); }
 
     QPolygon points;
 };
@@ -77,6 +89,7 @@ public:
         const int h = textPixelSizeFor(style());
         return QRect(pos, QSize(std::max(1, int(text.size()) * h), h + h / 2));
     }
+    void translate(const QPoint& delta) override { pos += delta; }
 
     QPoint pos; // 文本框左上角
     QString text;
@@ -91,6 +104,7 @@ public:
         const int r = badgeRadiusFor(style());
         return QRect(center - QPoint(r, r), QSize(2 * r, 2 * r));
     }
+    void translate(const QPoint& delta) override { center += delta; }
 
     QPoint center;
     int number;

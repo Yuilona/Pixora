@@ -9,6 +9,8 @@
 #include "ui/scroll/RegionIndicator.h"
 #include "ui/scroll/ScrollCaptureBar.h"
 
+#include <QDateTime>
+#include <QDir>
 #include <QGuiApplication>
 #include <QScreen>
 
@@ -35,9 +37,11 @@ int autoScrollDelta(int regionLogicalHeight) {
 
 ScrollCaptureService::ScrollCaptureService(IScreenCapturer& capturer,
                                            IWindowEnumerator* enumerator,
-                                           IInputInjector* injector, QObject* parent)
+                                           IInputInjector* injector,
+                                           const SettingsService* settings,
+                                           QObject* parent)
     : QObject(parent), capturer_(capturer), enumerator_(enumerator),
-      injector_(injector) {
+      injector_(injector), output_(settings) {
     timer_.setInterval(kFrameIntervalMs);
     connect(&timer_, &QTimer::timeout, this, &ScrollCaptureService::tick);
 }
@@ -104,16 +108,32 @@ void ScrollCaptureService::beginScrollPhase(QRect regionGlobal) {
 
     autoMode_ = false;
     awaitingStable_ = false;
+    driver_ = Driver::Wheel;
     noNewStreak_ = 0;
     failStreak_ = 0;
     prevTickFrame_ = {};
+
+    recordDir_.clear();
+    recordIndex_ = 0;
+    const QString recordRoot = qEnvironmentVariable("PIXORA_RECORD_FRAMES");
+    if (!recordRoot.isEmpty()) {
+        recordDir_ = QDir(recordRoot).filePath(
+            QStringLiteral("case_%1").arg(QDateTime::currentDateTime().toString(
+                QStringLiteral("yyyyMMdd_HHmmss"))));
+        QDir().mkpath(recordDir_);
+        spdlog::info("recording scroll frames to {}", recordDir_.toStdString());
+    }
 
     indicator_ = new RegionIndicator(regionGlobal_);
     indicator_->show();
     bar_ = new ScrollCaptureBar(regionGlobal_, screen_->virtualGeometry(),
                                 injector_ != nullptr);
     connect(bar_, &ScrollCaptureBar::finishRequested, this,
-            &ScrollCaptureService::finishCapture);
+            [this] { finishCapture(Outlet::Copy); });
+    connect(bar_, &ScrollCaptureBar::finishPinRequested, this,
+            [this] { finishCapture(Outlet::Pin); });
+    connect(bar_, &ScrollCaptureBar::finishSaveRequested, this,
+            [this] { finishCapture(Outlet::Save); });
     connect(bar_, &ScrollCaptureBar::cancelRequested, this, [this] {
         spdlog::info("scroll capture cancelled");
         teardownScroll();
@@ -122,6 +142,7 @@ void ScrollCaptureService::beginScrollPhase(QRect regionGlobal) {
         autoMode_ = enabled;
         awaitingStable_ = false;
         sinceInjectMs_ = kAutoStepIntervalMs; // 开关切换后立即可注入
+        driver_ = Driver::Wheel;
         noNewStreak_ = 0;
         failStreak_ = 0;
         spdlog::info("scroll capture auto mode: {}", enabled ? "on" : "off");
@@ -149,10 +170,10 @@ void ScrollCaptureService::tick() {
         stitcher_.begin(frame);
         frames_ = 1;
         lastGrab_ = frame;
+        recordFrame(frame);
         bar_->setStatus(QStringLiteral("已捕获首帧,滚动目标窗口…"));
         if (autoMode_ && injector_) {
-            injector_->sendScroll(regionGlobal_.center(),
-                                  autoScrollDelta(regionGlobal_.height()));
+            injectStep();
             awaitingStable_ = true;
             stableWaitMs_ = 0;
             sinceInjectMs_ = 0;
@@ -171,7 +192,16 @@ void ScrollCaptureService::tick() {
         return;
     }
     lastGrab_ = frame;
+    recordFrame(frame);
     handleAppend(stitcher_.append(frame));
+}
+
+void ScrollCaptureService::recordFrame(const QImage& frame) {
+    if (recordDir_.isEmpty()) {
+        return;
+    }
+    frame.save(QDir(recordDir_).filePath(
+        QStringLiteral("frame_%1.png").arg(recordIndex_++, 4, 10, QLatin1Char('0'))));
 }
 
 // 自动模式:注入滚轮 → 等画面稳定(连续两帧一致或超时)→ 拼接 →
@@ -187,6 +217,7 @@ void ScrollCaptureService::tickAuto(const QImage& frame) {
             return; // 滚动动画/懒加载未完成
         }
         awaitingStable_ = false;
+        recordFrame(frame);
         handleAppend(stitcher_.append(frame));
         if (!timer_.isActive()) {
             return; // handleAppend 内部可能已自动完成
@@ -195,12 +226,20 @@ void ScrollCaptureService::tickAuto(const QImage& frame) {
     if (sinceInjectMs_ < kAutoStepIntervalMs) {
         return; // 节奏限制,避免滚动过快
     }
-    injector_->sendScroll(regionGlobal_.center(),
-                          autoScrollDelta(regionGlobal_.height()));
+    injectStep();
     awaitingStable_ = true;
     stableWaitMs_ = 0;
     sinceInjectMs_ = 0;
     prevTickFrame_ = frame;
+}
+
+void ScrollCaptureService::injectStep() {
+    if (driver_ == Driver::Wheel) {
+        injector_->sendScroll(regionGlobal_.center(),
+                              autoScrollDelta(regionGlobal_.height()));
+    } else {
+        injector_->sendKey(regionGlobal_.center(), Qt::Key_PageDown);
+    }
 }
 
 void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
@@ -219,7 +258,19 @@ void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
         break;
     }
     case Stitcher::AppendResult::NoNewContent:
-        if (autoMode_ && ++noNewStreak_ >= kAutoFinishStreak) {
+        if (!autoMode_) {
+            break;
+        }
+        ++noNewStreak_;
+        // 起步阶段滚轮注入毫无位移 → 该应用不吃滚轮消息,切 PageDown 驱动
+        if (driver_ == Driver::Wheel && frames_ <= 1 && noNewStreak_ >= 2) {
+            driver_ = Driver::PageDown;
+            noNewStreak_ = 0;
+            spdlog::info("scroll capture: wheel ineffective, switching to PageDown");
+            bar_->setStatus(QStringLiteral("滚轮无效,已改用 PageDown 驱动…"));
+            break;
+        }
+        if (noNewStreak_ >= kAutoFinishStreak) {
             spdlog::info("scroll capture: bottom reached, auto-finishing");
             finishCapture();
         }
@@ -239,20 +290,39 @@ void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
     }
 }
 
-void ScrollCaptureService::finishCapture() {
+void ScrollCaptureService::finishCapture(Outlet outlet) {
     timer_.stop();
     QImage result = stitcher_.result();
     const qreal dpr = screen_ ? screen_->devicePixelRatio() : 1.0;
+    const QPoint regionTopLeft = regionGlobal_.topLeft();
     teardownScroll();
     if (result.isNull()) {
         spdlog::info("scroll capture finished with no content");
         return;
     }
     result.setDevicePixelRatio(dpr);
-    output_.copyToClipboard(result);
-    emit copiedToClipboard(qRound(result.height() / dpr));
     spdlog::info("scroll capture finished: {}x{} px, {} frames", result.width(),
                  result.height(), frames_);
+    if (!recordDir_.isEmpty()) {
+        result.save(QDir(recordDir_).filePath(QStringLiteral("expected.png")));
+    }
+
+    switch (outlet) {
+    case Outlet::Copy:
+        output_.copyToClipboard(result);
+        emit copiedToClipboard(qRound(result.height() / dpr));
+        break;
+    case Outlet::Pin:
+        emit pinCaptured(result, regionTopLeft); // 贴在原捕获区位置
+        break;
+    case Outlet::Save: {
+        const QString path = output_.saveWithDialog(result);
+        if (!path.isEmpty()) {
+            emit savedToFile(path);
+        }
+        break;
+    }
+    }
 }
 
 void ScrollCaptureService::teardownSelection() {

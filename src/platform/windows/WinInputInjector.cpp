@@ -23,4 +23,29 @@ bool WinInputInjector::sendScroll(const QPoint& globalLogical, int deltaY) {
     return ::PostMessageW(hwnd, WM_MOUSEWHEEL, wParam, lParam) != 0;
 }
 
+bool WinInputInjector::sendKey(const QPoint& globalLogical, Qt::Key key) {
+    UINT vk = 0;
+    switch (key) {
+    case Qt::Key_PageDown:
+        vk = VK_NEXT;
+        break;
+    case Qt::Key_PageUp:
+        vk = VK_PRIOR;
+        break;
+    case Qt::Key_End:
+        vk = VK_END;
+        break;
+    default:
+        return false;
+    }
+    const QPoint phys = wincoord::logicalToPhysical(globalLogical);
+    HWND hwnd = ::WindowFromPoint(POINT{phys.x(), phys.y()});
+    if (!hwnd) {
+        return false;
+    }
+    ::PostMessageW(hwnd, WM_KEYDOWN, vk, 0);
+    ::PostMessageW(hwnd, WM_KEYUP, vk, LPARAM(1) << 30 | LPARAM(1) << 31);
+    return true;
+}
+
 } // namespace pixora

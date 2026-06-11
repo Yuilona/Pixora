@@ -21,6 +21,7 @@ class IWindowEnumerator;
 class OverlayWindow;
 class RegionIndicator;
 class ScrollCaptureBar;
+class SettingsService;
 class SnipSession;
 
 // 长截图编排(见 ARCHITECTURE §5.3.1):
@@ -35,20 +36,25 @@ class ScrollCaptureService : public QObject {
     Q_OBJECT
 public:
     ScrollCaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
-                         IInputInjector* injector, QObject* parent = nullptr);
+                         IInputInjector* injector, const SettingsService* settings,
+                         QObject* parent = nullptr);
     ~ScrollCaptureService() override;
 
     void start();
 
+    enum class Outlet { Copy, Pin, Save };
+
 signals:
     void copiedToClipboard(int logicalHeight);
+    void pinCaptured(const QImage& image, const QPoint& topLeftLogical);
+    void savedToFile(const QString& path);
 
 private:
     void beginScrollPhase(QRect regionGlobal);
     void tick();
     void tickAuto(const QImage& frame);
     void handleAppend(Stitcher::AppendResult result);
-    void finishCapture();
+    void finishCapture(Outlet outlet = Outlet::Copy);
     void teardownSelection();
     void teardownScroll();
 
@@ -71,7 +77,16 @@ private:
     RegionIndicator* indicator_ = nullptr;
     ScrollCaptureBar* bar_ = nullptr;
 
+    // 录帧(回归样本采集):PIXORA_RECORD_FRAMES=目录 时,把每个
+    // 喂给拼接器的帧和最终成图存盘,直接作为 tests/fixtures 用例
+    QString recordDir_;
+    int recordIndex_ = 0;
+    void recordFrame(const QImage& frame);
+
     // 自动模式状态
+    enum class Driver { Wheel, PageDown }; // 滚轮无效时自动切 PageDown
+    Driver driver_ = Driver::Wheel;
+    void injectStep();
     bool autoMode_ = false;
     bool awaitingStable_ = false; // 已注入滚轮,等待画面稳定
     int stableWaitMs_ = 0;

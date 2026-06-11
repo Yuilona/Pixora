@@ -1,5 +1,7 @@
 #include "app/OutputService.h"
 
+#include "app/SettingsService.h"
+
 #include <QClipboard>
 #include <QDateTime>
 #include <QDir>
@@ -11,14 +13,18 @@
 
 namespace pixora {
 
+OutputService::OutputService(const SettingsService* settings) : settings_(settings) {}
+
 void OutputService::copyToClipboard(const QImage& image) {
     QGuiApplication::clipboard()->setImage(image);
     spdlog::info("copied {}x{} image to clipboard", image.width(), image.height());
 }
 
 QString OutputService::suggestedFileName() const {
-    const QString dir =
-        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    QString dir = settings_ ? settings_->outputDir() : QString();
+    if (dir.isEmpty() || !QDir(dir).exists()) {
+        dir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    }
     const QString name = QStringLiteral("Pixora_%1.png")
                              .arg(QDateTime::currentDateTime().toString(
                                  QStringLiteral("yyyyMMdd_HHmmss")));

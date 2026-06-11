@@ -9,6 +9,7 @@ namespace pixora {
 class WinInputInjector : public IInputInjector {
 public:
     bool sendScroll(const QPoint& globalLogical, int deltaY) override;
+    bool sendKey(const QPoint& globalLogical, Qt::Key key) override;
 };
 
 } // namespace pixora

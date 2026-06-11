@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/pixora-256.png</file>
+    </qresource>
+</RCC>

@@ -80,6 +80,18 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
         if (const AnnotationItem* pending = session_.pendingAnnotation()) {
             AnnotationRenderer::renderItem(painter, *pending, &session_.snapshot());
         }
+        // 选中条目:虚线高亮框
+        const int selIdx = session_.selectedAnnotation();
+        if (selIdx >= 0 && selIdx < static_cast<int>(session_.document().items().size())) {
+            const QRect b = session_.document()
+                                .items()[static_cast<size_t>(selIdx)]
+                                ->bounds()
+                                .adjusted(-4, -4, 4, 4);
+            QPen dash(Qt::white, 1, Qt::DashLine);
+            painter.setPen(dash);
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRect(b);
+        }
         painter.restore();
     }
 
@@ -150,6 +162,13 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
         const SelectionHandles::Hit hit =
             SelectionHandles::hitTest(selectionLocal(), event->pos());
         if (hit == SelectionHandles::Hit::Inside) {
+            // 先尝试命中已有标注条目(顶层优先),否则移动选区
+            if (session_.selectAnnotationAt(pressGlobal_)) {
+                mode_ = Mode::DraggingItem;
+                lastDragGlobal_ = pressGlobal_;
+                itemDragTotal_ = QPoint();
+                return;
+            }
             mode_ = Mode::Moving;
             baseSelection_ = session_.selection();
             grabOffset_ = pressGlobal_ - baseSelection_.topLeft();
@@ -198,6 +217,13 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
     case Mode::Drawing:
         session_.updateAnnotation(global);
         break;
+    case Mode::DraggingItem: {
+        const QPoint delta = global - lastDragGlobal_;
+        session_.moveSelectedAnnotation(delta);
+        itemDragTotal_ += delta;
+        lastDragGlobal_ = global;
+        break;
+    }
     case Mode::Idle:
         if (session_.hasSelection()) {
             if (!session_.activeTool()) {
@@ -218,6 +244,11 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
     }
     if (mode_ == Mode::Drawing) {
         session_.endAnnotation();
+        mode_ = Mode::Idle;
+        return;
+    }
+    if (mode_ == Mode::DraggingItem) {
+        session_.commitSelectedAnnotationMove(itemDragTotal_);
         mode_ = Mode::Idle;
         return;
     }
@@ -299,12 +330,18 @@ bool OverlayWindow::eventFilter(QObject* watched, QEvent* event) {
 void OverlayWindow::keyPressEvent(QKeyEvent* event) {
     switch (event->key()) {
     case Qt::Key_Escape:
-        // 有激活的标注工具时先退出工具,再按才取消会话
+        // 分层退出:标注工具 → 条目选中 → 取消会话
         if (session_.activeTool()) {
             session_.setActiveTool(std::nullopt);
+        } else if (session_.selectedAnnotation() >= 0) {
+            session_.clearAnnotationSelection();
         } else {
             session_.cancel();
         }
+        break;
+    case Qt::Key_Delete:
+    case Qt::Key_Backspace:
+        session_.deleteSelectedAnnotation();
         break;
     case Qt::Key_Return:
     case Qt::Key_Enter:

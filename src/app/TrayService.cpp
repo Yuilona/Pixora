@@ -2,7 +2,6 @@
 
 #include <QApplication>
 #include <QCoreApplication>
-#include <QStyle>
 
 #include <spdlog/spdlog.h>
 
@@ -17,10 +16,11 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     menu_.addAction(QStringLiteral("关闭所有贴图"), this,
                     [this] { emit closeAllPinsRequested(); });
     menu_.addSeparator();
+    menu_.addAction(QStringLiteral("设置…"), this, [this] { emit settingsRequested(); });
+    menu_.addSeparator();
     menu_.addAction(QStringLiteral("退出"), [] { QCoreApplication::quit(); });
 
-    // M0 暂用系统标准图标,正式图标随 resources/ 在后续里程碑加入。
-    tray_.setIcon(QApplication::style()->standardIcon(QStyle::SP_ComputerIcon));
+    tray_.setIcon(QIcon(QStringLiteral(":/icons/pixora-256.png")));
     tray_.setToolTip(QStringLiteral("Pixora"));
     tray_.setContextMenu(&menu_);
 }

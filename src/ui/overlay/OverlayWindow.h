@@ -35,7 +35,7 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    enum class Mode { Idle, Creating, Moving, Resizing, Drawing };
+    enum class Mode { Idle, Creating, Moving, Resizing, Drawing, DraggingItem };
 
     QRect selectionLocal() const;
     QRect toLocal(const QRect& globalRect) const;
@@ -59,6 +59,8 @@ private:
     bool hasCursor_ = false;
     QLineEdit* textEditor_ = nullptr;
     QPoint textPosGlobal_;
+    QPoint lastDragGlobal_; // 条目拖动:上一移动点(增量)与累计位移
+    QPoint itemDragTotal_;
 };
 
 } // namespace pixora

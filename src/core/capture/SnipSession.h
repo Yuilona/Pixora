@@ -55,6 +55,14 @@ public:
     void endAnnotation(); // 提交至撤销栈
     const AnnotationItem* pendingAnnotation() const { return pending_.get(); }
 
+    // —— 已有条目的选中/移动/删除(无激活工具时)——
+    int selectedAnnotation() const { return selectedAnnotation_; } // -1 = 未选中
+    bool selectAnnotationAt(const QPoint& globalPos); // 顶层优先;未命中则清除选中
+    void clearAnnotationSelection();
+    void moveSelectedAnnotation(const QPoint& delta);          // 拖动中实时应用
+    void commitSelectedAnnotationMove(const QPoint& totalDelta); // 松开后入撤销栈
+    void deleteSelectedAnnotation();
+
 signals:
     void selectionChanged(const QRect& rect);
     void hoverChanged(const QRect& rect);
@@ -76,6 +84,7 @@ private:
     std::optional<AnnotationTool> tool_;
     StrokeStyle style_;
     std::unique_ptr<AnnotationItem> pending_;
+    int selectedAnnotation_ = -1;
 };
 
 } // namespace pixora

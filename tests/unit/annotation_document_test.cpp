@@ -59,6 +59,36 @@ TEST_CASE("undo branch is discarded after new edit", "[annotate]") {
     CHECK_FALSE(doc.undoStack().canRedo());
 }
 
+TEST_CASE("remove item is undoable and restores position in z-order", "[annotate]") {
+    AnnotationDocument doc;
+    doc.pushAddItem(makeRect(0));
+    doc.pushAddItem(makeRect(100));
+    doc.pushAddItem(makeRect(200));
+
+    doc.pushRemoveItem(1);
+    REQUIRE(doc.items().size() == 2);
+    CHECK(doc.items()[1]->bounds() == QRect(200, 0, 10, 10));
+
+    doc.undoStack().undo();
+    REQUIRE(doc.items().size() == 3);
+    CHECK(doc.items()[1]->bounds() == QRect(100, 0, 10, 10));
+}
+
+TEST_CASE("move command: first redo is a no-op, undo/redo apply delta", "[annotate]") {
+    AnnotationDocument doc;
+    doc.pushAddItem(makeRect(0));
+
+    // UI 在拖动中已实时位移
+    doc.items()[0]->translate(QPoint(30, 40));
+    doc.pushMoveItem(0, QPoint(30, 40));
+    CHECK(doc.items()[0]->bounds() == QRect(30, 40, 10, 10)); // push 不重复应用
+
+    doc.undoStack().undo();
+    CHECK(doc.items()[0]->bounds() == QRect(0, 0, 10, 10));
+    doc.undoStack().redo();
+    CHECK(doc.items()[0]->bounds() == QRect(30, 40, 10, 10));
+}
+
 TEST_CASE("item bounds reflect geometry", "[annotate]") {
     const ArrowItem arrow(StrokeStyle{}, QPoint(50, 50), QPoint(10, 20));
     CHECK(arrow.bounds() == QRect(QPoint(10, 20), QPoint(50, 50)).normalized());

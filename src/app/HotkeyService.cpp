@@ -27,6 +27,13 @@ HotkeyService::HotkeyService(SettingsService& settings, IGlobalHotkey* backend,
     });
 }
 
+void HotkeyService::reregisterAll() {
+    if (backend_) {
+        backend_->unregisterAll();
+    }
+    registerAll();
+}
+
 void HotkeyService::registerAll() {
     if (!backend_) {
         spdlog::info("global hotkeys not available on this platform");

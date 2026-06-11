@@ -19,6 +19,7 @@ public:
 signals:
     void captureRequested();
     void closeAllPinsRequested();
+    void settingsRequested();
 
 private:
     QSystemTrayIcon tray_;

@@ -23,6 +23,10 @@ public:
     void setHotkeyScrollCapture(const QKeySequence& seq);
     void setHotkeyPinFromClipboard(const QKeySequence& seq);
 
+    // 截图保存目录;空串表示使用系统图片目录
+    QString outputDir() const;
+    void setOutputDir(const QString& dir);
+
     QJsonObject exportToJson() const;
     void importFromJson(const QJsonObject& json);
 

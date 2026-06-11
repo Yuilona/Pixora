@@ -14,6 +14,7 @@ class AnnotationToolbar;
 class IScreenCapturer;
 class IWindowEnumerator;
 class OverlayWindow;
+class SettingsService;
 class SnipSession;
 
 // 截图编排:热键/托盘触发 → 冻结全部屏幕 → 每屏遮罩窗 →
@@ -23,7 +24,7 @@ class CaptureService : public QObject {
     Q_OBJECT
 public:
     CaptureService(IScreenCapturer& capturer, IWindowEnumerator* enumerator,
-                   QObject* parent = nullptr);
+                   const SettingsService* settings, QObject* parent = nullptr);
     ~CaptureService() override;
 
     void start();

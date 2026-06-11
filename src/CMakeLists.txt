@@ -1,4 +1,5 @@
 qt_add_executable(pixora WIN32 MACOSX_BUNDLE
+    ${CMAKE_SOURCE_DIR}/resources/pixora.qrc
     main.cpp
     common/Log.h
     common/Log.cpp
@@ -38,6 +39,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/pin/PinWindow.cpp
     ui/scroll/RegionIndicator.h
     ui/scroll/RegionIndicator.cpp
+    ui/settings/SettingsDialog.h
+    ui/settings/SettingsDialog.cpp
     ui/scroll/ScrollCaptureBar.h
     ui/scroll/ScrollCaptureBar.cpp
     ui/overlay/Magnifier.h
@@ -59,6 +62,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
 
 if(WIN32)
     target_sources(pixora PRIVATE
+        ${CMAKE_SOURCE_DIR}/resources/windows/pixora.rc
         platform/windows/WinCoordinates.h
         platform/windows/WinCoordinates.cpp
         platform/windows/WinGlobalHotkey.h

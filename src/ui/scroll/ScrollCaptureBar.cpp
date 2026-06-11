@@ -36,15 +36,16 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
         layout->addWidget(autoBtn_);
     }
 
-    auto* finishBtn = new QToolButton(this);
-    finishBtn->setText(QStringLiteral("完成"));
-    connect(finishBtn, &QToolButton::clicked, this, &ScrollCaptureBar::finishRequested);
-    layout->addWidget(finishBtn);
-
-    auto* cancelBtn = new QToolButton(this);
-    cancelBtn->setText(QStringLiteral("取消"));
-    connect(cancelBtn, &QToolButton::clicked, this, &ScrollCaptureBar::cancelRequested);
-    layout->addWidget(cancelBtn);
+    auto addButton = [this, layout](const QString& text, auto signal) {
+        auto* btn = new QToolButton(this);
+        btn->setText(text);
+        connect(btn, &QToolButton::clicked, this, signal);
+        layout->addWidget(btn);
+    };
+    addButton(QStringLiteral("复制"), &ScrollCaptureBar::finishRequested);
+    addButton(QStringLiteral("贴图"), &ScrollCaptureBar::finishPinRequested);
+    addButton(QStringLiteral("另存"), &ScrollCaptureBar::finishSaveRequested);
+    addButton(QStringLiteral("取消"), &ScrollCaptureBar::cancelRequested);
 
     adjustSize();
     QPoint pos(regionGlobal.left(), regionGlobal.bottom() + 12);
