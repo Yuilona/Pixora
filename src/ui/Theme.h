@@ -34,6 +34,7 @@ inline QColor accent() { return {45, 124, 246}; }           // 主题蓝
 inline QColor accentHover() { return {0x4A, 0x90, 0xF8}; }
 inline QColor accentPressed() { return {0x25, 0x66, 0xCC}; }
 inline QColor danger() { return {0xE5, 0x48, 0x4D}; }       // 错误/冲突提示
+inline QColor lightWindowBg() { return {0xF5, 0xF6, 0xF8}; } // 浅色窗体底
 
 // 圆角悬浮卡片底(工具栏/控制条/通知卡共用):
 // QSS 样式背景在 WA_TranslucentBackground 顶层窗上不可靠,统一自绘。
@@ -65,6 +66,28 @@ inline QString chromeStyleSheet(int fontPx, int padV, int padH) {
         .arg(padV)
         .arg(padH)
         .arg(accent().name());
+}
+
+// 主按钮(实心主题蓝)/危险按钮(白底红字):
+// app 级样式表在控件创建前已应用,事后改 objectName/动态属性不会
+// 触发重新解析——直接设局部样式最可靠。
+inline QString primaryButtonStyle() {
+    return QStringLiteral(
+               "QPushButton { background: %1; color: white; border: none;"
+               "  border-radius: 6px; padding: 6px 18px; font-weight: 600; }"
+               "QPushButton:hover { background: %2; }"
+               "QPushButton:pressed { background: %3; }")
+        .arg(accent().name(), accentHover().name(), accentPressed().name());
+}
+
+inline QString dangerButtonStyle() {
+    return QStringLiteral(
+               "QPushButton { background: #FFFFFF; color: %1;"
+               "  border: 1px solid #EFC9C9; border-radius: 6px;"
+               "  padding: 6px 18px; }"
+               "QPushButton:hover { background: #FDF1F1; }"
+               "QPushButton:pressed { background: #F8E4E4; }")
+        .arg(danger().name());
 }
 
 // 全应用样式表:设置/历史等文档型窗口的白色系(色值只在本函数出现,
@@ -115,6 +138,7 @@ QComboBox:disabled {
 }
 
 QComboBox::drop-down { border: none; width: 22px; }
+QComboBox::down-arrow { image: url(:/icons/chevron-down-10.png); }
 QComboBox QAbstractItemView {
     background: #FFFFFF;
     color: #1F2329;
@@ -135,6 +159,8 @@ QSpinBox::up-button:hover, QSpinBox::down-button:hover {
     background: #EDEFF3;
     border-radius: 3px;
 }
+QSpinBox::up-arrow { image: url(:/icons/chevron-up-10.png); }
+QSpinBox::down-arrow { image: url(:/icons/chevron-down-10.png); }
 
 /* —— 按钮:次级浅灰 / [primary] 实心主题蓝 —— */
 QPushButton {
@@ -147,14 +173,6 @@ QPushButton {
 QPushButton:hover { background: #E4E7EC; }
 QPushButton:pressed { background: #D8DCE3; }
 QPushButton:disabled { color: #9AA3B0; background: #F0F1F4; }
-QPushButton[primary="true"] {
-    background: @accent;
-    color: white;
-    border: none;
-    font-weight: 600;
-}
-QPushButton[primary="true"]:hover { background: @accentHover; }
-QPushButton[primary="true"]:pressed { background: @accentPressed; }
 
 /* —— 复选框 —— */
 QCheckBox { color: #3A4150; spacing: 8px; background: transparent; }
@@ -222,6 +240,7 @@ QToolTip {
     qss.replace(QLatin1String("@accentHover"), accentHover().name());
     qss.replace(QLatin1String("@accentPressed"), accentPressed().name());
     qss.replace(QLatin1String("@accent"), accent().name());
+    qss.replace(QLatin1String("@danger"), danger().name());
     return qss;
 }
 

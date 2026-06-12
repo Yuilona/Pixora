@@ -3,5 +3,9 @@
         <file>icons/pixora-256.png</file>
         <file>icons/check-14.png</file>
         <file>icons/check-14@2x.png</file>
+        <file>icons/chevron-down-10.png</file>
+        <file>icons/chevron-down-10@2x.png</file>
+        <file>icons/chevron-up-10.png</file>
+        <file>icons/chevron-up-10@2x.png</file>
     </qresource>
 </RCC>

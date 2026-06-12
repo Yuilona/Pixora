@@ -1,10 +1,12 @@
 #include "ui/history/HistoryWindow.h"
 
 #include "app/HistoryService.h"
+#include "ui/Theme.h"
 
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -20,15 +22,28 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
     : history_(history), output_(settings) {
     setWindowTitle(QStringLiteral("截图历史 — Pixora"));
     setAttribute(Qt::WA_DeleteOnClose);
-    resize(640, 460);
+    resize(660, 480);
+
+    // 普通 QWidget 顶层窗不吃全局 QDialog 底色规则,用调色板对齐
+    QPalette pal = palette();
+    pal.setColor(QPalette::Window, theme::lightWindowBg());
+    setPalette(pal);
+    setAutoFillBackground(true);
 
     list_ = new QListWidget(this);
     list_->setViewMode(QListView::IconMode);
     list_->setIconSize(QSize(kThumbW, kThumbH));
     list_->setResizeMode(QListView::Adjust);
     list_->setMovement(QListView::Static);
-    list_->setSpacing(8);
+    list_->setSpacing(10);
     list_->setWordWrap(true);
+
+    emptyHint_ = new QLabel(
+        QStringLiteral("还没有截图历史\n\n截图后(复制 / 另存 / 贴图)会自动留底,可在这里找回"),
+        this);
+    emptyHint_->setAlignment(Qt::AlignCenter);
+    emptyHint_->setStyleSheet(QStringLiteral("color:#9AA3B0; font-size:13px;"));
+    emptyHint_->hide();
 
     auto* buttons = new QHBoxLayout;
     auto addBtn = [this, buttons](const QString& text, auto onClicked) {
@@ -37,12 +52,13 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
         buttons->addWidget(btn);
         return btn;
     };
-    addBtn(QStringLiteral("复制"), [this] {
+    auto* copyBtn = addBtn(QStringLiteral("复制"), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
             QGuiApplication::clipboard()->setImage(img);
         }
     });
+    copyBtn->setStyleSheet(theme::primaryButtonStyle()); // 最高频出口,视觉主按钮
     addBtn(QStringLiteral("贴图"), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
@@ -62,10 +78,14 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
         }
     });
     buttons->addStretch();
-    addBtn(QStringLiteral("清空历史"), [this] { history_.clear(); });
+    auto* clearBtn = addBtn(QStringLiteral("清空历史"), [this] { history_.clear(); });
+    clearBtn->setStyleSheet(theme::dangerButtonStyle()); // 破坏性操作,红字弱底
 
     auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(14, 14, 14, 12);
+    layout->setSpacing(10);
     layout->addWidget(list_, 1);
+    layout->addWidget(emptyHint_, 1);
     layout->addLayout(buttons);
 
     // 双击 = 复制(最高频出口)
@@ -96,6 +116,9 @@ void HistoryWindow::reload() {
         item->setData(Qt::UserRole, e.id);
         item->setSizeHint(QSize(kThumbW + 16, kThumbH + 44));
     }
+    const bool empty = list_->count() == 0;
+    list_->setVisible(!empty);
+    emptyHint_->setVisible(empty);
 }
 
 QImage HistoryWindow::currentImage(QString* id) const {

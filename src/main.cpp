@@ -56,6 +56,15 @@ int main(int argc, char* argv[]) {
         volatile int* p = nullptr;
         *p = 42;
     }
+    if (app.arguments().contains(QStringLiteral("--show-settings"))) {
+        // 隐藏参数:独立打开设置窗口,主题/布局调试用(可与主实例并存)
+        pixora::SettingsService devSettings;
+        const auto devSystem = pixora::createSystemIntegration();
+        auto* dialog = new pixora::SettingsDialog(devSettings, devSystem.get());
+        QObject::connect(dialog, &QDialog::finished, &app, &QApplication::quit);
+        dialog->show();
+        return QApplication::exec();
+    }
 
     pixora::SingleInstanceGuard guard(QStringLiteral("pixora-single-instance"));
     if (!guard.tryAcquire()) {

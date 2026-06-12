@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QWidget>
 
+class QLabel;
 class QListWidget;
 
 namespace pixora {
@@ -29,6 +30,7 @@ private:
     HistoryService& history_;
     OutputService output_;
     QListWidget* list_ = nullptr;
+    QLabel* emptyHint_ = nullptr; // 无历史时的占位提示
 };
 
 } // namespace pixora

@@ -29,14 +29,24 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     setAttribute(Qt::WA_DeleteOnClose);
     setMinimumWidth(440);
 
-    auto* form = new QFormLayout;
-    form->setHorizontalSpacing(14);
-    form->setVerticalSpacing(10);
+    // 所有配置组统一为圆角卡片(样式见 Theme appStyleSheet 的 QGroupBox)
+    auto makeCard = [this](const QString& title, QFormLayout*& form) {
+        auto* group = new QGroupBox(title, this);
+        form = new QFormLayout(group);
+        form->setHorizontalSpacing(14);
+        form->setVerticalSpacing(10);
+        form->setContentsMargins(12, 14, 12, 12);
+        return group;
+    };
+
+    // —— 通用:热键 / 历史 / 自启 ——
+    QFormLayout* generalForm = nullptr;
+    auto* generalGroup = makeCard(QStringLiteral("通用"), generalForm);
 
     captureEdit_ = new QKeySequenceEdit(settings_.hotkeyCaptureRegion(), this);
     pinEdit_ = new QKeySequenceEdit(settings_.hotkeyPinFromClipboard(), this);
-    form->addRow(QStringLiteral("截图热键"), captureEdit_);
-    form->addRow(QStringLiteral("贴图热键"), pinEdit_);
+    generalForm->addRow(QStringLiteral("截图热键"), captureEdit_);
+    generalForm->addRow(QStringLiteral("贴图热键"), pinEdit_);
 
     hotkeyWarning_ = new QLabel(
         QStringLiteral("标红的热键注册失败(可能已被其它程序占用),请更换后保存"), this);
@@ -44,7 +54,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
         QStringLiteral("color:%1;").arg(theme::danger().name()));
     hotkeyWarning_->setWordWrap(true);
     hotkeyWarning_->hide();
-    form->addRow(QString(), hotkeyWarning_);
+    generalForm->addRow(QString(), hotkeyWarning_);
 
     auto clearConflict = [this](QKeySequenceEdit* edit) {
         edit->setStyleSheet(QString());
@@ -56,6 +66,22 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
             [this, clearConflict] { clearConflict(captureEdit_); });
     connect(pinEdit_, &QKeySequenceEdit::keySequenceChanged, this,
             [this, clearConflict] { clearConflict(pinEdit_); });
+
+    historyLimitSpin_ = new QSpinBox(this);
+    historyLimitSpin_->setRange(0, 100);
+    historyLimitSpin_->setValue(settings_.historyLimit());
+    historyLimitSpin_->setSpecialValueText(QStringLiteral("关闭"));
+    historyLimitSpin_->setMaximumWidth(120); // 数字框不必占满整行
+    generalForm->addRow(QStringLiteral("历史保留张数"), historyLimitSpin_);
+
+    autoStartCheck_ = new QCheckBox(QStringLiteral("开机自动启动"), this);
+    autoStartCheck_->setEnabled(system_ != nullptr);
+    autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
+    generalForm->addRow(QString(), autoStartCheck_);
+
+    // —— 输出:目录 / 命名 / 格式 ——
+    QFormLayout* outputForm = nullptr;
+    auto* outputGroup = makeCard(QStringLiteral("输出"), outputForm);
 
     auto* dirRow = new QHBoxLayout;
     outputDirEdit_ = new QLineEdit(settings_.outputDir(), this);
@@ -73,12 +99,12 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     });
     dirRow->addWidget(outputDirEdit_, 1);
     dirRow->addWidget(browseBtn);
-    form->addRow(QStringLiteral("保存目录"), dirRow);
+    outputForm->addRow(QStringLiteral("保存目录"), dirRow);
 
     fileTemplateEdit_ = new QLineEdit(settings_.fileNameTemplate(), this);
     fileTemplateEdit_->setPlaceholderText(
         QStringLiteral("Pixora_{yyyy}{MM}{dd}_{HH}{mm}{ss}"));
-    form->addRow(QStringLiteral("文件名模板"), fileTemplateEdit_);
+    outputForm->addRow(QStringLiteral("文件名模板"), fileTemplateEdit_);
 
     auto* formatRow = new QHBoxLayout;
     formatCombo_ = new QComboBox(this);
@@ -100,29 +126,15 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     formatRow->addWidget(formatCombo_, 1);
     formatRow->addWidget(new QLabel(QStringLiteral("质量"), this));
     formatRow->addWidget(qualitySpin_);
-    form->addRow(QStringLiteral("保存格式"), formatRow);
+    outputForm->addRow(QStringLiteral("保存格式"), formatRow);
 
     autoSaveCheck_ = new QCheckBox(QStringLiteral("复制时自动保存到保存目录"), this);
     autoSaveCheck_->setChecked(settings_.autoSave());
-    form->addRow(QString(), autoSaveCheck_);
-
-    historyLimitSpin_ = new QSpinBox(this);
-    historyLimitSpin_->setRange(0, 100);
-    historyLimitSpin_->setValue(settings_.historyLimit());
-    historyLimitSpin_->setSpecialValueText(QStringLiteral("关闭"));
-    form->addRow(QStringLiteral("历史保留张数"), historyLimitSpin_);
-
-    autoStartCheck_ = new QCheckBox(QStringLiteral("开机自动启动"), this);
-    autoStartCheck_->setEnabled(system_ != nullptr);
-    autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
-    form->addRow(QString(), autoStartCheck_);
+    outputForm->addRow(QString(), autoSaveCheck_);
 
     // —— OCR 识别服务(提取文字 / 截图翻译共用)——
-    auto* ocrGroup = new QGroupBox(QStringLiteral("OCR 识别(提取文字 / 翻译)"), this);
-    auto* ocrForm = new QFormLayout(ocrGroup);
-    ocrForm->setHorizontalSpacing(14);
-    ocrForm->setVerticalSpacing(10);
-    ocrForm->setContentsMargins(12, 14, 12, 12);
+    QFormLayout* ocrForm = nullptr;
+    auto* ocrGroup = makeCard(QStringLiteral("OCR 识别(提取文字 / 翻译)"), ocrForm);
     ocrProtocolCombo_ = new QComboBox(this);
     ocrProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容视觉模型"),
                                QStringLiteral("openai"));
@@ -152,11 +164,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     syncOcrRows();
 
     // —— 翻译服务 ——
-    auto* trGroup = new QGroupBox(QStringLiteral("翻译服务(截图翻译)"), this);
-    auto* trForm = new QFormLayout(trGroup);
-    trForm->setHorizontalSpacing(14);
-    trForm->setVerticalSpacing(10);
-    trForm->setContentsMargins(12, 14, 12, 12);
+    QFormLayout* trForm = nullptr;
+    auto* trGroup = makeCard(QStringLiteral("翻译服务(截图翻译)"), trForm);
     trProtocolCombo_ = new QComboBox(this);
     trProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容大模型"),
                               QStringLiteral("openai"));
@@ -200,7 +209,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     auto* buttons =
         new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("确定"));
-    buttons->button(QDialogButtonBox::Ok)->setProperty("primary", true);
+    buttons->button(QDialogButtonBox::Ok)->setStyleSheet(theme::primaryButtonStyle());
     buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         apply();
@@ -209,9 +218,10 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(18, 18, 18, 14);
+    layout->setContentsMargins(18, 16, 18, 14);
     layout->setSpacing(12);
-    layout->addLayout(form);
+    layout->addWidget(generalGroup);
+    layout->addWidget(outputGroup);
     layout->addWidget(ocrGroup);
     layout->addWidget(trGroup);
     layout->addWidget(buttons);
