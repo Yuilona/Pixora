@@ -35,10 +35,13 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationVersion(QStringLiteral(PIXORA_VERSION));
     QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/pixora-256.png")));
     app.setQuitOnLastWindowClosed(false);
-    // 统一 UI 风格:原生窗体(设置/历史/菜单)走 Fusion 暗色调色板,
-    // 与自绘暗色组件(工具栏/通知卡片)同基调(见 ui/Theme.h)
+    // 统一 UI 风格:文档型窗口(设置/历史/菜单)走 Fusion + 白色系样式表,
+    // 与系统浅色标题栏衔接;悬浮 HUD(工具栏/通知卡)保持暗色(见 ui/Theme.h)
     QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
-    QApplication::setPalette(pixora::theme::darkPalette());
+    QPalette palette = QApplication::palette();
+    palette.setColor(QPalette::Highlight, pixora::theme::accent());
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+    QApplication::setPalette(palette);
     app.setStyleSheet(pixora::theme::appStyleSheet());
 
     pixora::initLogging();

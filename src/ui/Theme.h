@@ -7,10 +7,12 @@
 #include <QRect>
 #include <QString>
 
-// 全局 UI 主题:蓝灰系分层暗色 + 主题蓝点缀(与 logo 蓝同族)。
+// 全局 UI 主题:双色系分工 + 主题蓝点缀(与 logo 蓝同族)。
 //
-// 三层深度,拒绝一片平灰:
-//   windowBg(窗口底,最深) → surface(卡片/工具条) → inputBg(输入框深井)
+// - 悬浮 HUD(截图工具栏/长截图控制条/通知卡/拼接预览/贴图框):
+//   蓝灰系暗色,浮在任意屏幕内容上都稳得住;
+// - 文档型窗口(设置/历史等带标题栏的常规窗口):白色系,
+//   与系统浅色标题栏自然衔接(见 appStyleSheet)。
 // 圆角体系:输入框/按钮 6px,卡片/菜单/工具栏 8px,通知卡 10px。
 //
 // 所有窗体"外壳"色集中在此,禁止在窗体里硬编码外壳色。
@@ -65,49 +67,24 @@ inline QString chromeStyleSheet(int fontPx, int padV, int padH) {
         .arg(accent().name());
 }
 
-// 原生窗体(设置/历史/托盘菜单)的 Fusion 暗色调色板
-inline QPalette darkPalette() {
-    QPalette p;
-    const QColor disabledText(0x6E, 0x74, 0x7E);
-    p.setColor(QPalette::Window, windowBg());
-    p.setColor(QPalette::WindowText, text());
-    p.setColor(QPalette::Base, inputBg());
-    p.setColor(QPalette::AlternateBase, surface());
-    p.setColor(QPalette::Text, text());
-    p.setColor(QPalette::Button, QColor(0x34, 0x39, 0x43));
-    p.setColor(QPalette::ButtonText, text());
-    p.setColor(QPalette::BrightText, Qt::white);
-    p.setColor(QPalette::Highlight, accent());
-    p.setColor(QPalette::HighlightedText, Qt::white);
-    p.setColor(QPalette::Link, accentHover());
-    p.setColor(QPalette::ToolTipBase, surface());
-    p.setColor(QPalette::ToolTipText, textDim());
-    p.setColor(QPalette::PlaceholderText, textFaint());
-    p.setColor(QPalette::Disabled, QPalette::WindowText, disabledText);
-    p.setColor(QPalette::Disabled, QPalette::Text, disabledText);
-    p.setColor(QPalette::Disabled, QPalette::ButtonText, disabledText);
-    p.setColor(QPalette::Disabled, QPalette::Highlight, QColor(0x44, 0x4A, 0x55));
-    return p;
-}
-
-// 全应用样式表:覆盖设置/历史等原生窗体的全部常用控件。
-// 截图工具栏等自绘窗体有自己的局部样式,不受此处 QToolButton 缺省影响
-// (本表刻意不写全局 QWidget/QToolButton 规则)。
+// 全应用样式表:设置/历史等文档型窗口的白色系(色值只在本函数出现,
+// 仍算集中管理)。悬浮 HUD 自绘窗体有局部样式,不受影响——
+// 本表刻意不写全局 QWidget/QToolButton 规则。
 inline QString appStyleSheet() {
     QString qss = QStringLiteral(R"(
-QDialog, QMainWindow { background: @windowBg; }
+QDialog, QMainWindow { background: #F5F6F8; }
 
-QLabel { color: @textDim; background: transparent; }
+QLabel { color: #3A4150; background: transparent; }
 
-/* —— 卡片化分组 —— */
+/* —— 卡片化分组:白卡浮于浅灰底 —— */
 QGroupBox {
-    background: @surface;
-    border: 1px solid @border;
+    background: #FFFFFF;
+    border: 1px solid #E3E6EB;
     border-radius: 8px;
     margin-top: 14px;
     padding: 14px 6px 6px 6px;
     font-weight: 600;
-    color: @text;
+    color: #1F2329;
 }
 QGroupBox::title {
     subcontrol-origin: margin;
@@ -115,14 +92,14 @@ QGroupBox::title {
     left: 12px;
     top: 3px;
     padding: 0 6px;
-    color: @text;
+    color: #1F2329;
 }
 
-/* —— 输入类:深井底 + 聚焦亮蓝描边 —— */
+/* —— 输入类:白底 + 聚焦主题蓝描边 —— */
 QLineEdit, QKeySequenceEdit, QSpinBox, QComboBox {
-    background: @inputBg;
-    color: @text;
-    border: 1px solid @border;
+    background: #FFFFFF;
+    color: #1F2329;
+    border: 1px solid #D5D9E0;
     border-radius: 6px;
     padding: 5px 8px;
     selection-background-color: @accent;
@@ -133,15 +110,15 @@ QLineEdit:focus, QKeySequenceEdit:focus, QSpinBox:focus, QComboBox:focus {
 }
 QLineEdit:disabled, QKeySequenceEdit:disabled, QSpinBox:disabled,
 QComboBox:disabled {
-    color: @textFaint;
-    background: @surface;
+    color: #9AA3B0;
+    background: #F0F1F4;
 }
 
 QComboBox::drop-down { border: none; width: 22px; }
 QComboBox QAbstractItemView {
-    background: @surface;
-    color: @text;
-    border: 1px solid @border;
+    background: #FFFFFF;
+    color: #1F2329;
+    border: 1px solid #E3E6EB;
     border-radius: 6px;
     selection-background-color: @accent;
     selection-color: white;
@@ -155,36 +132,37 @@ QSpinBox::up-button, QSpinBox::down-button {
     width: 16px;
 }
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
-    background: @surfaceHover;
+    background: #EDEFF3;
     border-radius: 3px;
 }
 
-/* —— 按钮:次级灰 / [primary] 实心主题蓝 —— */
+/* —— 按钮:次级浅灰 / [primary] 实心主题蓝 —— */
 QPushButton {
-    background: @surfaceHover;
-    color: @text;
-    border: none;
+    background: #EEF0F4;
+    color: #1F2329;
+    border: 1px solid #D5D9E0;
     border-radius: 6px;
     padding: 6px 18px;
 }
-QPushButton:hover { background: #3D4450; }
-QPushButton:pressed { background: #2C323B; }
-QPushButton:disabled { color: @textFaint; background: @surface; }
+QPushButton:hover { background: #E4E7EC; }
+QPushButton:pressed { background: #D8DCE3; }
+QPushButton:disabled { color: #9AA3B0; background: #F0F1F4; }
 QPushButton[primary="true"] {
     background: @accent;
     color: white;
+    border: none;
     font-weight: 600;
 }
 QPushButton[primary="true"]:hover { background: @accentHover; }
 QPushButton[primary="true"]:pressed { background: @accentPressed; }
 
 /* —— 复选框 —— */
-QCheckBox { color: @textDim; spacing: 8px; background: transparent; }
+QCheckBox { color: #3A4150; spacing: 8px; background: transparent; }
 QCheckBox::indicator {
     width: 16px; height: 16px;
     border-radius: 4px;
-    border: 1px solid @border;
-    background: @inputBg;
+    border: 1px solid #C9CED8;
+    background: #FFFFFF;
 }
 QCheckBox::indicator:hover { border-color: @accent; }
 QCheckBox::indicator:checked {
@@ -192,63 +170,55 @@ QCheckBox::indicator:checked {
     border-color: @accent;
     image: url(:/icons/check-14.png);
 }
-QCheckBox:disabled { color: @textFaint; }
+QCheckBox:disabled { color: #9AA3B0; }
 
 /* —— 菜单(托盘/右键) —— */
 QMenu {
-    background: @surface;
-    color: @text;
-    border: 1px solid @border;
+    background: #FFFFFF;
+    color: #1F2329;
+    border: 1px solid #E3E6EB;
     border-radius: 8px;
     padding: 6px;
 }
 QMenu::item { padding: 6px 28px 6px 12px; border-radius: 5px; }
 QMenu::item:selected { background: @accent; color: white; }
-QMenu::item:disabled { color: @textFaint; }
-QMenu::separator { height: 1px; background: @border; margin: 5px 8px; }
+QMenu::item:disabled { color: #9AA3B0; }
+QMenu::separator { height: 1px; background: #E9EBEF; margin: 5px 8px; }
 
 /* —— 列表(历史窗) —— */
 QListWidget {
-    background: @windowBg;
+    background: #F5F6F8;
     border: none;
     outline: 0;
 }
-QListWidget::item { color: @textDim; border-radius: 6px; padding: 4px; }
-QListWidget::item:hover { background: @surface; }
+QListWidget::item { color: #3A4150; border-radius: 6px; padding: 4px; }
+QListWidget::item:hover { background: #EAEDF1; }
 QListWidget::item:selected {
-    background: rgba(45, 124, 246, 0.30);
-    color: @text;
+    background: rgba(45, 124, 246, 0.16);
+    color: #1F2329;
 }
 
 /* —— 滚动条:细圆条,无箭头 —— */
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical {
-    background: #3D434E; border-radius: 4px; min-height: 30px;
+    background: #C5CAD3; border-radius: 4px; min-height: 30px;
 }
-QScrollBar::handle:vertical:hover { background: #4A515E; }
+QScrollBar::handle:vertical:hover { background: #AEB5C0; }
 QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
 QScrollBar::handle:horizontal {
-    background: #3D434E; border-radius: 4px; min-width: 30px;
+    background: #C5CAD3; border-radius: 4px; min-width: 30px;
 }
-QScrollBar::handle:horizontal:hover { background: #4A515E; }
+QScrollBar::handle:horizontal:hover { background: #AEB5C0; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 
 QToolTip {
-    background: @surface;
-    color: @text;
-    border: 1px solid @border;
+    background: #FFFFFF;
+    color: #1F2329;
+    border: 1px solid #E3E6EB;
     padding: 4px 8px;
 }
 )");
-    qss.replace(QLatin1String("@windowBg"), windowBg().name());
-    qss.replace(QLatin1String("@surfaceHover"), surfaceHover().name());
-    qss.replace(QLatin1String("@surface"), surface().name());
-    qss.replace(QLatin1String("@inputBg"), inputBg().name());
-    qss.replace(QLatin1String("@border"), border().name());
-    qss.replace(QLatin1String("@textFaint"), textFaint().name());
-    qss.replace(QLatin1String("@textDim"), textDim().name());
-    qss.replace(QLatin1String("@text"), text().name());
     qss.replace(QLatin1String("@accentHover"), accentHover().name());
     qss.replace(QLatin1String("@accentPressed"), accentPressed().name());
     qss.replace(QLatin1String("@accent"), accent().name());
