@@ -38,3 +38,7 @@ __pycache__/
 # 项目内部文档(仅本地保留,不入库)
 docs/
 design/
+
+# 历史重写前的备份(裸镜像 + docs/design 文件副本),仅本地保留
+Pixora-history-backup.git/
+Pixora-local-docs/
