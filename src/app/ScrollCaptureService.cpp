@@ -15,6 +15,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cstring>
 
 namespace pixora {
 
@@ -33,6 +34,25 @@ constexpr int kAutoFailStreak = 3;       // 连续匹配失败 → 退回手动
 int autoScrollDelta(int regionLogicalHeight) {
     const int notches = std::clamp(regionLogicalHeight / 250, 1, 3);
     return -120 * notches;
+}
+
+// 16 行等距采样的"近似相等":空转 tick 的全图比较(大区域可达
+// 每 33ms 14MB memcmp)降到 ~1%。误判只可能把采样行之外的极小变化
+// 当作无变化多延一拍;滚动会改动整个区域,拼接正确性不受影响。
+bool sampledFrameEqual(const QImage& a, const QImage& b) {
+    if (a.size() != b.size() || a.format() != b.format()) {
+        return false;
+    }
+    constexpr int kRows = 16;
+    const int last = a.height() - 1;
+    for (int i = 0; i < kRows; ++i) {
+        const int y = last * i / (kRows - 1);
+        if (std::memcmp(a.constScanLine(y), b.constScanLine(y),
+                        static_cast<size_t>(a.bytesPerLine())) != 0) {
+            return false;
+        }
+    }
+    return true;
 }
 } // namespace
 
@@ -165,8 +185,8 @@ void ScrollCaptureService::tick() {
         return;
     }
 
-    // 手动模式:画面有变化才喂拼接器
-    if (!lastGrab_.isNull() && frame == lastGrab_) {
+    // 手动模式:画面有变化才喂拼接器(采样比较,空转 tick 是热路径)
+    if (!lastGrab_.isNull() && sampledFrameEqual(frame, lastGrab_)) {
         return;
     }
     lastGrab_ = frame;

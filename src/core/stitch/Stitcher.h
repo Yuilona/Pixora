@@ -55,6 +55,7 @@ private:
     QImage canvas_; // 预分配增长式画布(2x 扩容)
     int usedHeight_ = 0;
     QImage lastFrame_;
+    QImage lastGray_; // lastFrame_ 的灰度缓存:免去每帧重复转换上一帧
     FixedRegionDetector fixedDetector_;
     bool footerTrimmed_ = false; // 画布尾部的首帧底栏是否已剔除
 };

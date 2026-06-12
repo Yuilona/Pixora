@@ -79,6 +79,7 @@ void Stitcher::begin(const QImage& firstFrame) {
     QPainter(&canvas_).drawImage(0, 0, frame);
     usedHeight_ = frame.height();
     lastFrame_ = frame;
+    lastGray_ = frame.convertToFormat(QImage::Format_Grayscale8);
     fixedDetector_ = FixedRegionDetector();
     fixedDetector_.feed(frame);
     footerTrimmed_ = false;
@@ -107,7 +108,8 @@ Stitcher::AppendResult Stitcher::append(const QImage& rawFrame) {
         return AppendResult::MatchFailed;
     }
 
-    const QImage lastGray = lastFrame_.convertToFormat(QImage::Format_Grayscale8);
+    // 上一帧灰度走缓存(begin/Appended 时已转),每帧只转换新帧一次
+    const QImage& lastGray = lastGray_;
     const QImage frameGray = frame.convertToFormat(QImage::Format_Grayscale8);
 
     // 三条水平模板带分别匹配;搜索限制在内容区(排除 sticky 头尾)
@@ -172,6 +174,7 @@ Stitcher::AppendResult Stitcher::append(const QImage& rawFrame) {
     painter.end();
     usedHeight_ += dy;
     lastFrame_ = frame;
+    lastGray_ = frameGray;
     return AppendResult::Appended;
 }
 
