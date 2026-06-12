@@ -1,5 +1,7 @@
 #pragma once
 
+#include "app/OutputService.h"
+
 #include <QImage>
 #include <QObject>
 #include <QPoint>
@@ -13,6 +15,7 @@ namespace pixora {
 
 class ISystemIntegration;
 class PinWindow;
+class SettingsService;
 
 // 贴图编排:截图转贴图 / 剪贴板贴图(F3)/ 关闭所有贴图(托盘)。
 // 贴图窗自管理生命周期(关闭即销毁),本服务弱引用跟踪。
@@ -23,7 +26,10 @@ class PinWindow;
 class PinService : public QObject {
     Q_OBJECT
 public:
-    explicit PinService(ISystemIntegration* system, QObject* parent = nullptr);
+    // settings 供"另存"出口跟随保存目录/格式设置,可空
+    explicit PinService(ISystemIntegration* system,
+                        const SettingsService* settings = nullptr,
+                        QObject* parent = nullptr);
 
     // 返回新建的贴图窗(图像为空返回 nullptr);窗口自管理生命周期,
     // 调用方如需后续操作请用 QPointer 弱引用。
@@ -49,6 +55,7 @@ private:
     void saveManifest();
 
     ISystemIntegration* system_;
+    OutputService output_; // 贴图"另存"出口
     std::vector<Tracked> pins_;
     QTimer saveTimer_; // 拖动/缩放高频触发 → 防抖落盘
 };

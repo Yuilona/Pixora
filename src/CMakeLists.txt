@@ -3,6 +3,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     main.cpp
     common/Log.h
     common/Log.cpp
+    app/ApiHelpers.h
     app/CaptureService.h
     app/CaptureService.cpp
     app/FileNameTemplate.h
@@ -32,6 +33,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/annotate/AnnotationItem.h
     core/annotate/AnnotationDocument.h
     core/annotate/AnnotationDocument.cpp
+    core/annotate/AnnotationRenderer.h
+    core/annotate/AnnotationRenderer.cpp
     core/capture/DesktopSnapshot.h
     core/capture/DesktopSnapshot.cpp
     core/capture/SnipSession.h
@@ -45,8 +48,6 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/text/ReplaceRenderer.cpp
     core/text/TextProtocols.h
     core/text/TextProtocols.cpp
-    ui/editor/AnnotationRenderer.h
-    ui/editor/AnnotationRenderer.cpp
     ui/editor/AnnotationToolbar.h
     ui/editor/AnnotationToolbar.cpp
     ui/history/HistoryWindow.h

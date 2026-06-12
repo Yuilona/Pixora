@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
                      [&capture] { capture.start(); });
 
     const auto systemIntegration = pixora::createSystemIntegration();
-    pixora::PinService pins(systemIntegration.get());
+    pixora::PinService pins(systemIntegration.get(), &settings);
     QObject::connect(&capture, &pixora::CaptureService::pinCaptured, &pins,
                      &pixora::PinService::pinImage);
     QObject::connect(&tray, &pixora::TrayService::closeAllPinsRequested, &pins,

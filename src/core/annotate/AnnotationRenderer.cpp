@@ -1,4 +1,4 @@
-#include "ui/editor/AnnotationRenderer.h"
+#include "core/annotate/AnnotationRenderer.h"
 
 #include "core/annotate/AnnotationDocument.h"
 #include "core/annotate/AnnotationItem.h"

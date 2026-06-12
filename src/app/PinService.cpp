@@ -30,8 +30,9 @@ QString manifestPath(const QString& dir) {
 }
 } // namespace
 
-PinService::PinService(ISystemIntegration* system, QObject* parent)
-    : QObject(parent), system_(system) {
+PinService::PinService(ISystemIntegration* system, const SettingsService* settings,
+                       QObject* parent)
+    : QObject(parent), system_(system), output_(settings) {
     saveTimer_.setSingleShot(true);
     saveTimer_.setInterval(kSaveDebounceMs);
     connect(&saveTimer_, &QTimer::timeout, this, &PinService::saveManifest);
@@ -54,6 +55,8 @@ PinWindow* PinService::pinImage(const QImage& image, const QPoint& topLeftLogica
         return nullptr;
     }
     auto* pin = new PinWindow(image, topLeftLogical, system_); // WA_DeleteOnClose 自管理
+    connect(pin, &PinWindow::saveRequested, this,
+            [this](const QImage& img) { output_.saveWithDialog(img); });
     const QString id =
         QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
 
@@ -170,6 +173,8 @@ int PinService::restorePins() {
         pos.setY(std::clamp(pos.y(), desktop.top(), desktop.bottom() - 48));
 
         auto* pin = new PinWindow(image, pos, system_);
+        connect(pin, &PinWindow::saveRequested, this,
+                [this](const QImage& img) { output_.saveWithDialog(img); });
         pin->restoreState(o[QStringLiteral("scale")].toDouble(1.0),
                           o[QStringLiteral("opacity")].toDouble(1.0),
                           o[QStringLiteral("folded")].toBool(false));

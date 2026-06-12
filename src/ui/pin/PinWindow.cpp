@@ -1,6 +1,5 @@
 #include "ui/pin/PinWindow.h"
 
-#include "app/OutputService.h"
 #include "platform/interface/SystemIntegration.h"
 
 #include <QClipboard>
@@ -335,10 +334,7 @@ void PinWindow::contextMenuEvent(QContextMenuEvent* event) {
     menu.addAction(QStringLiteral("复制图像"), [this] {
         QGuiApplication::clipboard()->setImage(image_);
     });
-    menu.addAction(QStringLiteral("另存为…"), [this] {
-        OutputService output;
-        output.saveWithDialog(image_);
-    });
+    menu.addAction(QStringLiteral("另存为…"), [this] { emit saveRequested(image_); });
     menu.addSeparator();
     menu.addAction(folded_ ? QStringLiteral("展开\tSpace")
                            : QStringLiteral("折叠为小条\tSpace"),

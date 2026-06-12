@@ -1,5 +1,6 @@
 #include "app/OcrClient.h"
 
+#include "app/ApiHelpers.h"
 #include "core/text/TextProtocols.h"
 
 #include <QBuffer>
@@ -20,31 +21,12 @@ namespace {
 // 视觉模型上传上限:过大图片徒增 token 与延迟,识别率反而不稳
 constexpr int kMaxUploadSide = 2048;
 
-QString joinUrl(QString base, const QString& path) {
-    while (base.endsWith(QLatin1Char('/'))) {
-        base.chop(1);
-    }
-    if (base.endsWith(path)) {
-        return base;
-    }
-    return base + path;
-}
-
 QByteArray toPngBase64(const QImage& image) {
     QByteArray bytes;
     QBuffer buffer(&bytes);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
     return bytes.toBase64();
-}
-
-QString httpFailureReason(QNetworkReply* reply) {
-    const int status =
-        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    const QString excerpt = QString::fromUtf8(reply->readAll().left(300));
-    return QStringLiteral("HTTP %1 %2:%3")
-        .arg(status)
-        .arg(reply->errorString(), excerpt);
 }
 
 } // namespace
@@ -106,7 +88,7 @@ void OcrClient::recognizeOpenAi(const QImage& image, const Config& config) {
                               {QLatin1String("text"), prompt}},
                   imagePart}}}}}};
 
-    QNetworkRequest request(QUrl(joinUrl(config.baseUrl,
+    QNetworkRequest request(QUrl(net::joinUrl(config.baseUrl,
                                          QStringLiteral("/chat/completions"))));
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
@@ -125,7 +107,7 @@ void OcrClient::recognizeOpenAi(const QImage& image, const Config& config) {
                     QString serverMessage;
                     textproto::openAiContent(reply->peek(reply->bytesAvailable()),
                                              &serverMessage);
-                    emit failed(serverMessage.isEmpty() ? httpFailureReason(reply)
+                    emit failed(serverMessage.isEmpty() ? net::httpFailureReason(reply)
                                                         : serverMessage);
                     return;
                 }
@@ -164,7 +146,7 @@ void OcrClient::recognizeUmiOcr(const QImage& image, const Config& config) {
         {QLatin1String("options"),
          QJsonObject{{QLatin1String("data.format"), QLatin1String("dict")}}}};
 
-    QNetworkRequest request(QUrl(joinUrl(base, QStringLiteral("/api/ocr"))));
+    QNetworkRequest request(QUrl(net::joinUrl(base, QStringLiteral("/api/ocr"))));
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
 
@@ -176,7 +158,7 @@ void OcrClient::recognizeUmiOcr(const QImage& image, const Config& config) {
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
-            emit failed(httpFailureReason(reply));
+            emit failed(net::httpFailureReason(reply));
             return;
         }
         QString error;

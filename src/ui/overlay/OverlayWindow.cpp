@@ -2,7 +2,7 @@
 
 #include "core/capture/SnipSession.h"
 #include "platform/interface/ElementLocator.h"
-#include "ui/editor/AnnotationRenderer.h"
+#include "core/annotate/AnnotationRenderer.h"
 #include "ui/overlay/Magnifier.h"
 
 #include <QKeyEvent>

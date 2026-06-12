@@ -1,11 +1,11 @@
 #include "app/CaptureService.h"
 
 #include "app/HistoryService.h"
+#include "core/annotate/AnnotationRenderer.h"
 #include "core/capture/DesktopSnapshot.h"
 #include "core/capture/SnipSession.h"
 #include "platform/interface/ScreenCapturer.h"
 #include "platform/interface/WindowEnumerator.h"
-#include "ui/editor/AnnotationRenderer.h"
 #include "ui/editor/AnnotationToolbar.h"
 #include "ui/overlay/OverlayWindow.h"
 

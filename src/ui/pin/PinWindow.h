@@ -36,6 +36,7 @@ public:
 signals:
     void stateChanged();              // 位置/缩放/透明度/折叠变化(防抖落盘)
     void imageChanged();              // 旋转/翻转后图像本体变化(重存 PNG)
+    void saveRequested(const QImage& image); // 另存交由 App 层输出管线
     void closedByUser(PinWindow* pin);
 
 protected:

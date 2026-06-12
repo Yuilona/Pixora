@@ -1,5 +1,6 @@
 #include "app/TranslateClient.h"
 
+#include "app/ApiHelpers.h"
 #include "core/text/TextProtocols.h"
 
 #include <QCryptographicHash>
@@ -16,25 +17,6 @@
 namespace pixora {
 
 namespace {
-
-QString joinUrl(QString base, const QString& path) {
-    while (base.endsWith(QLatin1Char('/'))) {
-        base.chop(1);
-    }
-    if (base.endsWith(path)) {
-        return base;
-    }
-    return base + path;
-}
-
-QString httpFailureReason(QNetworkReply* reply) {
-    const int status =
-        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    const QString excerpt = QString::fromUtf8(reply->readAll().left(300));
-    return QStringLiteral("HTTP %1 %2:%3")
-        .arg(status)
-        .arg(reply->errorString(), excerpt);
-}
 
 // 各家目标语言代码不一致:DeepL 用大写(英语须带地区),百度日语是 jp
 QString langFor(const QString& protocol, const QString& target) {
@@ -108,7 +90,7 @@ void TranslateClient::translateOpenAi(const QStringList& lines, const Config& co
          QJsonArray{QJsonObject{{QLatin1String("role"), QLatin1String("user")},
                                 {QLatin1String("content"), prompt}}}}};
 
-    QNetworkRequest request(QUrl(joinUrl(config.baseUrl,
+    QNetworkRequest request(QUrl(net::joinUrl(config.baseUrl,
                                          QStringLiteral("/chat/completions"))));
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
@@ -126,7 +108,7 @@ void TranslateClient::translateOpenAi(const QStringList& lines, const Config& co
                     QString serverMessage;
                     textproto::openAiContent(reply->peek(reply->bytesAvailable()),
                                              &serverMessage);
-                    emit failed(serverMessage.isEmpty() ? httpFailureReason(reply)
+                    emit failed(serverMessage.isEmpty() ? net::httpFailureReason(reply)
                                                         : serverMessage);
                     return;
                 }
@@ -159,7 +141,7 @@ void TranslateClient::translateDeepL(const QStringList& lines, const Config& con
         {QLatin1String("text"), text},
         {QLatin1String("target_lang"), langFor(config.protocol, config.targetLang)}};
 
-    QNetworkRequest request(QUrl(joinUrl(base, QStringLiteral("/v2/translate"))));
+    QNetworkRequest request(QUrl(net::joinUrl(base, QStringLiteral("/v2/translate"))));
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
     request.setRawHeader("Authorization",
@@ -181,7 +163,7 @@ void TranslateClient::translateDeepL(const QStringList& lines, const Config& con
                 }
                 if (reply->error() != QNetworkReply::NoError &&
                     translations.isEmpty()) {
-                    emit failed(httpFailureReason(reply));
+                    emit failed(net::httpFailureReason(reply));
                     return;
                 }
                 deliver(translations, expected);
@@ -222,7 +204,7 @@ void TranslateClient::translateBaidu(const QStringList& lines, const Config& con
             [this, reply, expected = lines.size()] {
                 reply->deleteLater();
                 if (reply->error() != QNetworkReply::NoError) {
-                    emit failed(httpFailureReason(reply));
+                    emit failed(net::httpFailureReason(reply));
                     return;
                 }
                 QString error;
