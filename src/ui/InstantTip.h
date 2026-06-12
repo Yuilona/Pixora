@@ -29,12 +29,19 @@ protected:
             QToolTip::showText(QCursor::pos() + QPoint(0, 16), w->toolTip(), w);
             break;
         case QEvent::MouseButtonRelease:
-            // 延后到事件处理完,提示文本此时已是新状态
+            // 延后到事件处理完,提示文本此时已是新状态;
+            // 点的是出口按钮时工具条已隐藏,不能再把提示弹回来
             QTimer::singleShot(0, w, [w] {
-                QToolTip::showText(QCursor::pos() + QPoint(0, 16), w->toolTip(), w);
+                if (w->isVisible()) {
+                    QToolTip::showText(QCursor::pos() + QPoint(0, 16), w->toolTip(), w);
+                }
             });
             break;
         case QEvent::Leave:
+            QToolTip::hideText();
+            break;
+        case QEvent::Hide:
+            // 提示是独立顶层窗,宿主(随会话结束)隐藏时不会自动跟着藏
             QToolTip::hideText();
             break;
         case QEvent::ToolTip:
