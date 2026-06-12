@@ -5,7 +5,7 @@
 <h1 align="center">Pixora</h1>
 
 <p align="center">
-  Screenshot · Annotate · Pin · <b>Scrolling capture</b> — a fast, no-fuss screenshot tool that treats scrolling capture as a first-class citizen
+  Screenshot · Annotate · Pin · <b>Scrolling capture</b> — a fast, no-fuss screenshot tool for Windows
 </p>
 
 <p align="center">
@@ -22,13 +22,13 @@
 ## Features
 
 **Capture**
-- Global `F1` hotkey freezes the screen — what you see is what you get; hover to snap to windows, hold `Shift` to snap down to **individual UI elements** (buttons, inputs — via UIAutomation)
+- Global `F1` hotkey freezes the screen — what you see is what you capture; hover to snap to windows, hold `Shift` to snap to **individual UI elements** (buttons, inputs — via UIAutomation)
 - Free selection with 8-way resize handles; arrow keys nudge by 1px, `Ctrl+arrows` resize by 1px, `Shift` for ×10 steps; `Ctrl+A` (or clicking empty desktop) grabs the whole screen
 - Magnifier with live coordinates and pixel color; press `C` to copy HEX (`Shift+C` for RGB) — a color picker built right in
 
 **Annotate**
-- Rectangle / ellipse / arrow / pen / marker / text / numbered badge / mosaic / blur — a nine-tool icon toolbar
-- Every item stays editable: drag to resize, restyle color and width, double-click text to rewrite — with full undo/redo
+- Rectangle / ellipse / arrow / pen / marker / text / numbered badge / mosaic / blur — nine tools in a compact icon toolbar
+- Every item stays editable: drag to resize, change color and width, double-click text to edit — with full undo/redo
 
 **Pin**
 - Pin a capture to the screen in one click, or press `F3` to pin the clipboard; wheel to zoom, drag edges to resize, `Ctrl+wheel` for opacity
@@ -36,13 +36,13 @@
 - Pins **survive restarts** — position, scale, opacity and folded state are all remembered
 
 **Scrolling capture**
-- One toolbar click switches a selection into scroll-stitching mode; manual and auto-scroll, 30fps frame grabbing keeps up with fast scrolling
+- Turn any selection into a scrolling capture with one toolbar click; manual and auto-scroll, 30fps frame grabbing keeps up with fast scrolling
 - Multi-band NCC matching with sticky header/footer detection; a live preview strip sits beside the capture area so misalignment is visible immediately
-- Falls back to PageDown injection when wheel events are ignored; copy / pin / save outlets
+- Falls back to PageDown injection when wheel events are ignored; finish with copy, pin or save
 
 **Extract text & translate in place**
 - **Extract text**: OCR the selection straight to your clipboard
-- **Translate**: OCR each line with its position, translate, then redraw the translations over the original text — the result is pinned exactly over the source region, as if the page translated itself; press `Esc` to restore
+- **Translate**: OCR each line with its position, translate, then draw the translations over the original text — the result is pinned exactly over the source region; press `Esc` to restore
 - Bring your own services, configured in Settings: OpenAI-compatible vision/chat models, Umi-OCR (local), DeepL, or Baidu Translate
 
 **Output & history**
@@ -53,7 +53,7 @@
 
 Download `Pixora-x.y.z-win64-portable.zip` from [Releases](https://github.com/Yuilona/Pixora/releases/latest), unzip and run — no installation required.
 
-> Builds are not code-signed yet. If Windows SmartScreen objects, choose "More info → Run anyway".
+> Builds are not code-signed yet. If Windows SmartScreen warns you, choose "More info → Run anyway".
 
 ## Default hotkeys
 
