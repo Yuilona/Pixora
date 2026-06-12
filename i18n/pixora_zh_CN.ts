@@ -292,7 +292,7 @@ Every capture you copy, save or pin is kept here automatically</source>
     <message>
         <location filename="../src/ui/pin/PinWindow.cpp" line="341"/>
         <source>Fold into a slim bar</source>
-        <translation>折叠为小条</translation>
+        <translation>折叠</translation>
     </message>
     <message>
         <location filename="../src/ui/pin/PinWindow.cpp" line="344"/>
