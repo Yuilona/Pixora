@@ -191,6 +191,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     trProtocolCombo_->addItem(tr("OpenAI-compatible chat model"),
                               QStringLiteral("openai"));
     trProtocolCombo_->addItem(QStringLiteral("DeepL"), QStringLiteral("deepl"));
+    trProtocolCombo_->addItem(tr("DeepLX (self-hosted)"), QStringLiteral("deeplx"));
     trProtocolCombo_->addItem(tr("Baidu Translate"), QStringLiteral("baidu"));
     trProtocolCombo_->setCurrentIndex(
         std::max(0, trProtocolCombo_->findData(settings_.translateProtocol())));
@@ -222,7 +223,14 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
         } else if (protocol == QLatin1String("deepl")) {
             trUrlEdit_->setPlaceholderText(
                 tr("https://api-free.deepl.com (leave empty for default)"));
+        } else if (protocol == QLatin1String("deeplx")) {
+            trUrlEdit_->setPlaceholderText(
+                tr("http://127.0.0.1:1188 (leave empty for default)"));
         }
+        // DeepLX 的令牌是可选项,其余协议密钥必填
+        trKeyEdit_->setPlaceholderText(protocol == QLatin1String("deeplx")
+                                           ? tr("Access token (optional)")
+                                           : QString());
     };
     connect(trProtocolCombo_, &QComboBox::currentIndexChanged, this, syncTrRows);
     syncTrRows();

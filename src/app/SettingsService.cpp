@@ -163,7 +163,8 @@ void SettingsService::setOcrModel(const QString& model) {
 
 QString SettingsService::translateProtocol() const {
     const QString p = value(keys::trProtocol, QStringLiteral("openai")).toString();
-    if (p == QLatin1String("deepl") || p == QLatin1String("baidu")) {
+    if (p == QLatin1String("deepl") || p == QLatin1String("deeplx") ||
+        p == QLatin1String("baidu")) {
         return p;
     }
     return QStringLiteral("openai");

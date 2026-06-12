@@ -578,19 +578,19 @@ Every capture you copy, save or pin is kept here automatically</source>
     </message>
     <message>
         <location filename="../src/ui/settings/SettingsDialog.cpp" line="171"/>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="209"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="210"/>
         <source>Protocol</source>
         <translation>协议</translation>
     </message>
     <message>
         <location filename="../src/ui/settings/SettingsDialog.cpp" line="172"/>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="210"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="211"/>
         <source>Endpoint</source>
         <translation>接口地址</translation>
     </message>
     <message>
         <location filename="../src/ui/settings/SettingsDialog.cpp" line="174"/>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="213"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="214"/>
         <source>Model</source>
         <translation>模型名</translation>
     </message>
@@ -611,51 +611,66 @@ Every capture you copy, save or pin is kept here automatically</source>
     </message>
     <message>
         <location filename="../src/ui/settings/SettingsDialog.cpp" line="194"/>
+        <source>DeepLX (self-hosted)</source>
+        <translation>DeepLX(自托管)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="195"/>
         <source>Baidu Translate</source>
         <translation>百度翻译</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="202"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="203"/>
         <source>e.g. deepseek-chat / qwen-turbo</source>
         <translation>如 deepseek-chat / qwen-turbo</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="204"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="205"/>
         <source>Chinese</source>
         <translation>中文</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="205"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="206"/>
         <source>English</source>
         <translation>英文</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="206"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="207"/>
         <source>Japanese</source>
         <translation>日文</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="212"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="213"/>
         <source>Secret key</source>
         <translation>密钥</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="214"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="215"/>
         <source>Target language</source>
         <translation>目标语言</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="224"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="225"/>
         <source>https://api-free.deepl.com (leave empty for default)</source>
         <translation>https://api-free.deepl.com(留空用默认)</translation>
     </message>
     <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="228"/>
+        <source>http://127.0.0.1:1188 (leave empty for default)</source>
+        <translation>http://127.0.0.1:1188(留空用默认)</translation>
+    </message>
+    <message>
         <location filename="../src/ui/settings/SettingsDialog.cpp" line="232"/>
+        <source>Access token (optional)</source>
+        <translation>访问令牌(可选)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="240"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="234"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="242"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -713,6 +728,7 @@ Every capture you copy, save or pin is kept here automatically</source>
     <message>
         <location filename="../src/core/text/TextProtocols.cpp" line="65"/>
         <location filename="../src/core/text/TextProtocols.cpp" line="203"/>
+        <location filename="../src/core/text/TextProtocols.cpp" line="229"/>
         <source>(no details)</source>
         <translation>(无详情)</translation>
     </message>
@@ -748,11 +764,21 @@ Every capture you copy, save or pin is kept here automatically</source>
     </message>
     <message>
         <location filename="../src/core/text/TextProtocols.cpp" line="218"/>
+        <source>The DeepLX response is not valid JSON</source>
+        <translation>DeepLX 响应不是合法 JSON</translation>
+    </message>
+    <message>
+        <location filename="../src/core/text/TextProtocols.cpp" line="226"/>
+        <source>DeepLX error (%1): %2</source>
+        <translation>DeepLX 错误(%1):%2</translation>
+    </message>
+    <message>
+        <location filename="../src/core/text/TextProtocols.cpp" line="241"/>
         <source>The Baidu Translate response is not valid JSON</source>
         <translation>百度翻译响应不是合法 JSON</translation>
     </message>
     <message>
-        <location filename="../src/core/text/TextProtocols.cpp" line="224"/>
+        <location filename="../src/core/text/TextProtocols.cpp" line="247"/>
         <source>Baidu Translate error (%1): %2</source>
         <translation>百度翻译错误(%1):%2</translation>
     </message>

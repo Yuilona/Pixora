@@ -43,7 +43,7 @@
 **Extract text & translate in place**
 - **Extract text**: OCR the selection straight to your clipboard
 - **Translate**: OCR each line with its position, translate, then draw the translations over the original text — the result is pinned exactly over the source region; press `Esc` to restore
-- Bring your own services, configured in Settings: OpenAI-compatible vision/chat models, Umi-OCR (local), DeepL, or Baidu Translate
+- Bring your own services, configured in Settings: OpenAI-compatible vision/chat models, Umi-OCR (local), DeepL, DeepLX (self-hosted), or Baidu Translate
 
 **Output & history**
 - Filename templates (`{yyyy}{MM}{dd}{HH}{mm}{ss}`), PNG/JPEG with quality control, optional auto-save on copy

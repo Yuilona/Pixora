@@ -58,7 +58,7 @@ public:
     void setOcrModel(const QString& model);
 
     // —— 翻译服务(截图翻译)——
-    QString translateProtocol() const; // "openai" | "deepl" | "baidu"
+    QString translateProtocol() const; // "openai" | "deepl" | "deeplx" | "baidu"
     void setTranslateProtocol(const QString& protocol);
     QString translateBaseUrl() const;
     void setTranslateBaseUrl(const QString& url);

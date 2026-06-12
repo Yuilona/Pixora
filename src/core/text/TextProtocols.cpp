@@ -211,6 +211,29 @@ QStringList parseDeepLReply(const QByteArray& reply, QString* error) {
     return result;
 }
 
+QStringList parseDeepLXReply(const QByteArray& reply, QString* error) {
+    QJsonParseError parseError{};
+    const QJsonDocument doc = QJsonDocument::fromJson(reply, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        setError(error, QCoreApplication::translate(
+                            "textproto", "The DeepLX response is not valid JSON"));
+        return {};
+    }
+    const QJsonObject root = doc.object();
+    const int code = root.value(QLatin1String("code")).toInt();
+    if (code != 200) {
+        setError(error,
+                 QCoreApplication::translate("textproto", "DeepLX error (%1): %2")
+                     .arg(code)
+                     .arg(root.value(QLatin1String("message"))
+                              .toString(QCoreApplication::translate(
+                                  "textproto", "(no details)"))));
+        return {};
+    }
+    // 多行原文以 \n 连接整体翻译,DeepL 保留换行 → 按 \n 拆回行
+    return root.value(QLatin1String("data")).toString().split(QLatin1Char('\n'));
+}
+
 QStringList parseBaiduReply(const QByteArray& reply, QString* error) {
     QJsonParseError parseError{};
     const QJsonDocument doc = QJsonDocument::fromJson(reply, &parseError);

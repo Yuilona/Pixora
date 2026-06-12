@@ -33,6 +33,12 @@ QList<OcrLine> parseUmiOcrReply(const QByteArray& reply, QString* error);
 // —— DeepL /v2/translate 响应 ——
 QStringList parseDeepLReply(const QByteArray& reply, QString* error);
 
+// —— DeepLX(自托管)/translate 响应 ——
+// 成功:{"code":200,"data":"逐行以\n分隔的译文"} → 按 \n 拆回行;
+// 失败:code != 200,取 message(DeepLX 对多行文本整体翻译,
+// 行对应靠 DeepL 保留换行的行为,偶有合并由调用方补齐对齐)
+QStringList parseDeepLXReply(const QByteArray& reply, QString* error);
+
 // —— 百度翻译通用 API 响应 ——
 QStringList parseBaiduReply(const QByteArray& reply, QString* error);
 

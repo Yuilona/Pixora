@@ -117,6 +117,33 @@ TEST_CASE("deepl error message surfaced", "[textproto]") {
     CHECK(error.contains(QStringLiteral("Wrong endpoint")));
 }
 
+TEST_CASE("deeplx reply split back into lines", "[textproto]") {
+    const QByteArray reply =
+        R"({"code": 200, "id": 123, "data": "你好\n世界", "method": "Free"})";
+    QString error;
+    const QStringList list = parseDeepLXReply(reply, &error);
+    REQUIRE(list.size() == 2);
+    CHECK(list[0] == QStringLiteral("你好"));
+    CHECK(list[1] == QStringLiteral("世界"));
+    CHECK(error.isEmpty());
+}
+
+TEST_CASE("deeplx error code and message surfaced", "[textproto]") {
+    QString error;
+    const QStringList list = parseDeepLXReply(
+        R"({"code": 429, "message": "Too many requests"})", &error);
+    CHECK(list.isEmpty());
+    CHECK(error.contains(QStringLiteral("429")));
+    CHECK(error.contains(QStringLiteral("Too many requests")));
+}
+
+TEST_CASE("deeplx invalid json rejected", "[textproto]") {
+    QString error;
+    const QStringList list = parseDeepLXReply("<html>busy</html>", &error);
+    CHECK(list.isEmpty());
+    CHECK_FALSE(error.isEmpty());
+}
+
 TEST_CASE("baidu reply parsed per line", "[textproto]") {
     const QByteArray reply = R"({
         "from": "en", "to": "zh",

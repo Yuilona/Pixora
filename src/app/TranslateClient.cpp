@@ -20,7 +20,8 @@ namespace {
 
 // 各家目标语言代码不一致:DeepL 用大写(英语须带地区),百度日语是 jp
 QString langFor(const QString& protocol, const QString& target) {
-    if (protocol == QLatin1String("deepl")) {
+    // DeepLX 最终把 target_lang 透传给 DeepL,语言代码体系一致
+    if (protocol == QLatin1String("deepl") || protocol == QLatin1String("deeplx")) {
         if (target == QLatin1String("en")) return QStringLiteral("EN-US");
         if (target == QLatin1String("ja")) return QStringLiteral("JA");
         return QStringLiteral("ZH");
@@ -49,6 +50,8 @@ void TranslateClient::translate(const QStringList& lines, const Config& config) 
     }
     if (config.protocol == QLatin1String("deepl")) {
         translateDeepL(lines, config);
+    } else if (config.protocol == QLatin1String("deeplx")) {
+        translateDeepLX(lines, config);
     } else if (config.protocol == QLatin1String("baidu")) {
         translateBaidu(lines, config);
     } else {
@@ -159,6 +162,49 @@ void TranslateClient::translateDeepL(const QStringList& lines, const Config& con
                 QString error;
                 const QStringList translations =
                     textproto::parseDeepLReply(reply->readAll(), &error);
+                if (!error.isEmpty()) {
+                    emit failed(error);
+                    return;
+                }
+                if (reply->error() != QNetworkReply::NoError &&
+                    translations.isEmpty()) {
+                    emit failed(net::httpFailureReason(reply));
+                    return;
+                }
+                deliver(translations, expected);
+            });
+}
+
+// DeepLX 自托管服务的免费端点 /translate:text 是单字符串而非数组
+// (其 /v2/translate 虽收数组,但 join 后整体翻译、只回一个元素,
+// 行对应会丢)——多行以 \n 连接,译文按 \n 拆回,行数漂移由
+// deliver() 对齐兜底。访问令牌可选,Bearer 头携带。
+void TranslateClient::translateDeepLX(const QStringList& lines, const Config& config) {
+    const QString base = config.baseUrl.isEmpty()
+                             ? QStringLiteral("http://127.0.0.1:1188")
+                             : config.baseUrl;
+    const QJsonObject body{
+        {QLatin1String("text"), lines.join(QLatin1Char('\n'))},
+        {QLatin1String("source_lang"), QLatin1String("auto")},
+        {QLatin1String("target_lang"), langFor(config.protocol, config.targetLang)}};
+
+    QNetworkRequest request(QUrl(net::joinUrl(base, QStringLiteral("/translate"))));
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    if (!config.apiKey.isEmpty()) {
+        request.setRawHeader("Authorization", "Bearer " + config.apiKey.toUtf8());
+    }
+
+    spdlog::info("translate(deeplx): POST {} lines={}",
+                 request.url().toString().toStdString(), lines.size());
+    QNetworkReply* reply =
+        nam_.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, expected = lines.size()] {
+                reply->deleteLater();
+                QString error;
+                const QStringList translations =
+                    textproto::parseDeepLXReply(reply->readAll(), &error);
                 if (!error.isEmpty()) {
                     emit failed(error);
                     return;
