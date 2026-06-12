@@ -38,7 +38,8 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
 }
 
 void TrayService::notify(const QString& title, const QString& message) {
-    tray_.showMessage(title, message, QSystemTrayIcon::Information, 3000);
+    // 传 QIcon 而非 Information 枚举:气泡显示应用 logo,不是系统蓝色感叹号
+    tray_.showMessage(title, message, tray_.icon(), 3000);
 }
 
 void TrayService::show() {
