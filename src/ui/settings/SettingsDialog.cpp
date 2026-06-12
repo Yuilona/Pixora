@@ -30,6 +30,12 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     setMinimumWidth(440);
 
     // 所有配置组统一为圆角卡片(样式见 Theme appStyleSheet 的 QGroupBox)
+    auto makeCombo = [this] {
+        auto* combo = new QComboBox(this);
+        theme::roundComboPopup(combo); // 弹层透明化,圆角才完整
+        return combo;
+    };
+
     auto makeCard = [this](const QString& title, QFormLayout*& form) {
         auto* group = new QGroupBox(title, this);
         form = new QFormLayout(group);
@@ -107,7 +113,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     outputForm->addRow(QStringLiteral("文件名模板"), fileTemplateEdit_);
 
     auto* formatRow = new QHBoxLayout;
-    formatCombo_ = new QComboBox(this);
+    formatCombo_ = makeCombo();
     formatCombo_->addItem(QStringLiteral("PNG"), QStringLiteral("png"));
     formatCombo_->addItem(QStringLiteral("JPEG"), QStringLiteral("jpg"));
     formatCombo_->setCurrentIndex(
@@ -135,7 +141,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     // —— OCR 识别服务(提取文字 / 截图翻译共用)——
     QFormLayout* ocrForm = nullptr;
     auto* ocrGroup = makeCard(QStringLiteral("OCR 识别(提取文字 / 翻译)"), ocrForm);
-    ocrProtocolCombo_ = new QComboBox(this);
+    ocrProtocolCombo_ = makeCombo();
     ocrProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容视觉模型"),
                                QStringLiteral("openai"));
     ocrProtocolCombo_->addItem(QStringLiteral("Umi-OCR 本地服务"),
@@ -166,7 +172,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     // —— 翻译服务 ——
     QFormLayout* trForm = nullptr;
     auto* trGroup = makeCard(QStringLiteral("翻译服务(截图翻译)"), trForm);
-    trProtocolCombo_ = new QComboBox(this);
+    trProtocolCombo_ = makeCombo();
     trProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容大模型"),
                               QStringLiteral("openai"));
     trProtocolCombo_->addItem(QStringLiteral("DeepL"), QStringLiteral("deepl"));
@@ -179,7 +185,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     trKeyEdit_->setEchoMode(QLineEdit::Password);
     trModelEdit_ = new QLineEdit(settings_.translateModel(), this);
     trModelEdit_->setPlaceholderText(QStringLiteral("如 deepseek-chat / qwen-turbo"));
-    targetLangCombo_ = new QComboBox(this);
+    targetLangCombo_ = makeCombo();
     targetLangCombo_->addItem(QStringLiteral("中文"), QStringLiteral("zh"));
     targetLangCombo_->addItem(QStringLiteral("英文"), QStringLiteral("en"));
     targetLangCombo_->addItem(QStringLiteral("日文"), QStringLiteral("ja"));

@@ -37,7 +37,8 @@ int main(int argc, char* argv[]) {
     app.setQuitOnLastWindowClosed(false);
     // 统一 UI 风格:文档型窗口(设置/历史/菜单)走 Fusion + 白色系样式表,
     // 与系统浅色标题栏衔接;悬浮 HUD(工具栏/通知卡)保持暗色(见 ui/Theme.h)
-    QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+    QApplication::setStyle(new pixora::theme::DropDownStyle(
+        QStyleFactory::create(QStringLiteral("Fusion"))));
     QPalette palette = QApplication::palette();
     palette.setColor(QPalette::Highlight, pixora::theme::accent());
     palette.setColor(QPalette::HighlightedText, Qt::white);

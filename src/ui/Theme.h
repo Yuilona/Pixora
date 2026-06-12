@@ -1,11 +1,15 @@
 #pragma once
 
+#include <QAbstractItemView>
 #include <QColor>
+#include <QComboBox>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPalette>
+#include <QProxyStyle>
 #include <QRect>
 #include <QString>
+#include <QWidget>
 
 // 全局 UI 主题:双色系分工 + 主题蓝点缀(与 logo 蓝同族)。
 //
@@ -66,6 +70,37 @@ inline QString chromeStyleSheet(int fontPx, int padV, int padH) {
         .arg(padV)
         .arg(padH)
         .arg(accent().name());
+}
+
+// Fusion 的下拉框默认"覆盖式"弹出:列表盖住输入框本体,展开时
+// 本体还会变直角。改为列表悬于框下方的经典下拉模式。
+class DropDownStyle : public QProxyStyle {
+public:
+    using QProxyStyle::QProxyStyle;
+
+    int styleHint(StyleHint hint, const QStyleOption* option = nullptr,
+                  const QWidget* widget = nullptr,
+                  QStyleHintReturn* returnData = nullptr) const override {
+        if (hint == SH_ComboBox_Popup) {
+            return 0; // 0 = 列表在框下方展开,不覆盖本体
+        }
+        return QProxyStyle::styleHint(hint, option, widget, returnData);
+    }
+};
+
+// 弹出层(下拉列表/菜单)圆角化:弹层是独立顶层窗,默认方形不透明底
+// + 方形阴影,QSS 只能圆角化内容,方壳会从圆角后露出——需窗口透明化。
+inline void roundPopup(QWidget* popup) {
+    if (!popup) {
+        return;
+    }
+    popup->setWindowFlags(popup->windowFlags() | Qt::FramelessWindowHint |
+                          Qt::NoDropShadowWindowHint);
+    popup->setAttribute(Qt::WA_TranslucentBackground);
+}
+
+inline void roundComboPopup(QComboBox* combo) {
+    roundPopup(combo->view() ? combo->view()->window() : nullptr);
 }
 
 // 主按钮(实心主题蓝)/危险按钮(白底红字):

@@ -332,6 +332,7 @@ void PinWindow::closeEvent(QCloseEvent* event) {
 
 void PinWindow::contextMenuEvent(QContextMenuEvent* event) {
     QMenu menu(this);
+    theme::roundPopup(&menu); // 透明化弹层,QSS 圆角才完整
     menu.addAction(QStringLiteral("复制图像"), [this] {
         QGuiApplication::clipboard()->setImage(image_);
     });

@@ -13,6 +13,7 @@
 namespace pixora {
 
 TrayService::TrayService(QObject* parent) : QObject(parent) {
+    theme::roundPopup(&menu_); // 透明化弹层,QSS 圆角才完整
     auto* title = menu_.addAction(
         QStringLiteral("Pixora %1").arg(QApplication::applicationVersion()));
     title->setEnabled(false);
