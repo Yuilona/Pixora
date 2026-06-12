@@ -1,11 +1,18 @@
-# 三平台矩阵:构建 + 单测(见 ARCHITECTURE §9)
+# Windows 是主力开发平台:push/PR 只跑 Windows。
+# Linux/macOS 仅在手动触发(workflow_dispatch)或发版(tag/release)时跑,
+# 作为 GCC/Clang 交叉编译把关(此前 Stitcher 默认参数问题正是它们抓到的)。
 # vcpkg 依赖经 GitHub Actions 缓存(x-gha),Qt 经 install-qt-action 自带缓存。
+# Ninja 已预装于全部默认 runner 镜像,无需安装步骤。
 name: CI
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
 
 defaults:
   run:
@@ -15,20 +22,16 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 jobs:
-  build:
-    name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # Qt 6.11 官方二进制面向 Ubuntu 24.04(架构文档写 22.04 时基于 Qt 6.8 计划)
-        os: [windows-latest, macos-latest, ubuntu-24.04]
-
+  windows:
+    name: windows-latest
+    # release 事件不重复跑:同一提交在 push 时已验证过
+    if: github.event_name != 'release'
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Export GitHub Actions cache variables for vcpkg
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
@@ -43,12 +46,51 @@ jobs:
           # 暂用已本地验证的 master commit;aqtinstall >3.3.0 发布后删除此行
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@8d961e61720b3c06583517fbc68d57ec0a4e9f95'
 
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v5
-
       - name: Set up MSVC environment
-        if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        run: >
+          cmake -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  cross-platform:
+    name: ${{ matrix.os }}
+    # 仅手动触发或发版时验证 GCC/Clang
+    if: github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'release' ||
+        startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Qt 6.11 官方二进制面向 Ubuntu 24.04
+        os: [ubuntu-24.04, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Export GitHub Actions cache variables for vcpkg
+        uses: actions/github-script@v8
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          cache: true
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@8d961e61720b3c06583517fbc68d57ec0a4e9f95'
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
