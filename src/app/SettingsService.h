@@ -43,6 +43,30 @@ public:
     bool autoSave() const;
     void setAutoSave(bool enabled);
 
+    // —— OCR 服务(提取文字/截图翻译)——
+    QString ocrProtocol() const; // "openai" | "umiocr"
+    void setOcrProtocol(const QString& protocol);
+    QString ocrBaseUrl() const;
+    void setOcrBaseUrl(const QString& url);
+    QString ocrApiKey() const;
+    void setOcrApiKey(const QString& key);
+    QString ocrModel() const;
+    void setOcrModel(const QString& model);
+
+    // —— 翻译服务(截图翻译)——
+    QString translateProtocol() const; // "openai" | "deepl" | "baidu"
+    void setTranslateProtocol(const QString& protocol);
+    QString translateBaseUrl() const;
+    void setTranslateBaseUrl(const QString& url);
+    QString translateApiKey() const;
+    void setTranslateApiKey(const QString& key);
+    QString translateAppId() const; // 仅百度
+    void setTranslateAppId(const QString& appId);
+    QString translateModel() const; // 仅 openai
+    void setTranslateModel(const QString& model);
+    QString translateTargetLang() const; // "zh" | "en" | "ja"
+    void setTranslateTargetLang(const QString& lang);
+
     QJsonObject exportToJson() const;
     void importFromJson(const QJsonObject& json);
 

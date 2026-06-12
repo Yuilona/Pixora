@@ -43,6 +43,8 @@ public:
     void requestSave();   // 确认选区 → 另存输出
     void requestPin();    // 确认选区 → 贴图输出
     void requestScroll(); // 确认选区 → 转入长截图(滚动拼接)
+    void requestExtractText(); // 确认选区 → OCR 提取文字
+    void requestTranslate();   // 确认选区 → 截图翻译(原位贴图替换)
     void cancel();
 
     // 取色器:复制光标处色值并结束会话(text 已是最终剪贴板文本)
@@ -96,6 +98,8 @@ signals:
     void saveRequested(const QRect& rect);
     void pinRequested(const QRect& rect);
     void scrollRequested(const QRect& rect);
+    void extractTextRequested(const QRect& rect);
+    void translateRequested(const QRect& rect);
     void colorPicked(const QString& text);
     void cancelled();
     void activeToolChanged();

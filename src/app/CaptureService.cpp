@@ -83,6 +83,18 @@ void CaptureService::start() {
                 teardown(); // 先拆遮罩,让目标窗口可滚动
                 emit scrollCaptureRequested(region);
             });
+    connect(session_.get(), &SnipSession::extractTextRequested, this,
+            [this](const QRect& region) {
+                const QImage image = session_->snapshot().copyRegionLogical(region);
+                teardown();
+                emit ocrRequested(image);
+            });
+    connect(session_.get(), &SnipSession::translateRequested, this,
+            [this](const QRect& region) {
+                const QImage image = session_->snapshot().copyRegionLogical(region);
+                teardown();
+                emit translateRequested(image, region);
+            });
     connect(session_.get(), &SnipSession::colorPicked, this, [this](const QString& text) {
         teardown();
         QGuiApplication::clipboard()->setText(text);

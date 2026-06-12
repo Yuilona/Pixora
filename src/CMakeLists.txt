@@ -12,10 +12,16 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     app/HotkeyService.cpp
     app/OutputService.h
     app/OutputService.cpp
+    app/OcrClient.h
+    app/OcrClient.cpp
     app/PinService.h
     app/PinService.cpp
+    app/ScreenTextService.h
+    app/ScreenTextService.cpp
     app/ScrollCaptureService.h
     app/ScrollCaptureService.cpp
+    app/TranslateClient.h
+    app/TranslateClient.cpp
     app/SettingsService.h
     app/SettingsService.cpp
     app/SingleInstanceGuard.h
@@ -34,6 +40,11 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/stitch/FixedRegionDetector.cpp
     core/stitch/Stitcher.h
     core/stitch/Stitcher.cpp
+    core/text/OcrTypes.h
+    core/text/ReplaceRenderer.h
+    core/text/ReplaceRenderer.cpp
+    core/text/TextProtocols.h
+    core/text/TextProtocols.cpp
     ui/editor/AnnotationRenderer.h
     ui/editor/AnnotationRenderer.cpp
     ui/editor/AnnotationToolbar.h

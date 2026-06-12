@@ -163,6 +163,21 @@ void PinWindow::applyScale(qreal scale) {
     emit stateChanged();
 }
 
+void PinWindow::setImage(const QImage& image) {
+    if (image.isNull()) {
+        return;
+    }
+    image_ = image;
+    rebuildDisplayCache();
+    applyGeometryForState();
+    emit imageChanged();
+}
+
+void PinWindow::setStatusBadge(const QString& text) {
+    badge_ = text;
+    update();
+}
+
 void PinWindow::restoreState(qreal scale, qreal opacity, bool folded) {
     scale_ = std::clamp(scale, kMinScale, kMaxScale);
     folded_ = folded;
@@ -207,6 +222,21 @@ void PinWindow::paintEvent(QPaintEvent* /*event*/) {
     }
     painter.setPen(QPen(kFrameColor, 1));
     painter.drawRect(rect().adjusted(0, 0, -1, -1));
+
+    if (!badge_.isEmpty() && !folded_) {
+        QFont f = font();
+        f.setPixelSize(12);
+        const QFontMetrics fm(f);
+        const QRect r(width() - fm.horizontalAdvance(badge_) - 22, 6,
+                      fm.horizontalAdvance(badge_) + 14, fm.height() + 6);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(0, 0, 0, 150));
+        painter.drawRoundedRect(r, 4, 4);
+        painter.setFont(f);
+        painter.setPen(Qt::white);
+        painter.drawText(r, Qt::AlignCenter, badge_);
+    }
 }
 
 void PinWindow::mousePressEvent(QMouseEvent* event) {

@@ -16,6 +16,16 @@ const QString fileNameTemplate = QStringLiteral("output/fileTemplate");
 const QString outputFormat = QStringLiteral("output/format");
 const QString outputQuality = QStringLiteral("output/quality");
 const QString autoSave = QStringLiteral("output/autoSave");
+const QString ocrProtocol = QStringLiteral("ai/ocrProtocol");
+const QString ocrBaseUrl = QStringLiteral("ai/ocrBaseUrl");
+const QString ocrApiKey = QStringLiteral("ai/ocrApiKey");
+const QString ocrModel = QStringLiteral("ai/ocrModel");
+const QString trProtocol = QStringLiteral("ai/translateProtocol");
+const QString trBaseUrl = QStringLiteral("ai/translateBaseUrl");
+const QString trApiKey = QStringLiteral("ai/translateApiKey");
+const QString trAppId = QStringLiteral("ai/translateAppId");
+const QString trModel = QStringLiteral("ai/translateModel");
+const QString trTargetLang = QStringLiteral("ai/translateTargetLang");
 } // namespace keys
 
 // 默认热键取通行键位习惯:F1 截图、F3 贴图;长截图走截图工具栏,无独立热键。
@@ -102,6 +112,96 @@ bool SettingsService::autoSave() const {
 
 void SettingsService::setAutoSave(bool enabled) {
     setValue(keys::autoSave, enabled);
+}
+
+QString SettingsService::ocrProtocol() const {
+    const QString p = value(keys::ocrProtocol, QStringLiteral("openai")).toString();
+    return p == QLatin1String("umiocr") ? p : QStringLiteral("openai");
+}
+
+void SettingsService::setOcrProtocol(const QString& protocol) {
+    setValue(keys::ocrProtocol, protocol);
+}
+
+QString SettingsService::ocrBaseUrl() const {
+    return value(keys::ocrBaseUrl, QString()).toString().trimmed();
+}
+
+void SettingsService::setOcrBaseUrl(const QString& url) {
+    setValue(keys::ocrBaseUrl, url.trimmed());
+}
+
+QString SettingsService::ocrApiKey() const {
+    return value(keys::ocrApiKey, QString()).toString().trimmed();
+}
+
+void SettingsService::setOcrApiKey(const QString& key) {
+    setValue(keys::ocrApiKey, key.trimmed());
+}
+
+QString SettingsService::ocrModel() const {
+    return value(keys::ocrModel, QString()).toString().trimmed();
+}
+
+void SettingsService::setOcrModel(const QString& model) {
+    setValue(keys::ocrModel, model.trimmed());
+}
+
+QString SettingsService::translateProtocol() const {
+    const QString p = value(keys::trProtocol, QStringLiteral("openai")).toString();
+    if (p == QLatin1String("deepl") || p == QLatin1String("baidu")) {
+        return p;
+    }
+    return QStringLiteral("openai");
+}
+
+void SettingsService::setTranslateProtocol(const QString& protocol) {
+    setValue(keys::trProtocol, protocol);
+}
+
+QString SettingsService::translateBaseUrl() const {
+    return value(keys::trBaseUrl, QString()).toString().trimmed();
+}
+
+void SettingsService::setTranslateBaseUrl(const QString& url) {
+    setValue(keys::trBaseUrl, url.trimmed());
+}
+
+QString SettingsService::translateApiKey() const {
+    return value(keys::trApiKey, QString()).toString().trimmed();
+}
+
+void SettingsService::setTranslateApiKey(const QString& key) {
+    setValue(keys::trApiKey, key.trimmed());
+}
+
+QString SettingsService::translateAppId() const {
+    return value(keys::trAppId, QString()).toString().trimmed();
+}
+
+void SettingsService::setTranslateAppId(const QString& appId) {
+    setValue(keys::trAppId, appId.trimmed());
+}
+
+QString SettingsService::translateModel() const {
+    return value(keys::trModel, QString()).toString().trimmed();
+}
+
+void SettingsService::setTranslateModel(const QString& model) {
+    setValue(keys::trModel, model.trimmed());
+}
+
+QString SettingsService::translateTargetLang() const {
+    const QString lang =
+        value(keys::trTargetLang, QStringLiteral("zh")).toString();
+    if (lang == QLatin1String("en") || lang == QLatin1String("ja")) {
+        return lang;
+    }
+    return QStringLiteral("zh");
+}
+
+void SettingsService::setTranslateTargetLang(const QString& lang) {
+    setValue(keys::trTargetLang, lang);
 }
 
 QJsonObject SettingsService::exportToJson() const {

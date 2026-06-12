@@ -89,6 +89,18 @@ void SnipSession::requestScroll() {
     }
 }
 
+void SnipSession::requestExtractText() {
+    if (hasSelection()) {
+        emit extractTextRequested(selection_);
+    }
+}
+
+void SnipSession::requestTranslate() {
+    if (hasSelection()) {
+        emit translateRequested(selection_);
+    }
+}
+
 void SnipSession::cancel() {
     emit cancelled();
 }

@@ -44,6 +44,18 @@ private:
     QCheckBox* autoSaveCheck_ = nullptr;
     QSpinBox* historyLimitSpin_ = nullptr;
     QCheckBox* autoStartCheck_ = nullptr;
+
+    // OCR / 翻译服务(截图翻译)
+    QComboBox* ocrProtocolCombo_ = nullptr;
+    QLineEdit* ocrUrlEdit_ = nullptr;
+    QLineEdit* ocrKeyEdit_ = nullptr;
+    QLineEdit* ocrModelEdit_ = nullptr;
+    QComboBox* trProtocolCombo_ = nullptr;
+    QLineEdit* trUrlEdit_ = nullptr;
+    QLineEdit* trAppIdEdit_ = nullptr;
+    QLineEdit* trKeyEdit_ = nullptr;
+    QLineEdit* trModelEdit_ = nullptr;
+    QComboBox* targetLangCombo_ = nullptr;
 };
 
 } // namespace pixora

@@ -8,6 +8,7 @@
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QKeySequenceEdit>
 #include <QLabel>
@@ -112,6 +113,80 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
     form->addRow(QString(), autoStartCheck_);
 
+    // —— OCR 识别服务(提取文字 / 截图翻译共用)——
+    auto* ocrGroup = new QGroupBox(QStringLiteral("OCR 识别(提取文字 / 翻译)"), this);
+    auto* ocrForm = new QFormLayout(ocrGroup);
+    ocrProtocolCombo_ = new QComboBox(this);
+    ocrProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容视觉模型"),
+                               QStringLiteral("openai"));
+    ocrProtocolCombo_->addItem(QStringLiteral("Umi-OCR 本地服务"),
+                               QStringLiteral("umiocr"));
+    ocrProtocolCombo_->setCurrentIndex(
+        std::max(0, ocrProtocolCombo_->findData(settings_.ocrProtocol())));
+    ocrUrlEdit_ = new QLineEdit(settings_.ocrBaseUrl(), this);
+    ocrKeyEdit_ = new QLineEdit(settings_.ocrApiKey(), this);
+    ocrKeyEdit_->setEchoMode(QLineEdit::Password);
+    ocrModelEdit_ = new QLineEdit(settings_.ocrModel(), this);
+    ocrModelEdit_->setPlaceholderText(QStringLiteral("如 qwen-vl-plus / glm-4v-flash"));
+    ocrForm->addRow(QStringLiteral("协议"), ocrProtocolCombo_);
+    ocrForm->addRow(QStringLiteral("接口地址"), ocrUrlEdit_);
+    ocrForm->addRow(QStringLiteral("API Key"), ocrKeyEdit_);
+    ocrForm->addRow(QStringLiteral("模型名"), ocrModelEdit_);
+    auto syncOcrRows = [this, ocrForm] {
+        const bool openai =
+            ocrProtocolCombo_->currentData().toString() == QLatin1String("openai");
+        ocrForm->setRowVisible(ocrKeyEdit_, openai);
+        ocrForm->setRowVisible(ocrModelEdit_, openai);
+        ocrUrlEdit_->setPlaceholderText(
+            openai ? QStringLiteral("https://api.siliconflow.cn/v1")
+                   : QStringLiteral("http://127.0.0.1:1224(留空用默认)"));
+    };
+    connect(ocrProtocolCombo_, &QComboBox::currentIndexChanged, this, syncOcrRows);
+    syncOcrRows();
+
+    // —— 翻译服务 ——
+    auto* trGroup = new QGroupBox(QStringLiteral("翻译服务(截图翻译)"), this);
+    auto* trForm = new QFormLayout(trGroup);
+    trProtocolCombo_ = new QComboBox(this);
+    trProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容大模型"),
+                              QStringLiteral("openai"));
+    trProtocolCombo_->addItem(QStringLiteral("DeepL"), QStringLiteral("deepl"));
+    trProtocolCombo_->addItem(QStringLiteral("百度翻译"), QStringLiteral("baidu"));
+    trProtocolCombo_->setCurrentIndex(
+        std::max(0, trProtocolCombo_->findData(settings_.translateProtocol())));
+    trUrlEdit_ = new QLineEdit(settings_.translateBaseUrl(), this);
+    trAppIdEdit_ = new QLineEdit(settings_.translateAppId(), this);
+    trKeyEdit_ = new QLineEdit(settings_.translateApiKey(), this);
+    trKeyEdit_->setEchoMode(QLineEdit::Password);
+    trModelEdit_ = new QLineEdit(settings_.translateModel(), this);
+    trModelEdit_->setPlaceholderText(QStringLiteral("如 deepseek-chat / qwen-turbo"));
+    targetLangCombo_ = new QComboBox(this);
+    targetLangCombo_->addItem(QStringLiteral("中文"), QStringLiteral("zh"));
+    targetLangCombo_->addItem(QStringLiteral("英文"), QStringLiteral("en"));
+    targetLangCombo_->addItem(QStringLiteral("日文"), QStringLiteral("ja"));
+    targetLangCombo_->setCurrentIndex(
+        std::max(0, targetLangCombo_->findData(settings_.translateTargetLang())));
+    trForm->addRow(QStringLiteral("协议"), trProtocolCombo_);
+    trForm->addRow(QStringLiteral("接口地址"), trUrlEdit_);
+    trForm->addRow(QStringLiteral("APP ID"), trAppIdEdit_);
+    trForm->addRow(QStringLiteral("密钥"), trKeyEdit_);
+    trForm->addRow(QStringLiteral("模型名"), trModelEdit_);
+    trForm->addRow(QStringLiteral("目标语言"), targetLangCombo_);
+    auto syncTrRows = [this, trForm] {
+        const QString protocol = trProtocolCombo_->currentData().toString();
+        trForm->setRowVisible(trUrlEdit_, protocol != QLatin1String("baidu"));
+        trForm->setRowVisible(trAppIdEdit_, protocol == QLatin1String("baidu"));
+        trForm->setRowVisible(trModelEdit_, protocol == QLatin1String("openai"));
+        if (protocol == QLatin1String("openai")) {
+            trUrlEdit_->setPlaceholderText(QStringLiteral("https://api.deepseek.com/v1"));
+        } else if (protocol == QLatin1String("deepl")) {
+            trUrlEdit_->setPlaceholderText(
+                QStringLiteral("https://api-free.deepl.com(留空用默认)"));
+        }
+    };
+    connect(trProtocolCombo_, &QComboBox::currentIndexChanged, this, syncTrRows);
+    syncTrRows();
+
     auto* buttons =
         new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("确定"));
@@ -124,6 +199,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     auto* layout = new QVBoxLayout(this);
     layout->addLayout(form);
+    layout->addWidget(ocrGroup);
+    layout->addWidget(trGroup);
     layout->addWidget(buttons);
 }
 
@@ -149,6 +226,16 @@ void SettingsDialog::apply() {
     settings_.setOutputQuality(qualitySpin_->value());
     settings_.setAutoSave(autoSaveCheck_->isChecked());
     settings_.setHistoryLimit(historyLimitSpin_->value());
+    settings_.setOcrProtocol(ocrProtocolCombo_->currentData().toString());
+    settings_.setOcrBaseUrl(ocrUrlEdit_->text());
+    settings_.setOcrApiKey(ocrKeyEdit_->text());
+    settings_.setOcrModel(ocrModelEdit_->text());
+    settings_.setTranslateProtocol(trProtocolCombo_->currentData().toString());
+    settings_.setTranslateBaseUrl(trUrlEdit_->text());
+    settings_.setTranslateAppId(trAppIdEdit_->text());
+    settings_.setTranslateApiKey(trKeyEdit_->text());
+    settings_.setTranslateModel(trModelEdit_->text());
+    settings_.setTranslateTargetLang(targetLangCombo_->currentData().toString());
     if (system_) {
         system_->setAutoStart(autoStartCheck_->isChecked());
     }

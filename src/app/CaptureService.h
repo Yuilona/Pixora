@@ -42,6 +42,9 @@ signals:
     // 工具栏[长截图]:拆掉遮罩后把选区交给 ScrollCaptureService 接管
     void scrollCaptureRequested(const QRect& regionGlobal);
     void colorCopied(const QString& text); // 取色器出口(C 键)
+    // 工具栏[提取文字]/[翻译]:选区原始图(不含标注)交给 ScreenTextService
+    void ocrRequested(const QImage& image);
+    void translateRequested(const QImage& image, const QRect& regionGlobal);
 
 private:
     QImage renderResult(const QRect& region) const; // 截取 + 平铺标注

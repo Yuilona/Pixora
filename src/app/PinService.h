@@ -25,7 +25,9 @@ class PinService : public QObject {
 public:
     explicit PinService(ISystemIntegration* system, QObject* parent = nullptr);
 
-    void pinImage(const QImage& image, const QPoint& topLeftLogical);
+    // 返回新建的贴图窗(图像为空返回 nullptr);窗口自管理生命周期,
+    // 调用方如需后续操作请用 QPointer 弱引用。
+    PinWindow* pinImage(const QImage& image, const QPoint& topLeftLogical);
 
     // 剪贴板有图像则贴出(位置取光标附近),返回是否成功。
     bool pinFromClipboard();

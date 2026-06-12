@@ -49,9 +49,9 @@ QString PinService::storageDir() const {
            QStringLiteral("/pins");
 }
 
-void PinService::pinImage(const QImage& image, const QPoint& topLeftLogical) {
+PinWindow* PinService::pinImage(const QImage& image, const QPoint& topLeftLogical) {
     if (image.isNull()) {
-        return;
+        return nullptr;
     }
     auto* pin = new PinWindow(image, topLeftLogical, system_); // WA_DeleteOnClose 自管理
     const QString id =
@@ -68,6 +68,7 @@ void PinService::pinImage(const QImage& image, const QPoint& topLeftLogical) {
     saveManifest();
     spdlog::info("pinned {}x{} image at ({}, {})", image.width(), image.height(),
                  topLeftLogical.x(), topLeftLogical.y());
+    return pin;
 }
 
 void PinService::attach(const QString& id, PinWindow* pin) {

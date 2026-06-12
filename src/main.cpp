@@ -2,6 +2,7 @@
 #include "app/HistoryService.h"
 #include "app/HotkeyService.h"
 #include "app/PinService.h"
+#include "app/ScreenTextService.h"
 #include "app/ScrollCaptureService.h"
 #include "app/SettingsService.h"
 #include "app/SingleInstanceGuard.h"
@@ -127,6 +128,27 @@ int main(int argc, char* argv[]) {
                          tray.notify(QStringLiteral("Pixora"),
                                      QStringLiteral("长截图已保存:%1").arg(path));
                      });
+    // 提取文字 / 截图翻译(无感替换为译文贴图)
+    pixora::ScreenTextService textService(&settings, &pins);
+    QObject::connect(&capture, &pixora::CaptureService::ocrRequested, &textService,
+                     &pixora::ScreenTextService::extractText);
+    QObject::connect(&capture, &pixora::CaptureService::translateRequested,
+                     &textService, &pixora::ScreenTextService::translateInPlace);
+    QObject::connect(&textService, &pixora::ScreenTextService::started, &tray,
+                     [&tray](const QString& message) {
+                         tray.notify(QStringLiteral("Pixora"), message);
+                     });
+    QObject::connect(&textService, &pixora::ScreenTextService::textCopied, &tray,
+                     [&tray](int lineCount) {
+                         tray.notify(QStringLiteral("Pixora"),
+                                     QStringLiteral("已复制识别文字(%1 行)")
+                                         .arg(lineCount));
+                     });
+    QObject::connect(&textService, &pixora::ScreenTextService::failed, &tray,
+                     [&tray](const QString& reason) {
+                         tray.notify(QStringLiteral("OCR / 翻译"), reason);
+                     });
+
     QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &pins,
                      [&pins, &tray] {
                          spdlog::info("hotkey: pin requested");

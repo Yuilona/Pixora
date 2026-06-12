@@ -12,6 +12,8 @@ add_executable(pixora_tests
     unit/annotation_document_test.cpp
     unit/stitcher_test.cpp
     unit/stitcher_fixture_test.cpp
+    unit/text_protocols_test.cpp
+    unit/replace_renderer_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
     ${CMAKE_SOURCE_DIR}/src/app/HotkeyService.h
@@ -29,6 +31,10 @@ add_executable(pixora_tests
     ${CMAKE_SOURCE_DIR}/src/core/capture/DesktopSnapshot.cpp
     ${CMAKE_SOURCE_DIR}/src/core/capture/SnipSession.h
     ${CMAKE_SOURCE_DIR}/src/core/capture/SnipSession.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/text/TextProtocols.h
+    ${CMAKE_SOURCE_DIR}/src/core/text/TextProtocols.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/text/ReplaceRenderer.h
+    ${CMAKE_SOURCE_DIR}/src/core/text/ReplaceRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/overlay/SelectionHandles.h
     ${CMAKE_SOURCE_DIR}/src/ui/overlay/SelectionHandles.cpp
 )

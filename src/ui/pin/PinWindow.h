@@ -28,6 +28,11 @@ public:
     bool isFolded() const { return folded_; }
     void restoreState(qreal scale, qreal opacity, bool folded); // 启动恢复
 
+    // 原地替换图像(截图翻译完成后换为译文版);发 imageChanged 触发重存
+    void setImage(const QImage& image);
+    // 右上角状态角标(如"翻译中…");空串清除
+    void setStatusBadge(const QString& text);
+
 signals:
     void stateChanged();              // 位置/缩放/透明度/折叠变化(防抖落盘)
     void imageChanged();              // 旋转/翻转后图像本体变化(重存 PNG)
@@ -72,6 +77,7 @@ private:
 
     QImage image_;    // 含 DPR 标记;复制/另存用原图
     QImage display_;  // 绘制用(大图为降采样副本)
+    QString badge_;   // 右上角状态角标文本
     ISystemIntegration* system_;
     qreal scale_ = 1.0;
     bool folded_ = false;
