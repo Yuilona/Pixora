@@ -22,9 +22,11 @@
 #include <QApplication>
 #include <QCursor>
 #include <QIcon>
+#include <QLocale>
 #include <QPointer>
 #include <QStandardPaths>
 #include <QStyleFactory>
+#include <QTranslator>
 
 #include <spdlog/spdlog.h>
 
@@ -48,6 +50,29 @@ int main(int argc, char* argv[]) {
     pixora::initLogging();
     spdlog::info("Pixora {} starting", PIXORA_VERSION);
 
+    // 语言:源码字符串为英文,中文经 :/i18n 里的 qm 翻译;
+    // auto = 跟随系统(中文环境加载 zh_CN,其它回退英文)
+    pixora::SettingsService settings;
+    spdlog::info("settings file: {}", settings.filePath().toStdString());
+    QTranslator translator;
+    auto applyLanguage = [&app, &translator](const QString& mode) {
+        QApplication::removeTranslator(&translator);
+        bool loaded = false;
+        if (mode == QLatin1String("auto")) {
+            loaded = translator.load(QLocale(), QStringLiteral("pixora"),
+                                     QStringLiteral("_"), QStringLiteral(":/i18n"));
+        } else if (mode != QLatin1String("en")) {
+            loaded = translator.load(QStringLiteral("pixora_") + mode,
+                                     QStringLiteral(":/i18n"));
+        }
+        if (loaded) {
+            QApplication::installTranslator(&translator);
+        }
+        spdlog::info("language mode '{}', translation {}", mode.toStdString(),
+                     loaded ? "loaded" : "not loaded (English)");
+    };
+    applyLanguage(settings.language());
+
     const bool crashedLastRun = pixora::installCrashHandler(
         QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +
         QStringLiteral("/crashes"));
@@ -59,9 +84,8 @@ int main(int argc, char* argv[]) {
     }
     if (app.arguments().contains(QStringLiteral("--show-settings"))) {
         // 隐藏参数:独立打开设置窗口,主题/布局调试用(可与主实例并存)
-        pixora::SettingsService devSettings;
         const auto devSystem = pixora::createSystemIntegration();
-        auto* dialog = new pixora::SettingsDialog(devSettings, devSystem.get());
+        auto* dialog = new pixora::SettingsDialog(settings, devSystem.get());
         QObject::connect(dialog, &QDialog::finished, &app, &QApplication::quit);
         dialog->show();
         return QApplication::exec();
@@ -76,14 +100,22 @@ int main(int argc, char* argv[]) {
         spdlog::info("second instance attempted to start");
     });
 
-    pixora::SettingsService settings;
-    spdlog::info("settings file: {}", settings.filePath().toStdString());
-
     pixora::TrayService tray;
     tray.show();
+    // 语言切换即时生效:换翻译器 + 重建托盘菜单(已开窗口重开后生效)
+    QObject::connect(&settings, &pixora::SettingsService::changed, &tray,
+                     [&settings, &tray, &applyLanguage](const QString& key) {
+                         if (key == QLatin1String("ui/language")) {
+                             applyLanguage(settings.language());
+                             tray.retranslate();
+                         }
+                     });
     if (crashedLastRun) {
-        tray.notify(QStringLiteral("Pixora 上次异常退出"),
-                    QStringLiteral("已生成诊断文件;反馈问题时请附上日志与 crashes 目录"));
+        tray.notify(
+            QCoreApplication::translate("main", "Pixora exited abnormally last time"),
+            QCoreApplication::translate(
+                "main", "A diagnostic file was written; please attach the logs and "
+                        "the crashes folder when reporting the issue"));
     }
 
     const auto screenCapturer = pixora::createScreenCapturer();
@@ -93,12 +125,15 @@ int main(int argc, char* argv[]) {
     pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(),
                                    elementLocator.get(), &settings, &history);
     QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
-        tray.notify(QStringLiteral("Pixora"), QStringLiteral("截图已复制到剪贴板"));
+        tray.notify(QStringLiteral("Pixora"),
+                    QCoreApplication::translate("main", "Screenshot copied to clipboard"));
     });
     QObject::connect(&capture, &pixora::CaptureService::savedToFile, &tray,
                      [&tray](const QString& path) {
                          tray.notify(QStringLiteral("Pixora"),
-                                     QStringLiteral("截图已保存:%1").arg(path));
+                                     QCoreApplication::translate(
+                                         "main", "Screenshot saved: %1")
+                                         .arg(path));
                      });
     QObject::connect(&tray, &pixora::TrayService::captureRequested, &capture,
                      [&capture] { capture.start(); });
@@ -112,7 +147,9 @@ int main(int argc, char* argv[]) {
     QObject::connect(&capture, &pixora::CaptureService::colorCopied, &tray,
                      [&tray](const QString& text) {
                          tray.notify(QStringLiteral("Pixora"),
-                                     QStringLiteral("已复制颜色 %1").arg(text));
+                                     QCoreApplication::translate(
+                                         "main", "Color %1 copied")
+                                         .arg(text));
                      });
     pins.restorePins(); // 恢复上次会话留下的贴图
 
@@ -139,14 +176,18 @@ int main(int argc, char* argv[]) {
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::copiedToClipboard,
                      &tray, [&tray](int height) {
                          tray.notify(QStringLiteral("Pixora"),
-                                     QStringLiteral("长截图已复制(高 %1 px)").arg(height));
+                                     QCoreApplication::translate(
+                                         "main", "Scrolling capture copied (%1 px tall)")
+                                         .arg(height));
                      });
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::pinCaptured, &pins,
                      &pixora::PinService::pinImage);
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::savedToFile, &tray,
                      [&tray](const QString& path) {
                          tray.notify(QStringLiteral("Pixora"),
-                                     QStringLiteral("长截图已保存:%1").arg(path));
+                                     QCoreApplication::translate(
+                                         "main", "Scrolling capture saved: %1")
+                                         .arg(path));
                      });
     // 提取文字 / 截图翻译(无感替换为译文贴图)
     pixora::ScreenTextService textService(&settings, &pins);
@@ -161,12 +202,15 @@ int main(int argc, char* argv[]) {
     QObject::connect(&textService, &pixora::ScreenTextService::textCopied, &tray,
                      [&tray](int lineCount) {
                          tray.notify(QStringLiteral("Pixora"),
-                                     QStringLiteral("已复制识别文字(%1 行)")
+                                     QCoreApplication::translate(
+                                         "main", "Recognized text copied (%1 lines)")
                                          .arg(lineCount));
                      });
     QObject::connect(&textService, &pixora::ScreenTextService::failed, &tray,
                      [&tray](const QString& reason) {
-                         tray.notify(QStringLiteral("OCR / 翻译"), reason);
+                         tray.notify(QCoreApplication::translate(
+                                         "main", "OCR / Translate"),
+                                     reason);
                      });
 
     QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &pins,
@@ -174,15 +218,19 @@ int main(int argc, char* argv[]) {
                          spdlog::info("hotkey: pin requested");
                          if (!pins.pinFromClipboard()) {
                              tray.notify(QStringLiteral("Pixora"),
-                                         QStringLiteral("剪贴板中没有图像"));
+                                         QCoreApplication::translate(
+                                             "main", "No image in the clipboard"));
                          }
                      });
     QObject::connect(&hotkeys, &pixora::HotkeyService::registrationFailed, &tray,
                      [&tray](const QString& action, const QKeySequence& seq) {
                          tray.notify(
-                             QStringLiteral("热键注册失败"),
-                             QStringLiteral("%1热键 %2 可能已被其它程序占用,"
-                                            "请在托盘菜单 → 设置中更换")
+                             QCoreApplication::translate("main",
+                                                         "Hotkey registration failed"),
+                             QCoreApplication::translate(
+                                 "main",
+                                 "The %1 hotkey %2 may be taken by another program; "
+                                 "change it in tray menu > Settings")
                                  .arg(action, seq.toString(QKeySequence::NativeText)));
                      });
     hotkeys.registerAll();

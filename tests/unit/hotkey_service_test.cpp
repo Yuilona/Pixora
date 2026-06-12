@@ -41,7 +41,8 @@ TEST_CASE("hotkey registration failure is tracked and signalled", "[hotkey]") {
     service.registerAll();
     CHECK(service.failed(pixora::HotkeyId::CaptureRegion));
     CHECK_FALSE(service.failed(pixora::HotkeyId::PinFromClipboard));
-    REQUIRE(failedActions == QStringList{QStringLiteral("截图")});
+    // 动作名经 tr() 翻译;测试无翻译器,得到英文源文
+    REQUIRE(failedActions == QStringList{QStringLiteral("capture")});
 
     // 改键成功后重注册,失败状态清除
     backend.acceptCapture = true;

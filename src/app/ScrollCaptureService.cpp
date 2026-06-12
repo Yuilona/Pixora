@@ -123,8 +123,9 @@ void ScrollCaptureService::start(const QRect& regionGlobal) {
         failStreak_ = 0;
         spdlog::info("scroll capture auto mode: {}", enabled ? "on" : "off");
         if (bar_) {
-            bar_->setStatus(enabled ? QStringLiteral("自动滚动中…")
-                                    : QStringLiteral("滚动目标窗口继续拼接…"));
+            bar_->setStatus(enabled
+                                ? tr("Auto-scrolling...")
+                                : tr("Scroll the target window to keep stitching..."));
         }
     });
     bar_->show();
@@ -148,7 +149,7 @@ void ScrollCaptureService::tick() {
         lastGrab_ = frame;
         recordFrame(frame);
         updatePreview();
-        bar_->setStatus(QStringLiteral("已捕获首帧,滚动目标窗口…"));
+        bar_->setStatus(tr("First frame captured, scroll the target window..."));
         if (autoMode_ && injector_) {
             injectStep();
             awaitingStable_ = true;
@@ -244,11 +245,12 @@ void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
         updatePreview();
         const int logicalHeight =
             qRound(stitcher_.resultHeight() / screen_->devicePixelRatio());
-        bar_->setStatus(QStringLiteral("已拼接 %1 px(%2 帧)%3")
+        bar_->setStatus(tr("Stitched %1 px (%2 frames)%3")
                             .arg(logicalHeight)
                             .arg(frames_)
-                            .arg(autoMode_ ? QStringLiteral(",自动滚动中…")
-                                           : QStringLiteral(",完成后点[完成]")));
+                            .arg(autoMode_ ? tr(", auto-scrolling...")
+                                           : tr(", press F1 or the check button "
+                                                "to finish")));
         break;
     }
     case Stitcher::AppendResult::NoNewContent:
@@ -261,7 +263,7 @@ void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
             driver_ = Driver::PageDown;
             noNewStreak_ = 0;
             spdlog::info("scroll capture: wheel ineffective, switching to PageDown");
-            bar_->setStatus(QStringLiteral("滚轮无效,已改用 PageDown 驱动…"));
+            bar_->setStatus(tr("Wheel events ignored, driving with PageDown..."));
             break;
         }
         if (noNewStreak_ >= kAutoFinishStreak) {
@@ -275,10 +277,12 @@ void ScrollCaptureService::handleAppend(Stitcher::AppendResult result) {
                 autoMode_ = false;
                 bar_->setAutoChecked(false);
                 bar_->setStatus(
-                    QStringLiteral("自动滚动对齐失败,已切回手动,请手动滚动"));
+                    tr("Auto-scroll lost alignment; switched back to manual, "
+                       "please scroll by hand"));
             }
         } else {
-            bar_->setStatus(QStringLiteral("未能对齐:请往回滚动少许,放慢速度"));
+            bar_->setStatus(
+                tr("Could not align: scroll back a little and go slower"));
         }
         break;
     }

@@ -23,7 +23,7 @@ inline QString httpFailureReason(QNetworkReply* reply) {
     const int status =
         reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     const QString excerpt = QString::fromUtf8(reply->readAll().left(300));
-    return QStringLiteral("HTTP %1 %2:%3")
+    return QStringLiteral("HTTP %1 %2: %3")
         .arg(status)
         .arg(reply->errorString(), excerpt);
 }

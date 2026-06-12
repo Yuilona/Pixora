@@ -67,7 +67,7 @@ Download `Pixora-x.y.z-win64-portable.zip` from [Releases](https://github.com/Yu
 | `C` / `Shift+C` | Pick color (HEX / RGB) |
 | `Esc` | Step back (tool → selection → session) |
 
-Hotkeys, save directory, history size and autostart are all configurable via tray → Settings.
+Language (English / 简体中文, follows the system by default), hotkeys, save directory, history size and autostart are all configurable via tray → Settings.
 
 ## Build from source
 

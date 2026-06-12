@@ -1,5 +1,6 @@
 #include "core/text/TextProtocols.h"
 
+#include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -12,6 +13,9 @@ namespace pixora::textproto {
 
 namespace {
 
+// 错误文案用户可见(经 failed 信号进通知卡);自由函数无 tr(),
+// 统一直呼 QCoreApplication::translate 挂在 "textproto" 上下文下——
+// lupdate 看不穿自定义包装函数,经包装的字符串不会进 ts
 void setError(QString* error, const QString& message) {
     if (error) {
         *error = message;
@@ -31,13 +35,13 @@ QString extractJsonArray(const QString& content) {
 QJsonArray parseArray(const QString& content, QString* error) {
     const QString payload = extractJsonArray(content);
     if (payload.isEmpty()) {
-        setError(error, QStringLiteral("响应中没有 JSON 数组"));
+        setError(error, QCoreApplication::translate("textproto", "No JSON array in the response"));
         return {};
     }
     QJsonParseError parseError{};
     const QJsonDocument doc = QJsonDocument::fromJson(payload.toUtf8(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !doc.isArray()) {
-        setError(error, QStringLiteral("JSON 数组解析失败:%1")
+        setError(error, QCoreApplication::translate("textproto", "Failed to parse the JSON array: %1")
                             .arg(parseError.errorString()));
         return {};
     }
@@ -50,20 +54,20 @@ QString openAiContent(const QByteArray& reply, QString* error) {
     QJsonParseError parseError{};
     const QJsonDocument doc = QJsonDocument::fromJson(reply, &parseError);
     if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
-        setError(error, QStringLiteral("响应不是合法 JSON"));
+        setError(error, QCoreApplication::translate("textproto", "The response is not valid JSON"));
         return {};
     }
     const QJsonObject root = doc.object();
     if (root.contains(QLatin1String("error"))) {
         const QJsonObject err = root.value(QLatin1String("error")).toObject();
-        setError(error, QStringLiteral("服务端错误:%1")
-                            .arg(err.value(QLatin1String("message")).toString(
-                                QStringLiteral("(无详情)"))));
+        setError(error, QCoreApplication::translate("textproto", "Server error: %1")
+                            .arg(err.value(QLatin1String("message"))
+                                     .toString(QCoreApplication::translate("textproto", "(no details)"))));
         return {};
     }
     const QJsonArray choices = root.value(QLatin1String("choices")).toArray();
     if (choices.isEmpty()) {
-        setError(error, QStringLiteral("响应缺少 choices"));
+        setError(error, QCoreApplication::translate("textproto", "The response has no choices"));
         return {};
     }
     const QString content = choices.first()
@@ -73,7 +77,7 @@ QString openAiContent(const QByteArray& reply, QString* error) {
                                 .value(QLatin1String("content"))
                                 .toString();
     if (content.isEmpty()) {
-        setError(error, QStringLiteral("模型回复为空"));
+        setError(error, QCoreApplication::translate("textproto", "The model returned an empty reply"));
     }
     return content;
 }
@@ -137,7 +141,7 @@ QList<OcrLine> parseUmiOcrReply(const QByteArray& reply, QString* error) {
     QJsonParseError parseError{};
     const QJsonDocument doc = QJsonDocument::fromJson(reply, &parseError);
     if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
-        setError(error, QStringLiteral("Umi-OCR 响应不是合法 JSON"));
+        setError(error, QCoreApplication::translate("textproto", "The Umi-OCR response is not valid JSON"));
         return {};
     }
     const QJsonObject root = doc.object();
@@ -146,7 +150,7 @@ QList<OcrLine> parseUmiOcrReply(const QByteArray& reply, QString* error) {
         return {}; // 图中无文字,不算错误
     }
     if (code != 100) {
-        setError(error, QStringLiteral("Umi-OCR 错误(code %1):%2")
+        setError(error, QCoreApplication::translate("textproto", "Umi-OCR error (code %1): %2")
                             .arg(code)
                             .arg(root.value(QLatin1String("data")).toString()));
         return {};
@@ -189,14 +193,14 @@ QStringList parseDeepLReply(const QByteArray& reply, QString* error) {
     QJsonParseError parseError{};
     const QJsonDocument doc = QJsonDocument::fromJson(reply, &parseError);
     if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
-        setError(error, QStringLiteral("DeepL 响应不是合法 JSON"));
+        setError(error, QCoreApplication::translate("textproto", "The DeepL response is not valid JSON"));
         return {};
     }
     const QJsonObject root = doc.object();
     if (!root.contains(QLatin1String("translations"))) {
-        setError(error, QStringLiteral("DeepL 错误:%1")
+        setError(error, QCoreApplication::translate("textproto", "DeepL error: %1")
                             .arg(root.value(QLatin1String("message"))
-                                     .toString(QStringLiteral("(无详情)"))));
+                                     .toString(QCoreApplication::translate("textproto", "(no details)"))));
         return {};
     }
     QStringList result;
@@ -211,13 +215,13 @@ QStringList parseBaiduReply(const QByteArray& reply, QString* error) {
     QJsonParseError parseError{};
     const QJsonDocument doc = QJsonDocument::fromJson(reply, &parseError);
     if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
-        setError(error, QStringLiteral("百度翻译响应不是合法 JSON"));
+        setError(error, QCoreApplication::translate("textproto", "The Baidu Translate response is not valid JSON"));
         return {};
     }
     const QJsonObject root = doc.object();
     // 百度成功响应无 error_code 字段;失败时 error_code 为字符串或数字
     if (root.contains(QLatin1String("error_code"))) {
-        setError(error, QStringLiteral("百度翻译错误(%1):%2")
+        setError(error, QCoreApplication::translate("textproto", "Baidu Translate error (%1): %2")
                             .arg(root.value(QLatin1String("error_code"))
                                      .toVariant()
                                      .toString(),

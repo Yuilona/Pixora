@@ -20,7 +20,7 @@ constexpr int kThumbH = 110;
 
 HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* settings)
     : history_(history), output_(settings) {
-    setWindowTitle(QStringLiteral("截图历史 — Pixora"));
+    setWindowTitle(tr("History - Pixora"));
     setAttribute(Qt::WA_DeleteOnClose);
     resize(660, 480);
 
@@ -39,7 +39,8 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
     list_->setWordWrap(true);
 
     emptyHint_ = new QLabel(
-        QStringLiteral("还没有截图历史\n\n截图后(复制 / 另存 / 贴图)会自动留底,可在这里找回"),
+        tr("No screenshots yet\n\nEvery capture you copy, save or pin is kept "
+           "here automatically"),
         this);
     emptyHint_->setAlignment(Qt::AlignCenter);
     emptyHint_->setStyleSheet(QStringLiteral("color:#9AA3B0; font-size:13px;"));
@@ -52,33 +53,33 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
         buttons->addWidget(btn);
         return btn;
     };
-    auto* copyBtn = addBtn(QStringLiteral("复制"), [this] {
+    auto* copyBtn = addBtn(tr("Copy"), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
             QGuiApplication::clipboard()->setImage(img);
         }
     });
     copyBtn->setStyleSheet(theme::primaryButtonStyle()); // 最高频出口,视觉主按钮
-    auto* pinBtn = addBtn(QStringLiteral("贴图"), [this] {
+    auto* pinBtn = addBtn(tr("Pin"), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
             emit pinRequested(img);
         }
     });
-    auto* saveBtn = addBtn(QStringLiteral("另存…"), [this] {
+    auto* saveBtn = addBtn(tr("Save as..."), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
             output_.saveWithDialog(img);
         }
     });
-    auto* deleteBtn = addBtn(QStringLiteral("删除"), [this] {
+    auto* deleteBtn = addBtn(tr("Delete"), [this] {
         QString id;
         if (!currentImage(&id).isNull()) {
             history_.remove(id);
         }
     });
     buttons->addStretch();
-    auto* clearBtn = addBtn(QStringLiteral("清空历史"), [this] { history_.clear(); });
+    auto* clearBtn = addBtn(tr("Clear history"), [this] { history_.clear(); });
     clearBtn->setStyleSheet(theme::dangerButtonStyle()); // 破坏性操作,红字弱底
 
     // 无选中条目时单条目操作不可点;无任何历史时清空也不可点

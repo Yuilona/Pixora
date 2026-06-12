@@ -79,12 +79,12 @@ void ScrollPreview::paintEvent(QPaintEvent* /*event*/) {
     painter.setPen(Qt::white);
     painter.drawText(QRect(kPadding, 0, width() - 2 * kPadding, kHeaderH),
                      Qt::AlignVCenter,
-                     QStringLiteral("已拼 %1 px").arg(totalLogicalHeight_));
+                     tr("Stitched %1 px").arg(totalLogicalHeight_));
 
     if (scaled_.isNull()) {
         painter.setPen(QColor(255, 255, 255, 120));
         painter.drawText(rect().adjusted(kPadding, kHeaderH, -kPadding, -kPadding),
-                         Qt::AlignCenter, QStringLiteral("等待首帧…"));
+                         Qt::AlignCenter, tr("Waiting for the first frame..."));
         return;
     }
     // 底部对齐:始终展示最新拼接的部分

@@ -8,6 +8,8 @@ namespace pixora {
 
 namespace {
 namespace keys {
+// 不用 "general/" 前缀:INI 格式里 General 是保留段名,会被写成 [%General]
+const QString language = QStringLiteral("ui/language");
 const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
 const QString outputDir = QStringLiteral("output/dir");
@@ -45,6 +47,18 @@ SettingsService::SettingsService(const QString& iniPath, QObject* parent)
                           .fileName()
                     : iniPath,
                 QSettings::IniFormat) {}
+
+QString SettingsService::language() const {
+    const QString lang = value(keys::language, QStringLiteral("auto")).toString();
+    if (lang == QLatin1String("zh_CN") || lang == QLatin1String("en")) {
+        return lang;
+    }
+    return QStringLiteral("auto");
+}
+
+void SettingsService::setLanguage(const QString& lang) {
+    setValue(keys::language, lang);
+}
 
 QKeySequence SettingsService::hotkeyCaptureRegion() const {
     return toKeySequence(value(keys::hotkeyCaptureRegion, defaultCaptureRegion));

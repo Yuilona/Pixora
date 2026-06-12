@@ -4,6 +4,7 @@
 #include "app/SettingsService.h"
 
 #include <QClipboard>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFileDialog>
@@ -50,8 +51,9 @@ QString OutputService::suggestedFileName() const {
 QString OutputService::saveWithDialog(const QImage& image) {
     // 设置的格式排在过滤器首位 → 成为对话框默认格式
     const QString preferred = settings_ ? settings_->outputFormat() : QStringLiteral("png");
-    QStringList filters = {QStringLiteral("PNG 图片 (*.png)"),
-                           QStringLiteral("JPEG 图片 (*.jpg)")};
+    QStringList filters = {
+        QCoreApplication::translate("OutputService", "PNG image (*.png)"),
+        QCoreApplication::translate("OutputService", "JPEG image (*.jpg)")};
     for (int i = 1; i < filters.size(); ++i) {
         if (filters[i].contains(QStringLiteral("*.%1").arg(preferred))) {
             filters.move(i, 0);
@@ -59,8 +61,8 @@ QString OutputService::saveWithDialog(const QImage& image) {
         }
     }
     const QString path = QFileDialog::getSaveFileName(
-        nullptr, QStringLiteral("保存截图"), suggestedFileName(),
-        filters.join(QStringLiteral(";;")));
+        nullptr, QCoreApplication::translate("OutputService", "Save screenshot"),
+        suggestedFileName(), filters.join(QStringLiteral(";;")));
     if (path.isEmpty()) {
         return {};
     }

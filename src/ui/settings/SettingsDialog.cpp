@@ -25,7 +25,7 @@ namespace pixora {
 SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* system,
                                QWidget* parent)
     : QDialog(parent), settings_(settings), system_(system) {
-    setWindowTitle(QStringLiteral("设置 — Pixora"));
+    setWindowTitle(tr("Settings - Pixora"));
     setAttribute(Qt::WA_DeleteOnClose);
     setMinimumWidth(440);
 
@@ -45,20 +45,31 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
         return group;
     };
 
-    // —— 通用:热键 / 历史 / 自启 ——
+    // —— 通用:语言 / 热键 / 历史 / 自启 ——
     QFormLayout* generalForm = nullptr;
-    auto* generalGroup = makeCard(QStringLiteral("通用"), generalForm);
+    auto* generalGroup = makeCard(tr("General"), generalForm);
+
+    // 语言名用各自母语显示,不随界面语言翻译
+    languageCombo_ = makeCombo();
+    languageCombo_->addItem(tr("Follow system"), QStringLiteral("auto"));
+    languageCombo_->addItem(QStringLiteral("简体中文"), QStringLiteral("zh_CN"));
+    languageCombo_->addItem(QStringLiteral("English"), QStringLiteral("en"));
+    languageCombo_->setCurrentIndex(
+        std::max(0, languageCombo_->findData(settings_.language())));
+    generalForm->addRow(tr("Language"), languageCombo_);
 
     captureEdit_ = new QKeySequenceEdit(settings_.hotkeyCaptureRegion(), this);
     pinEdit_ = new QKeySequenceEdit(settings_.hotkeyPinFromClipboard(), this);
     // 全局热键只支持单组合键;默认可录 4 段序列("F1, A, B"),只会困惑
     captureEdit_->setMaximumSequenceLength(1);
     pinEdit_->setMaximumSequenceLength(1);
-    generalForm->addRow(QStringLiteral("截图热键"), captureEdit_);
-    generalForm->addRow(QStringLiteral("贴图热键"), pinEdit_);
+    generalForm->addRow(tr("Capture hotkey"), captureEdit_);
+    generalForm->addRow(tr("Pin hotkey"), pinEdit_);
 
     hotkeyWarning_ = new QLabel(
-        QStringLiteral("标红的热键注册失败(可能已被其它程序占用),请更换后保存"), this);
+        tr("Hotkeys marked in red failed to register (possibly taken by another "
+           "program); change them and save"),
+        this);
     hotkeyWarning_->setStyleSheet(
         QStringLiteral("color:%1;").arg(theme::danger().name()));
     hotkeyWarning_->setWordWrap(true);
@@ -79,27 +90,27 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     historyLimitSpin_ = new QSpinBox(this);
     historyLimitSpin_->setRange(0, 100);
     historyLimitSpin_->setValue(settings_.historyLimit());
-    historyLimitSpin_->setSpecialValueText(QStringLiteral("关闭"));
+    historyLimitSpin_->setSpecialValueText(tr("Off"));
     historyLimitSpin_->setMaximumWidth(120); // 数字框不必占满整行
-    generalForm->addRow(QStringLiteral("历史保留张数"), historyLimitSpin_);
+    generalForm->addRow(tr("History size"), historyLimitSpin_);
 
-    autoStartCheck_ = new QCheckBox(QStringLiteral("开机自动启动"), this);
+    autoStartCheck_ = new QCheckBox(tr("Start at login"), this);
     autoStartCheck_->setEnabled(system_ != nullptr);
     autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
     generalForm->addRow(QString(), autoStartCheck_);
 
     // —— 输出:目录 / 命名 / 格式 ——
     QFormLayout* outputForm = nullptr;
-    auto* outputGroup = makeCard(QStringLiteral("输出"), outputForm);
+    auto* outputGroup = makeCard(tr("Output"), outputForm);
 
     auto* dirRow = new QHBoxLayout;
     outputDirEdit_ = new QLineEdit(settings_.outputDir(), this);
     outputDirEdit_->setPlaceholderText(
         QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
-    auto* browseBtn = new QPushButton(QStringLiteral("浏览…"), this);
+    auto* browseBtn = new QPushButton(tr("Browse..."), this);
     connect(browseBtn, &QPushButton::clicked, this, [this] {
         const QString dir = QFileDialog::getExistingDirectory(
-            this, QStringLiteral("选择保存目录"),
+            this, tr("Choose save folder"),
             outputDirEdit_->text().isEmpty() ? outputDirEdit_->placeholderText()
                                              : outputDirEdit_->text());
         if (!dir.isEmpty()) {
@@ -108,12 +119,12 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     });
     dirRow->addWidget(outputDirEdit_, 1);
     dirRow->addWidget(browseBtn);
-    outputForm->addRow(QStringLiteral("保存目录"), dirRow);
+    outputForm->addRow(tr("Save folder"), dirRow);
 
     fileTemplateEdit_ = new QLineEdit(settings_.fileNameTemplate(), this);
     fileTemplateEdit_->setPlaceholderText(
         QStringLiteral("Pixora_{yyyy}{MM}{dd}_{HH}{mm}{ss}"));
-    outputForm->addRow(QStringLiteral("文件名模板"), fileTemplateEdit_);
+    outputForm->addRow(tr("Filename template"), fileTemplateEdit_);
 
     auto* formatRow = new QHBoxLayout;
     formatCombo_ = makeCombo();
@@ -133,21 +144,21 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     connect(formatCombo_, &QComboBox::currentIndexChanged, this, syncQualityEnabled);
     syncQualityEnabled();
     formatRow->addWidget(formatCombo_, 1);
-    formatRow->addWidget(new QLabel(QStringLiteral("质量"), this));
+    formatRow->addWidget(new QLabel(tr("Quality"), this));
     formatRow->addWidget(qualitySpin_);
-    outputForm->addRow(QStringLiteral("保存格式"), formatRow);
+    outputForm->addRow(tr("Format"), formatRow);
 
-    autoSaveCheck_ = new QCheckBox(QStringLiteral("复制时自动保存到保存目录"), this);
+    autoSaveCheck_ = new QCheckBox(tr("Also save to the folder when copying"), this);
     autoSaveCheck_->setChecked(settings_.autoSave());
     outputForm->addRow(QString(), autoSaveCheck_);
 
     // —— OCR 识别服务(提取文字 / 截图翻译共用)——
     QFormLayout* ocrForm = nullptr;
-    auto* ocrGroup = makeCard(QStringLiteral("OCR 识别(提取文字 / 翻译)"), ocrForm);
+    auto* ocrGroup = makeCard(tr("OCR (extract text / translate)"), ocrForm);
     ocrProtocolCombo_ = makeCombo();
-    ocrProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容视觉模型"),
+    ocrProtocolCombo_->addItem(tr("OpenAI-compatible vision model"),
                                QStringLiteral("openai"));
-    ocrProtocolCombo_->addItem(QStringLiteral("Umi-OCR 本地服务"),
+    ocrProtocolCombo_->addItem(tr("Umi-OCR local service"),
                                QStringLiteral("umiocr"));
     ocrProtocolCombo_->setCurrentIndex(
         std::max(0, ocrProtocolCombo_->findData(settings_.ocrProtocol())));
@@ -155,11 +166,12 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     ocrKeyEdit_ = new QLineEdit(settings_.ocrApiKey(), this);
     ocrKeyEdit_->setEchoMode(QLineEdit::Password);
     ocrModelEdit_ = new QLineEdit(settings_.ocrModel(), this);
-    ocrModelEdit_->setPlaceholderText(QStringLiteral("如 qwen-vl-plus / glm-4v-flash"));
-    ocrForm->addRow(QStringLiteral("协议"), ocrProtocolCombo_);
-    ocrForm->addRow(QStringLiteral("接口地址"), ocrUrlEdit_);
+    ocrModelEdit_->setPlaceholderText(
+        tr("e.g. qwen-vl-plus / glm-4v-flash"));
+    ocrForm->addRow(tr("Protocol"), ocrProtocolCombo_);
+    ocrForm->addRow(tr("Endpoint"), ocrUrlEdit_);
     ocrForm->addRow(QStringLiteral("API Key"), ocrKeyEdit_);
-    ocrForm->addRow(QStringLiteral("模型名"), ocrModelEdit_);
+    ocrForm->addRow(tr("Model"), ocrModelEdit_);
     auto syncOcrRows = [this, ocrForm] {
         const bool openai =
             ocrProtocolCombo_->currentData().toString() == QLatin1String("openai");
@@ -167,19 +179,19 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
         ocrForm->setRowVisible(ocrModelEdit_, openai);
         ocrUrlEdit_->setPlaceholderText(
             openai ? QStringLiteral("https://api.siliconflow.cn/v1")
-                   : QStringLiteral("http://127.0.0.1:1224(留空用默认)"));
+                   : tr("http://127.0.0.1:1224 (leave empty for default)"));
     };
     connect(ocrProtocolCombo_, &QComboBox::currentIndexChanged, this, syncOcrRows);
     syncOcrRows();
 
     // —— 翻译服务 ——
     QFormLayout* trForm = nullptr;
-    auto* trGroup = makeCard(QStringLiteral("翻译服务(截图翻译)"), trForm);
+    auto* trGroup = makeCard(tr("Translation (screenshot translate)"), trForm);
     trProtocolCombo_ = makeCombo();
-    trProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容大模型"),
+    trProtocolCombo_->addItem(tr("OpenAI-compatible chat model"),
                               QStringLiteral("openai"));
     trProtocolCombo_->addItem(QStringLiteral("DeepL"), QStringLiteral("deepl"));
-    trProtocolCombo_->addItem(QStringLiteral("百度翻译"), QStringLiteral("baidu"));
+    trProtocolCombo_->addItem(tr("Baidu Translate"), QStringLiteral("baidu"));
     trProtocolCombo_->setCurrentIndex(
         std::max(0, trProtocolCombo_->findData(settings_.translateProtocol())));
     trUrlEdit_ = new QLineEdit(settings_.translateBaseUrl(), this);
@@ -187,19 +199,19 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     trKeyEdit_ = new QLineEdit(settings_.translateApiKey(), this);
     trKeyEdit_->setEchoMode(QLineEdit::Password);
     trModelEdit_ = new QLineEdit(settings_.translateModel(), this);
-    trModelEdit_->setPlaceholderText(QStringLiteral("如 deepseek-chat / qwen-turbo"));
+    trModelEdit_->setPlaceholderText(tr("e.g. deepseek-chat / qwen-turbo"));
     targetLangCombo_ = makeCombo();
-    targetLangCombo_->addItem(QStringLiteral("中文"), QStringLiteral("zh"));
-    targetLangCombo_->addItem(QStringLiteral("英文"), QStringLiteral("en"));
-    targetLangCombo_->addItem(QStringLiteral("日文"), QStringLiteral("ja"));
+    targetLangCombo_->addItem(tr("Chinese"), QStringLiteral("zh"));
+    targetLangCombo_->addItem(tr("English"), QStringLiteral("en"));
+    targetLangCombo_->addItem(tr("Japanese"), QStringLiteral("ja"));
     targetLangCombo_->setCurrentIndex(
         std::max(0, targetLangCombo_->findData(settings_.translateTargetLang())));
-    trForm->addRow(QStringLiteral("协议"), trProtocolCombo_);
-    trForm->addRow(QStringLiteral("接口地址"), trUrlEdit_);
+    trForm->addRow(tr("Protocol"), trProtocolCombo_);
+    trForm->addRow(tr("Endpoint"), trUrlEdit_);
     trForm->addRow(QStringLiteral("APP ID"), trAppIdEdit_);
-    trForm->addRow(QStringLiteral("密钥"), trKeyEdit_);
-    trForm->addRow(QStringLiteral("模型名"), trModelEdit_);
-    trForm->addRow(QStringLiteral("目标语言"), targetLangCombo_);
+    trForm->addRow(tr("Secret key"), trKeyEdit_);
+    trForm->addRow(tr("Model"), trModelEdit_);
+    trForm->addRow(tr("Target language"), targetLangCombo_);
     auto syncTrRows = [this, trForm] {
         const QString protocol = trProtocolCombo_->currentData().toString();
         trForm->setRowVisible(trUrlEdit_, protocol != QLatin1String("baidu"));
@@ -209,7 +221,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
             trUrlEdit_->setPlaceholderText(QStringLiteral("https://api.deepseek.com/v1"));
         } else if (protocol == QLatin1String("deepl")) {
             trUrlEdit_->setPlaceholderText(
-                QStringLiteral("https://api-free.deepl.com(留空用默认)"));
+                tr("https://api-free.deepl.com (leave empty for default)"));
         }
     };
     connect(trProtocolCombo_, &QComboBox::currentIndexChanged, this, syncTrRows);
@@ -217,9 +229,9 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     auto* buttons =
         new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
-    buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("确定"));
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("OK"));
     buttons->button(QDialogButtonBox::Ok)->setStyleSheet(theme::primaryButtonStyle());
-    buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(tr("Cancel"));
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         apply();
         accept();
@@ -253,6 +265,7 @@ void SettingsDialog::apply() {
     if (!pinEdit_->keySequence().isEmpty()) {
         settings_.setHotkeyPinFromClipboard(pinEdit_->keySequence());
     }
+    settings_.setLanguage(languageCombo_->currentData().toString());
     settings_.setOutputDir(outputDirEdit_->text().trimmed());
     settings_.setFileNameTemplate(fileTemplateEdit_->text().trimmed());
     settings_.setOutputFormat(formatCombo_->currentData().toString());

@@ -34,6 +34,7 @@ private:
     SettingsService& settings_;
     ISystemIntegration* system_;
 
+    QComboBox* languageCombo_ = nullptr;
     QKeySequenceEdit* captureEdit_ = nullptr;
     QKeySequenceEdit* pinEdit_ = nullptr;
     QLabel* hotkeyWarning_ = nullptr;

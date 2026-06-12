@@ -32,7 +32,7 @@ PinWindow::PinWindow(const QImage& image, const QPoint& topLeftLogical,
     : image_(image), system_(system) {
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_DeleteOnClose);
-    setWindowTitle(QStringLiteral("Pixora 贴图"));
+    setWindowTitle(tr("Pixora pin"));
     setMouseTracking(true); // 边缘热区光标反馈
     rebuildDisplayCache();
     resize(scaledSize());
@@ -333,24 +333,25 @@ void PinWindow::closeEvent(QCloseEvent* event) {
 void PinWindow::contextMenuEvent(QContextMenuEvent* event) {
     QMenu menu(this);
     theme::roundPopup(&menu); // 透明化弹层,QSS 圆角才完整
-    menu.addAction(QStringLiteral("复制图像"), [this] {
+    menu.addAction(tr("Copy image"), [this] {
         QGuiApplication::clipboard()->setImage(image_);
     });
-    menu.addAction(QStringLiteral("另存为…"), [this] { emit saveRequested(image_); });
+    menu.addAction(tr("Save as..."), [this] { emit saveRequested(image_); });
     menu.addSeparator();
-    menu.addAction(folded_ ? QStringLiteral("展开\tSpace")
-                           : QStringLiteral("折叠为小条\tSpace"),
+    menu.addAction((folded_ ? tr("Unfold") : tr("Fold into a slim bar")) +
+                       QStringLiteral("\tSpace"),
                    [this] { toggleFolded(); });
-    menu.addAction(QStringLiteral("旋转 90°\tR"), [this] { rotate90(); });
-    menu.addAction(QStringLiteral("水平翻转\tH"), [this] { flipHorizontal(); });
+    menu.addAction(tr("Rotate 90°") + QStringLiteral("\tR"), [this] { rotate90(); });
+    menu.addAction(tr("Flip horizontally") + QStringLiteral("\tH"),
+                   [this] { flipHorizontal(); });
     if (system_) {
         menu.addSeparator();
-        menu.addAction(QStringLiteral("点击穿透(经托盘菜单关闭)"), [this] {
+        menu.addAction(tr("Click-through (turn off via tray menu)"), [this] {
             system_->setClickThrough(windowHandle(), true);
         });
     }
     menu.addSeparator();
-    menu.addAction(QStringLiteral("关闭贴图"), [this] { close(); });
+    menu.addAction(tr("Close pin"), [this] { close(); });
     menu.exec(event->globalPos());
 }
 

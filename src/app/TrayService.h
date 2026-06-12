@@ -21,6 +21,7 @@ public:
 
     void show();
     void notify(const QString& title, const QString& message);
+    void retranslate(); // 语言切换后重建菜单文案
 
 signals:
     void captureRequested();
@@ -29,6 +30,8 @@ signals:
     void settingsRequested();
 
 private:
+    void buildMenu();
+
     QSystemTrayIcon tray_;
     QMenu menu_;
     std::unique_ptr<ToastWindow> toast_; // 懒创建,复用同一窗口

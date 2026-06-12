@@ -37,7 +37,7 @@ OcrClient::OcrClient(QObject* parent) : QObject(parent) {
 
 void OcrClient::recognize(const QImage& image, const Config& config) {
     if (image.isNull()) {
-        emit failed(QStringLiteral("没有可识别的图像"));
+        emit failed(tr("No image to recognize"));
         return;
     }
     if (config.protocol == QLatin1String("umiocr")) {
@@ -59,13 +59,16 @@ void OcrClient::recognizeOpenAi(const QImage& image, const Config& config) {
                                Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
+    // 给模型的指令,非 UI 文案——统一英文,主流中外模型均遵循良好
     const QString prompt =
         QStringLiteral(
-            "识别图片中的所有文字行。严格输出 JSON 数组,不要输出任何其他内容"
-            "(包括代码块标记):[{\"text\":\"行文字\",\"box\":[x1,y1,x2,y2]}]。"
-            "box 是该行文字在图片中的像素坐标(左上角 x1,y1;右下角 x2,y2);"
-            "图片宽 %1 像素、高 %2 像素。按阅读顺序排列;无法确定位置时 box 填 "
-            "[0,0,0,0];图中没有文字则输出 []。")
+            "Recognize every line of text in the image. Output strictly a JSON "
+            "array and nothing else (no code fences): "
+            "[{\"text\":\"line text\",\"box\":[x1,y1,x2,y2]}]. "
+            "box is the pixel rectangle of the line in the image (top-left "
+            "x1,y1; bottom-right x2,y2); the image is %1 px wide and %2 px "
+            "tall. Order lines by reading order; use [0,0,0,0] when the "
+            "position is unknown; output [] if the image has no text.")
             .arg(upload.width())
             .arg(upload.height());
 

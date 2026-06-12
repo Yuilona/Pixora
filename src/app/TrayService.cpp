@@ -14,18 +14,7 @@ namespace pixora {
 
 TrayService::TrayService(QObject* parent) : QObject(parent) {
     theme::roundPopup(&menu_); // 透明化弹层,QSS 圆角才完整
-    auto* title = menu_.addAction(
-        QStringLiteral("Pixora %1").arg(QApplication::applicationVersion()));
-    title->setEnabled(false);
-    menu_.addSeparator();
-    menu_.addAction(QStringLiteral("截图\tF1"), this, [this] { emit captureRequested(); });
-    menu_.addAction(QStringLiteral("关闭所有贴图"), this,
-                    [this] { emit closeAllPinsRequested(); });
-    menu_.addSeparator();
-    menu_.addAction(QStringLiteral("历史…"), this, [this] { emit historyRequested(); });
-    menu_.addAction(QStringLiteral("设置…"), this, [this] { emit settingsRequested(); });
-    menu_.addSeparator();
-    menu_.addAction(QStringLiteral("退出"), [] { QCoreApplication::quit(); });
+    buildMenu();
 
     // QPixmap 立即加载,能探测资源缺失(QIcon 懒加载,isNull 永远为假)
     const QPixmap pm(QStringLiteral(":/icons/pixora-256.png"));
@@ -42,6 +31,27 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
 }
 
 TrayService::~TrayService() = default;
+
+void TrayService::buildMenu() {
+    menu_.clear();
+    auto* title = menu_.addAction(
+        QStringLiteral("Pixora %1").arg(QApplication::applicationVersion()));
+    title->setEnabled(false);
+    menu_.addSeparator();
+    menu_.addAction(tr("Capture") + QStringLiteral("\tF1"), this,
+                    [this] { emit captureRequested(); });
+    menu_.addAction(tr("Close all pins"), this,
+                    [this] { emit closeAllPinsRequested(); });
+    menu_.addSeparator();
+    menu_.addAction(tr("History..."), this, [this] { emit historyRequested(); });
+    menu_.addAction(tr("Settings..."), this, [this] { emit settingsRequested(); });
+    menu_.addSeparator();
+    menu_.addAction(tr("Quit"), [] { QCoreApplication::quit(); });
+}
+
+void TrayService::retranslate() {
+    buildMenu();
+}
 
 void TrayService::notify(const QString& title, const QString& message) {
     if (!toast_) {

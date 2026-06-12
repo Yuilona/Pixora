@@ -16,6 +16,10 @@ public:
     // iniPath 为空时使用平台标准配置目录;测试中注入临时文件路径。
     explicit SettingsService(const QString& iniPath = {}, QObject* parent = nullptr);
 
+    // 界面语言:"auto"(跟随系统)| "zh_CN" | "en"
+    QString language() const;
+    void setLanguage(const QString& lang);
+
     QKeySequence hotkeyCaptureRegion() const;
     QKeySequence hotkeyPinFromClipboard() const;
     void setHotkeyCaptureRegion(const QKeySequence& seq);

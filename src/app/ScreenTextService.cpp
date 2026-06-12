@@ -25,7 +25,7 @@ ScreenTextService::ScreenTextService(const SettingsService* settings,
 
 void ScreenTextService::extractText(const QImage& image) {
     if (job_ != Job::None) {
-        emit failed(QStringLiteral("上一个识别/翻译任务还在进行中"));
+        emit failed(tr("The previous OCR/translate job is still running"));
         return;
     }
     const QString error = configError(false);
@@ -35,14 +35,14 @@ void ScreenTextService::extractText(const QImage& image) {
     }
     job_ = Job::Extract;
     image_ = image;
-    emit started(QStringLiteral("正在识别文字…"));
+    emit started(tr("Recognizing text..."));
     ocr_.recognize(image_, ocrConfig());
 }
 
 void ScreenTextService::translateInPlace(const QImage& image,
                                          const QRect& regionGlobal) {
     if (job_ != Job::None) {
-        emit failed(QStringLiteral("上一个识别/翻译任务还在进行中"));
+        emit failed(tr("The previous OCR/translate job is still running"));
         return;
     }
     const QString error = configError(true);
@@ -55,7 +55,7 @@ void ScreenTextService::translateInPlace(const QImage& image,
     // 原图先原位贴出,识别/翻译期间画面不缺口;完成后原地换图
     pin_ = pins_ ? pins_->pinImage(image, regionGlobal.topLeft()) : nullptr;
     if (pin_) {
-        pin_->setStatusBadge(QStringLiteral("翻译中…"));
+        pin_->setStatusBadge(tr("Translating..."));
     }
     ocr_.recognize(image_, ocrConfig());
 }
@@ -64,7 +64,7 @@ void ScreenTextService::onOcrFinished(const QList<OcrLine>& lines) {
     if (job_ == Job::Extract) {
         job_ = Job::None;
         if (lines.isEmpty()) {
-            emit failed(QStringLiteral("未识别到文字"));
+            emit failed(tr("No text recognized"));
             return;
         }
         QStringList texts;
@@ -77,12 +77,12 @@ void ScreenTextService::onOcrFinished(const QList<OcrLine>& lines) {
     }
     if (job_ == Job::Translate) {
         if (lines.isEmpty()) {
-            onFailed(QStringLiteral("未识别到文字"));
+            onFailed(tr("No text recognized"));
             return;
         }
         lines_ = lines;
         if (pin_) {
-            pin_->setStatusBadge(QStringLiteral("翻译中…(%1 行)").arg(lines.size()));
+            pin_->setStatusBadge(tr("Translating... (%1 lines)").arg(lines.size()));
         }
         QStringList texts;
         for (const OcrLine& line : lines_) {
@@ -112,7 +112,8 @@ void ScreenTextService::onTranslated(const QStringList& translations) {
             pin_->setStatusBadge(QString());
         }
         emit failed(
-            QStringLiteral("OCR 未返回文字位置,无法原位替换;译文已复制到剪贴板"));
+            tr("OCR returned no text positions, so in-place replacement is not "
+               "possible; the translation was copied to the clipboard"));
         return;
     }
 
@@ -139,22 +140,25 @@ QString ScreenTextService::configError(bool needTranslate) const {
     const auto ocr = ocrConfig();
     if (ocr.protocol == QLatin1String("openai") &&
         (ocr.baseUrl.isEmpty() || ocr.apiKey.isEmpty() || ocr.model.isEmpty())) {
-        return QStringLiteral("请先在 设置 中填写 OCR 服务的地址、密钥与模型名");
+        return tr("Fill in the OCR service endpoint, API key and model in "
+                  "Settings first");
     }
     if (!needTranslate) {
         return {};
     }
-    const auto tr = translateConfig();
-    if (tr.protocol == QLatin1String("openai") &&
-        (tr.baseUrl.isEmpty() || tr.apiKey.isEmpty() || tr.model.isEmpty())) {
-        return QStringLiteral("请先在 设置 中填写翻译服务的地址、密钥与模型名");
+    const auto trc = translateConfig();
+    if (trc.protocol == QLatin1String("openai") &&
+        (trc.baseUrl.isEmpty() || trc.apiKey.isEmpty() || trc.model.isEmpty())) {
+        return tr("Fill in the translation service endpoint, API key and model "
+                  "in Settings first");
     }
-    if (tr.protocol == QLatin1String("deepl") && tr.apiKey.isEmpty()) {
-        return QStringLiteral("请先在 设置 中填写 DeepL 密钥");
+    if (trc.protocol == QLatin1String("deepl") && trc.apiKey.isEmpty()) {
+        return tr("Fill in the DeepL API key in Settings first");
     }
-    if (tr.protocol == QLatin1String("baidu") &&
-        (tr.appId.isEmpty() || tr.apiKey.isEmpty())) {
-        return QStringLiteral("请先在 设置 中填写百度翻译的 APP ID 与密钥");
+    if (trc.protocol == QLatin1String("baidu") &&
+        (trc.appId.isEmpty() || trc.apiKey.isEmpty())) {
+        return tr("Fill in the Baidu Translate APP ID and secret key in "
+                  "Settings first");
     }
     return {};
 }

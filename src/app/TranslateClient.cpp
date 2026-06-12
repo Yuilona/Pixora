@@ -30,10 +30,10 @@ QString langFor(const QString& protocol, const QString& target) {
         if (target == QLatin1String("ja")) return QStringLiteral("jp");
         return QStringLiteral("zh");
     }
-    // LLM 提示词用自然语言
-    if (target == QLatin1String("en")) return QStringLiteral("英文");
-    if (target == QLatin1String("ja")) return QStringLiteral("日文");
-    return QStringLiteral("中文");
+    // LLM 提示词用自然语言(提示词统一英文,见 translateOpenAi)
+    if (target == QLatin1String("en")) return QStringLiteral("English");
+    if (target == QLatin1String("ja")) return QStringLiteral("Japanese");
+    return QStringLiteral("Simplified Chinese");
 }
 
 } // namespace
@@ -74,11 +74,13 @@ void TranslateClient::translateOpenAi(const QStringList& lines, const Config& co
     for (const QString& line : lines) {
         input.append(line);
     }
+    // 给模型的指令,非 UI 文案——统一英文
     const QString prompt =
         QStringLiteral(
-            "你是翻译引擎。把下面 JSON 数组中的每个字符串翻译成%1。"
-            "严格输出 JSON 字符串数组,长度与输入相同、顺序一一对应;"
-            "不要输出任何解释或代码块标记。已是%1的条目原样返回。\n输入:\n%2")
+            "You are a translation engine. Translate every string in the JSON "
+            "array below into %1. Output strictly a JSON array of strings with "
+            "the same length and order as the input; no explanations, no code "
+            "fences. Return entries already in %1 unchanged.\nInput:\n%2")
             .arg(langFor(config.protocol, config.targetLang),
                  QString::fromUtf8(
                      QJsonDocument(input).toJson(QJsonDocument::Compact)));

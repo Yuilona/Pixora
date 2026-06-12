@@ -1,5 +1,6 @@
 #include "ui/overlay/Magnifier.h"
 
+#include <QCoreApplication>
 #include <QPainter>
 
 #include <algorithm>
@@ -84,7 +85,8 @@ void draw(QPainter& painter, const Context& ctx) {
                      rgbText);
     painter.setPen(QColor(255, 255, 255, 140));
     painter.drawText(infoRect.adjusted(8, kInfoHeight / 2, -8, -2),
-                     Qt::AlignVCenter | Qt::AlignRight, QStringLiteral("C 取色"));
+                     Qt::AlignVCenter | Qt::AlignRight,
+                     QCoreApplication::translate("Magnifier", "C to pick color"));
     painter.setPen(Qt::white);
     painter.setBrush(color);
     painter.setPen(QPen(Qt::white, 1));

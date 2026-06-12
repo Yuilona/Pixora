@@ -44,9 +44,9 @@ void HotkeyService::registerAll() {
         QString action;
     } entries[] = {
         {HotkeyId::CaptureRegion, settings_.hotkeyCaptureRegion(), "capture",
-         QStringLiteral("截图")},
+         tr("capture")},
         {HotkeyId::PinFromClipboard, settings_.hotkeyPinFromClipboard(), "pin",
-         QStringLiteral("贴图")},
+         tr("pin")},
     };
     for (const auto& e : entries) {
         const bool ok = backend_->registerHotkey(e.id, e.seq);

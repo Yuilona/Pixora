@@ -24,7 +24,7 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
     layout->setContentsMargins(6, 4, 6, 4);
     layout->setSpacing(2);
 
-    status_ = new QLabel(QStringLiteral("滚动目标窗口开始拼接…"), this);
+    status_ = new QLabel(tr("Scroll the target window to start stitching..."), this);
     layout->addWidget(status_);
 
     auto* tip = new InstantTip(this);
@@ -32,7 +32,7 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
     // "自动滚动"是模式开关,无公认图形,保留文字最清楚
     if (autoModeAvailable) {
         autoBtn_ = new QToolButton(this);
-        autoBtn_->setText(QStringLiteral("自动滚动"));
+        autoBtn_->setText(tr("Auto-scroll"));
         autoBtn_->setCheckable(true);
         connect(autoBtn_, &QToolButton::toggled, this, &ScrollCaptureBar::autoToggled);
         layout->addWidget(autoBtn_);
@@ -48,13 +48,13 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
         connect(btn, &QToolButton::clicked, this, signal);
         layout->addWidget(btn);
     };
-    addButton(icons::pinIcon(), QStringLiteral("完成并贴图"),
+    addButton(icons::pinIcon(), tr("Finish and pin"),
               &ScrollCaptureBar::finishPinRequested);
-    addButton(icons::saveIcon(), QStringLiteral("完成并另存"),
+    addButton(icons::saveIcon(), tr("Finish and save"),
               &ScrollCaptureBar::finishSaveRequested);
-    addButton(icons::cancelIcon(), QStringLiteral("取消"),
+    addButton(icons::cancelIcon(), tr("Cancel"),
               &ScrollCaptureBar::cancelRequested);
-    addButton(icons::confirmIcon(), QStringLiteral("完成并复制 (F1)"),
+    addButton(icons::confirmIcon(), tr("Finish and copy (F1)"),
               &ScrollCaptureBar::finishRequested);
 
     adjustSize();

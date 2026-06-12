@@ -22,16 +22,18 @@ struct ToolSpec {
     const char* label;
 };
 
+// 标签经 QT_TRANSLATE_NOOP 标记,实际显示时再 tr()(上下文与类一致)
 constexpr std::array<ToolSpec, 9> kTools = {{
-    {AnnotationTool::Rect, "矩形"},
-    {AnnotationTool::Ellipse, "椭圆"},
-    {AnnotationTool::Arrow, "箭头"},
-    {AnnotationTool::Pen, "画笔"},
-    {AnnotationTool::Marker, "马克笔"},
-    {AnnotationTool::Text, "文字"},
-    {AnnotationTool::Badge, "序号"},
-    {AnnotationTool::Mosaic, "马赛克"},
-    {AnnotationTool::Blur, "模糊"},
+    {AnnotationTool::Rect, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Rectangle")},
+    {AnnotationTool::Ellipse, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Ellipse")},
+    {AnnotationTool::Arrow, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Arrow")},
+    {AnnotationTool::Pen, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Pen")},
+    {AnnotationTool::Marker, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Marker")},
+    {AnnotationTool::Text, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Text")},
+    {AnnotationTool::Badge,
+     QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Numbered badge")},
+    {AnnotationTool::Mosaic, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Mosaic")},
+    {AnnotationTool::Blur, QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "Blur")},
 }};
 
 const std::array<QColor, 6> kPalette = {
@@ -44,7 +46,11 @@ const std::array<QColor, 6> kPalette = {
 };
 
 constexpr std::array<int, 3> kWidths = {2, 4, 8};
-constexpr const char* kWidthNames[] = {"细", "中", "粗"};
+constexpr const char* kWidthNames[] = {
+    QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "thin"),
+    QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "medium"),
+    QT_TRANSLATE_NOOP("pixora::AnnotationToolbar", "thick"),
+};
 
 } // namespace
 
@@ -87,7 +93,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
         auto* btn = new QToolButton(this);
         btn->setIcon(icons::toolIcon(spec.tool));
         btn->setIconSize(QSize(20, 20));
-        btn->setToolTip(QString::fromUtf8(spec.label));
+        btn->setToolTip(tr(spec.label));
         btn->setCheckable(true);
         btn->installEventFilter(tip);
         connect(btn, &QToolButton::clicked, this,
@@ -122,13 +128,13 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     widthButton_->setIconSize(QSize(20, 20));
     widthButton_->installEventFilter(tip);
     widthButton_->setToolTip(
-        QStringLiteral("线条粗细:%1(点击切换)").arg(QString::fromUtf8(kWidthNames[widthIndex_])));
+        tr("Line width: %1 (click to cycle)").arg(tr(kWidthNames[widthIndex_])));
     connect(widthButton_, &QToolButton::clicked, this, [this] {
         widthIndex_ = (widthIndex_ + 1) % static_cast<int>(kWidths.size());
         const int width = kWidths[static_cast<size_t>(widthIndex_)];
         widthButton_->setIcon(icons::widthIcon(width));
-        widthButton_->setToolTip(QStringLiteral("线条粗细:%1(点击切换)")
-                                     .arg(QString::fromUtf8(kWidthNames[widthIndex_])));
+        widthButton_->setToolTip(
+            tr("Line width: %1 (click to cycle)").arg(tr(kWidthNames[widthIndex_])));
         session_.chooseWidth(width);
     });
     layout->addWidget(widthButton_);
@@ -136,10 +142,10 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     addSeparator();
 
     QToolButton* undoBtn =
-        addIconButton(icons::undoIcon(), QStringLiteral("撤销 (Ctrl+Z)"),
+        addIconButton(icons::undoIcon(), tr("Undo (Ctrl+Z)"),
                       [this] { session_.document().undoStack().undo(); });
     QToolButton* redoBtn =
-        addIconButton(icons::redoIcon(), QStringLiteral("重做 (Ctrl+Y)"),
+        addIconButton(icons::redoIcon(), tr("Redo (Ctrl+Y)"),
                       [this] { session_.document().undoStack().redo(); });
     undoBtn->setEnabled(false);
     redoBtn->setEnabled(false);
@@ -150,22 +156,22 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
 
     addSeparator();
 
-    addIconButton(icons::ocrIcon(), QStringLiteral("提取文字"),
+    addIconButton(icons::ocrIcon(), tr("Extract text"),
                   [this] { session_.requestExtractText(); });
-    addIconButton(icons::translateIcon(), QStringLiteral("翻译"),
+    addIconButton(icons::translateIcon(), tr("Translate"),
                   [this] { session_.requestTranslate(); });
-    addIconButton(icons::scrollIcon(), QStringLiteral("长截图"),
+    addIconButton(icons::scrollIcon(), tr("Scrolling capture"),
                   [this] { session_.requestScroll(); });
 
     addSeparator();
 
-    addIconButton(icons::pinIcon(), QStringLiteral("贴图"),
+    addIconButton(icons::pinIcon(), tr("Pin"),
                   [this] { session_.requestPin(); });
-    addIconButton(icons::saveIcon(), QStringLiteral("另存 (Ctrl+S)"),
+    addIconButton(icons::saveIcon(), tr("Save as (Ctrl+S)"),
                   [this] { session_.requestSave(); });
-    addIconButton(icons::cancelIcon(), QStringLiteral("取消"),
+    addIconButton(icons::cancelIcon(), tr("Cancel"),
                   [this] { session_.cancel(); });
-    addIconButton(icons::confirmIcon(), QStringLiteral("复制并完成 (Enter)"),
+    addIconButton(icons::confirmIcon(), tr("Copy and finish (Enter)"),
                   [this] { session_.confirm(); });
 
     connect(&session_, &SnipSession::interactionFinished, this, [this] {
