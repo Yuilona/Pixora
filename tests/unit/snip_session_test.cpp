@@ -19,8 +19,30 @@ TEST_CASE("hover picks topmost window in z-order", "[session]") {
     session.updateHover(QPoint(700, 500)); // 仅命中底层大窗
     CHECK(session.hoverRect() == QRect(0, 0, 800, 600));
 
-    session.updateHover(QPoint(900, 700)); // 命中空白
+    session.updateHover(QPoint(900, 700)); // 命中空白(无屏幕信息 → 置空)
     CHECK(session.hoverRect().isEmpty());
+}
+
+TEST_CASE("hover falls back to whole screen when no window hit", "[session]") {
+    using pixora::ScreenSnap;
+    // 双屏:主屏 800x600,副屏在右侧
+    QImage frame(8, 6, QImage::Format_ARGB32_Premultiplied);
+    frame.fill(Qt::black);
+    SnipSession session(pixora::DesktopSnapshot{{
+        ScreenSnap{frame, QRect(0, 0, 800, 600), 1.0},
+        ScreenSnap{frame, QRect(800, 0, 800, 600), 1.0},
+    }});
+    session.setWindowCandidates(
+        {WindowInfo{1, QStringLiteral("w"), QRect(100, 100, 200, 200)}});
+
+    session.updateHover(QPoint(150, 150)); // 命中窗口 → 窗口优先
+    CHECK(session.hoverRect() == QRect(100, 100, 200, 200));
+
+    session.updateHover(QPoint(700, 500)); // 桌面空白 → 吸附主屏整屏
+    CHECK(session.hoverRect() == QRect(0, 0, 800, 600));
+
+    session.updateHover(QPoint(900, 300)); // 副屏空白 → 吸附副屏整屏
+    CHECK(session.hoverRect() == QRect(800, 0, 800, 600));
 }
 
 TEST_CASE("hoverChanged emits only on real change", "[session]") {

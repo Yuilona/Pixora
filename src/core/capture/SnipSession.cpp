@@ -45,6 +45,15 @@ void SnipSession::updateHover(const QPoint& globalLogical) {
             break;
         }
     }
+    if (hit.isNull()) {
+        // 未命中任何窗口(桌面空白处)→ 吸附到光标所在屏幕,一键全屏
+        for (const ScreenSnap& s : snapshot_.screens()) {
+            if (s.geometryLogical.contains(globalLogical)) {
+                hit = s.geometryLogical;
+                break;
+            }
+        }
+    }
     setHoverRect(hit);
 }
 

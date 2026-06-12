@@ -458,6 +458,13 @@ void OverlayWindow::keyPressEvent(QKeyEvent* event) {
     case Qt::Key_F3:
         session_.requestPin();
         break;
+    case Qt::Key_A:
+        if (event->modifiers() & Qt::ControlModifier) {
+            // Ctrl+A:全选整个虚拟桌面
+            session_.setSelection(session_.snapshot().virtualGeometryLogical());
+            session_.notifyInteractionFinished();
+        }
+        break;
     case Qt::Key_C: {
         // 取色器:复制放大镜中心像素色值(C=HEX,Shift+C=RGB)
         if (!magnifierVisible()) {
