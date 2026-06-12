@@ -15,6 +15,7 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                    Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_ShowWithoutActivating);
+    setAttribute(Qt::WA_TranslucentBackground); // 配合 paintCard 圆角卡片底
     setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/12, /*padV=*/4, /*padH=*/10));
 
     auto* layout = new QHBoxLayout(this);
@@ -62,6 +63,11 @@ void ScrollCaptureBar::setAutoChecked(bool checked) {
     if (autoBtn_) {
         autoBtn_->setChecked(checked);
     }
+}
+
+void ScrollCaptureBar::paintEvent(QPaintEvent* /*event*/) {
+    QPainter p(this);
+    theme::paintCard(p, rect(), 8);
 }
 
 } // namespace pixora

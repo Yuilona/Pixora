@@ -18,6 +18,9 @@ public:
     void setStatus(const QString& text);
     void setAutoChecked(bool checked);
 
+protected:
+    void paintEvent(QPaintEvent* event) override; // 自绘圆角卡片底
+
 signals:
     void autoToggled(bool enabled);
     void finishRequested();      // 复制(默认出口)

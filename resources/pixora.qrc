@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/pixora-256.png</file>
+        <file>icons/check-14.png</file>
+        <file>icons/check-14@2x.png</file>
     </qresource>
 </RCC>

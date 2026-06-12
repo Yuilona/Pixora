@@ -27,9 +27,11 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     : QDialog(parent), settings_(settings), system_(system) {
     setWindowTitle(QStringLiteral("设置 — Pixora"));
     setAttribute(Qt::WA_DeleteOnClose);
-    setMinimumWidth(380);
+    setMinimumWidth(440);
 
     auto* form = new QFormLayout;
+    form->setHorizontalSpacing(14);
+    form->setVerticalSpacing(10);
 
     captureEdit_ = new QKeySequenceEdit(settings_.hotkeyCaptureRegion(), this);
     pinEdit_ = new QKeySequenceEdit(settings_.hotkeyPinFromClipboard(), this);
@@ -118,6 +120,9 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     // —— OCR 识别服务(提取文字 / 截图翻译共用)——
     auto* ocrGroup = new QGroupBox(QStringLiteral("OCR 识别(提取文字 / 翻译)"), this);
     auto* ocrForm = new QFormLayout(ocrGroup);
+    ocrForm->setHorizontalSpacing(14);
+    ocrForm->setVerticalSpacing(10);
+    ocrForm->setContentsMargins(12, 14, 12, 12);
     ocrProtocolCombo_ = new QComboBox(this);
     ocrProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容视觉模型"),
                                QStringLiteral("openai"));
@@ -149,6 +154,9 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     // —— 翻译服务 ——
     auto* trGroup = new QGroupBox(QStringLiteral("翻译服务(截图翻译)"), this);
     auto* trForm = new QFormLayout(trGroup);
+    trForm->setHorizontalSpacing(14);
+    trForm->setVerticalSpacing(10);
+    trForm->setContentsMargins(12, 14, 12, 12);
     trProtocolCombo_ = new QComboBox(this);
     trProtocolCombo_->addItem(QStringLiteral("OpenAI 兼容大模型"),
                               QStringLiteral("openai"));
@@ -192,6 +200,7 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     auto* buttons =
         new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("确定"));
+    buttons->button(QDialogButtonBox::Ok)->setProperty("primary", true);
     buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         apply();
@@ -200,6 +209,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(18, 18, 18, 14);
+    layout->setSpacing(12);
     layout->addLayout(form);
     layout->addWidget(ocrGroup);
     layout->addWidget(trGroup);

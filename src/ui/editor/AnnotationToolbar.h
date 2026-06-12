@@ -24,6 +24,7 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
+    void paintEvent(QPaintEvent* event) override; // 自绘圆角卡片底
 
 private:
     void reposition();

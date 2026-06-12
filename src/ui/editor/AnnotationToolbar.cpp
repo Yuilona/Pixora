@@ -169,6 +169,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                    Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_ShowWithoutActivating);
+    setAttribute(Qt::WA_TranslucentBackground); // 配合 paintCard 圆角卡片底
     setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/13, /*padV=*/6, /*padH=*/10));
 
     auto* layout = new QHBoxLayout(this);
@@ -261,6 +262,11 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
             reposition();
         }
     });
+}
+
+void AnnotationToolbar::paintEvent(QPaintEvent* /*event*/) {
+    QPainter p(this);
+    theme::paintCard(p, rect(), 8);
 }
 
 bool AnnotationToolbar::eventFilter(QObject* watched, QEvent* event) {

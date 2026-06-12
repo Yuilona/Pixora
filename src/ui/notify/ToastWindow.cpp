@@ -132,13 +132,7 @@ void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    QPainterPath card;
-    card.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
-    QColor bg = theme::surface();
-    bg.setAlpha(247);
-    p.fillPath(card, bg);
-    p.setPen(QPen(theme::hairline(), 1));
-    p.drawPath(card);
+    theme::paintCard(p, rect(), 10, /*bgAlpha=*/247);
 
     const int logoY = (height() - kLogoSize) / 2;
     p.drawPixmap(kPadding, logoY, kLogoSize, kLogoSize, logo_);

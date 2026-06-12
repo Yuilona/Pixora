@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
     // 与自绘暗色组件(工具栏/通知卡片)同基调(见 ui/Theme.h)
     QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
     QApplication::setPalette(pixora::theme::darkPalette());
+    app.setStyleSheet(pixora::theme::appStyleSheet());
 
     pixora::initLogging();
     spdlog::info("Pixora {} starting", PIXORA_VERSION);
