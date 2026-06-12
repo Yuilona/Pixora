@@ -3,6 +3,7 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(pixora_tests
     unit/smoke_test.cpp
     unit/settings_test.cpp
+    unit/hotkey_service_test.cpp
     unit/history_test.cpp
     unit/filename_template_test.cpp
     unit/desktop_snapshot_test.cpp
@@ -13,6 +14,9 @@ add_executable(pixora_tests
     unit/stitcher_fixture_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/HotkeyService.h
+    ${CMAKE_SOURCE_DIR}/src/app/HotkeyService.cpp
+    ${CMAKE_SOURCE_DIR}/src/platform/interface/GlobalHotkey.h
     ${CMAKE_SOURCE_DIR}/src/app/HistoryService.h
     ${CMAKE_SOURCE_DIR}/src/app/HistoryService.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.h

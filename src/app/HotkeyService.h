@@ -3,6 +3,7 @@
 #include "platform/interface/GlobalHotkey.h"
 
 #include <QObject>
+#include <QSet>
 
 namespace pixora {
 
@@ -19,13 +20,19 @@ public:
     void registerAll();
     void reregisterAll(); // 设置变更后重新注册
 
+    // 最近一次 registerAll 中该热键是否注册失败(被占用/不支持的键位)
+    bool failed(HotkeyId id) const { return failed_.contains(static_cast<int>(id)); }
+
 signals:
     void captureRequested();
     void pinRequested();
+    // action 为中文动作名("截图"/"贴图"),供 UI 直接拼装提示文案
+    void registrationFailed(const QString& action, const QKeySequence& seq);
 
 private:
     SettingsService& settings_;
     IGlobalHotkey* backend_;
+    QSet<int> failed_;
 };
 
 } // namespace pixora

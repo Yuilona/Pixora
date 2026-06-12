@@ -3,7 +3,7 @@
 #include <QDir>
 #include <QStandardPaths>
 
-#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #ifdef _WIN32
@@ -23,7 +23,9 @@ void initLogging() {
 
     std::vector<spdlog::sink_ptr> sinks;
     sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-    sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile));
+    // 常驻托盘进程,日志必须有上限:2MB × 3 份轮转
+    sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+        logFile, 2 * 1024 * 1024, 3));
 #ifdef _WIN32
     sinks.push_back(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 #endif

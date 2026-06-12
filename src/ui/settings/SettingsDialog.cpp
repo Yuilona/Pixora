@@ -34,6 +34,24 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     form->addRow(QStringLiteral("截图热键"), captureEdit_);
     form->addRow(QStringLiteral("贴图热键"), pinEdit_);
 
+    hotkeyWarning_ = new QLabel(
+        QStringLiteral("标红的热键注册失败(可能已被其它程序占用),请更换后保存"), this);
+    hotkeyWarning_->setStyleSheet(QStringLiteral("color:#d93025;"));
+    hotkeyWarning_->setWordWrap(true);
+    hotkeyWarning_->hide();
+    form->addRow(QString(), hotkeyWarning_);
+
+    auto clearConflict = [this](QKeySequenceEdit* edit) {
+        edit->setStyleSheet(QString());
+        if (captureEdit_->styleSheet().isEmpty() && pinEdit_->styleSheet().isEmpty()) {
+            hotkeyWarning_->hide();
+        }
+    };
+    connect(captureEdit_, &QKeySequenceEdit::keySequenceChanged, this,
+            [this, clearConflict] { clearConflict(captureEdit_); });
+    connect(pinEdit_, &QKeySequenceEdit::keySequenceChanged, this,
+            [this, clearConflict] { clearConflict(pinEdit_); });
+
     auto* dirRow = new QHBoxLayout;
     outputDirEdit_ = new QLineEdit(settings_.outputDir(), this);
     outputDirEdit_->setPlaceholderText(
@@ -107,6 +125,14 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     auto* layout = new QVBoxLayout(this);
     layout->addLayout(form);
     layout->addWidget(buttons);
+}
+
+void SettingsDialog::markHotkeyConflicts(bool captureFailed, bool pinFailed) {
+    // 红框画在内部 QLineEdit 上(QKeySequenceEdit 本体不绘制边框)
+    const QString style = QStringLiteral("QLineEdit { border: 1px solid #d93025; }");
+    captureEdit_->setStyleSheet(captureFailed ? style : QString());
+    pinEdit_->setStyleSheet(pinFailed ? style : QString());
+    hotkeyWarning_->setVisible(captureFailed || pinFailed);
 }
 
 void SettingsDialog::apply() {

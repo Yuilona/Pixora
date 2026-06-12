@@ -56,6 +56,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/overlay/OverlayWindow.cpp
     ui/overlay/SelectionHandles.h
     ui/overlay/SelectionHandles.cpp
+    platform/interface/CrashHandler.h
     platform/interface/ElementLocator.h
     platform/interface/GlobalHotkey.h
     platform/interface/InputInjector.h
@@ -73,6 +74,7 @@ if(WIN32)
         ${CMAKE_SOURCE_DIR}/resources/windows/pixora.rc
         platform/windows/WinCoordinates.h
         platform/windows/WinCoordinates.cpp
+        platform/windows/WinCrashHandler.cpp
         platform/windows/WinElementLocator.h
         platform/windows/WinElementLocator.cpp
         platform/windows/WinGlobalHotkey.h
@@ -103,5 +105,5 @@ target_link_libraries(pixora PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(pixora PRIVATE user32 dwmapi)
+    target_link_libraries(pixora PRIVATE user32 dwmapi dbghelp)
 endif()

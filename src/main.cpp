@@ -9,6 +9,7 @@
 #include "common/Log.h"
 #include "ui/history/HistoryWindow.h"
 #include "ui/settings/SettingsDialog.h"
+#include "platform/interface/CrashHandler.h"
 #include "platform/interface/ElementLocator.h"
 #include "platform/interface/InputInjector.h"
 #include "platform/interface/PlatformFactory.h"
@@ -20,6 +21,7 @@
 #include <QCursor>
 #include <QIcon>
 #include <QPointer>
+#include <QStandardPaths>
 
 #include <spdlog/spdlog.h>
 
@@ -33,6 +35,16 @@ int main(int argc, char* argv[]) {
 
     pixora::initLogging();
     spdlog::info("Pixora {} starting", PIXORA_VERSION);
+
+    const bool crashedLastRun = pixora::installCrashHandler(
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +
+        QStringLiteral("/crashes"));
+    if (app.arguments().contains(QStringLiteral("--crash-test"))) {
+        // 隐藏参数:故意空指针解引用,用于验证崩溃捕获链路
+        spdlog::warn("--crash-test: triggering deliberate crash");
+        volatile int* p = nullptr;
+        *p = 42;
+    }
 
     pixora::SingleInstanceGuard guard(QStringLiteral("pixora-single-instance"));
     if (!guard.tryAcquire()) {
@@ -48,6 +60,10 @@ int main(int argc, char* argv[]) {
 
     pixora::TrayService tray;
     tray.show();
+    if (crashedLastRun) {
+        tray.notify(QStringLiteral("Pixora 上次异常退出"),
+                    QStringLiteral("已生成诊断文件;反馈问题时请附上日志与 crashes 目录"));
+    }
 
     const auto screenCapturer = pixora::createScreenCapturer();
     const auto windowEnumerator = pixora::createWindowEnumerator();
@@ -119,6 +135,14 @@ int main(int argc, char* argv[]) {
                                          QStringLiteral("剪贴板中没有图像"));
                          }
                      });
+    QObject::connect(&hotkeys, &pixora::HotkeyService::registrationFailed, &tray,
+                     [&tray](const QString& action, const QKeySequence& seq) {
+                         tray.notify(
+                             QStringLiteral("热键注册失败"),
+                             QStringLiteral("%1热键 %2 可能已被其它程序占用,"
+                                            "请在托盘菜单 → 设置中更换")
+                                 .arg(action, seq.toString(QKeySequence::NativeText)));
+                     });
     hotkeys.registerAll();
 
     QPointer<pixora::HistoryWindow> historyWindow;
@@ -151,6 +175,9 @@ int main(int argc, char* argv[]) {
                          }
                          settingsDialog = new pixora::SettingsDialog(
                              settings, systemIntegration.get());
+                         settingsDialog->markHotkeyConflicts(
+                             hotkeys.failed(pixora::HotkeyId::CaptureRegion),
+                             hotkeys.failed(pixora::HotkeyId::PinFromClipboard));
                          QObject::connect(settingsDialog,
                                           &pixora::SettingsDialog::applied, &hotkeys,
                                           &pixora::HotkeyService::reregisterAll);

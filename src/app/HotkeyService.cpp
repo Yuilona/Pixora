@@ -32,6 +32,7 @@ void HotkeyService::reregisterAll() {
 }
 
 void HotkeyService::registerAll() {
+    failed_.clear();
     if (!backend_) {
         spdlog::info("global hotkeys not available on this platform");
         return;
@@ -40,15 +41,22 @@ void HotkeyService::registerAll() {
         HotkeyId id;
         QKeySequence seq;
         const char* name;
+        QString action;
     } entries[] = {
-        {HotkeyId::CaptureRegion, settings_.hotkeyCaptureRegion(), "capture"},
-        {HotkeyId::PinFromClipboard, settings_.hotkeyPinFromClipboard(), "pin"},
+        {HotkeyId::CaptureRegion, settings_.hotkeyCaptureRegion(), "capture",
+         QStringLiteral("截图")},
+        {HotkeyId::PinFromClipboard, settings_.hotkeyPinFromClipboard(), "pin",
+         QStringLiteral("贴图")},
     };
     for (const auto& e : entries) {
         const bool ok = backend_->registerHotkey(e.id, e.seq);
         spdlog::info("hotkey {} ({}) -> {}", e.name,
                      e.seq.toString(QKeySequence::PortableText).toStdString(),
                      ok ? "registered" : "FAILED");
+        if (!ok) {
+            failed_.insert(static_cast<int>(e.id));
+            emit registrationFailed(e.action, e.seq);
+        }
     }
 }
 

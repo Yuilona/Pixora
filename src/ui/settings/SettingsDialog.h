@@ -5,6 +5,7 @@
 class QCheckBox;
 class QComboBox;
 class QKeySequenceEdit;
+class QLabel;
 class QLineEdit;
 class QSpinBox;
 
@@ -21,6 +22,9 @@ public:
     SettingsDialog(SettingsService& settings, ISystemIntegration* system,
                    QWidget* parent = nullptr);
 
+    // 标红注册失败的热键并显示提示;用户改键后自动清除
+    void markHotkeyConflicts(bool captureFailed, bool pinFailed);
+
 signals:
     void applied();
 
@@ -32,6 +36,7 @@ private:
 
     QKeySequenceEdit* captureEdit_ = nullptr;
     QKeySequenceEdit* pinEdit_ = nullptr;
+    QLabel* hotkeyWarning_ = nullptr;
     QLineEdit* outputDirEdit_ = nullptr;
     QLineEdit* fileTemplateEdit_ = nullptr;
     QComboBox* formatCombo_ = nullptr;
