@@ -10,6 +10,7 @@
 #include "common/Log.h"
 #include "ui/history/HistoryWindow.h"
 #include "ui/settings/SettingsDialog.h"
+#include "ui/Theme.h"
 #include "platform/interface/CrashHandler.h"
 #include "platform/interface/ElementLocator.h"
 #include "platform/interface/InputInjector.h"
@@ -23,6 +24,7 @@
 #include <QIcon>
 #include <QPointer>
 #include <QStandardPaths>
+#include <QStyleFactory>
 
 #include <spdlog/spdlog.h>
 
@@ -33,6 +35,10 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationVersion(QStringLiteral(PIXORA_VERSION));
     QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/pixora-256.png")));
     app.setQuitOnLastWindowClosed(false);
+    // 统一 UI 风格:原生窗体(设置/历史/菜单)走 Fusion 暗色调色板,
+    // 与自绘暗色组件(工具栏/通知卡片)同基调(见 ui/Theme.h)
+    QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+    QApplication::setPalette(pixora::theme::darkPalette());
 
     pixora::initLogging();
     spdlog::info("Pixora {} starting", PIXORA_VERSION);

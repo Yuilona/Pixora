@@ -1,5 +1,7 @@
 #include "ui/scroll/ScrollCaptureBar.h"
 
+#include "ui/Theme.h"
+
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QToolButton>
@@ -13,13 +15,7 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                    Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_ShowWithoutActivating);
-    setStyleSheet(QStringLiteral(
-        "QWidget { background: #2B2B2B; }"
-        "QLabel { color: #DDD; font-size: 12px; padding: 0 6px; }"
-        "QToolButton { color: #DDD; background: transparent; border: none;"
-        "  padding: 4px 10px; font-size: 12px; }"
-        "QToolButton:hover { background: #3D3D3D; }"
-        "QToolButton:checked { background: #1E88E5; color: white; }"));
+    setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/12, /*padV=*/4, /*padH=*/10));
 
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(6, 4, 6, 4);

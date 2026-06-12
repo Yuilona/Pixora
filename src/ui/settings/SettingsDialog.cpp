@@ -2,6 +2,7 @@
 
 #include "app/SettingsService.h"
 #include "platform/interface/SystemIntegration.h"
+#include "ui/Theme.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -37,7 +38,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     hotkeyWarning_ = new QLabel(
         QStringLiteral("标红的热键注册失败(可能已被其它程序占用),请更换后保存"), this);
-    hotkeyWarning_->setStyleSheet(QStringLiteral("color:#d93025;"));
+    hotkeyWarning_->setStyleSheet(
+        QStringLiteral("color:%1;").arg(theme::danger().name()));
     hotkeyWarning_->setWordWrap(true);
     hotkeyWarning_->hide();
     form->addRow(QString(), hotkeyWarning_);
@@ -206,7 +208,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
 void SettingsDialog::markHotkeyConflicts(bool captureFailed, bool pinFailed) {
     // 红框画在内部 QLineEdit 上(QKeySequenceEdit 本体不绘制边框)
-    const QString style = QStringLiteral("QLineEdit { border: 1px solid #d93025; }");
+    const QString style = QStringLiteral("QLineEdit { border: 1px solid %1; }")
+                              .arg(theme::danger().name());
     captureEdit_->setStyleSheet(captureFailed ? style : QString());
     pinEdit_->setStyleSheet(pinFailed ? style : QString());
     hotkeyWarning_->setVisible(captureFailed || pinFailed);

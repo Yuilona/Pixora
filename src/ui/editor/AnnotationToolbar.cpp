@@ -1,6 +1,7 @@
 #include "ui/editor/AnnotationToolbar.h"
 
 #include "core/capture/SnipSession.h"
+#include "ui/Theme.h"
 
 #include <QCursor>
 #include <QEvent>
@@ -168,12 +169,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                    Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_ShowWithoutActivating);
-    setStyleSheet(QStringLiteral(
-        "QWidget { background: #2B2B2B; }"
-        "QToolButton { color: #DDD; background: transparent; border: none;"
-        "  padding: 6px 10px; font-size: 13px; }"
-        "QToolButton:hover { background: #3D3D3D; }"
-        "QToolButton:checked { background: #1E88E5; color: white; }"));
+    setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/13, /*padV=*/6, /*padH=*/10));
 
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(6, 4, 6, 4);

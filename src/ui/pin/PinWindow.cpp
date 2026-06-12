@@ -1,6 +1,7 @@
 #include "ui/pin/PinWindow.h"
 
 #include "platform/interface/SystemIntegration.h"
+#include "ui/Theme.h"
 
 #include <QClipboard>
 #include <QCloseEvent>
@@ -19,7 +20,7 @@
 namespace pixora {
 
 namespace {
-const QColor kFrameColor(45, 124, 246);
+const QColor kFrameColor = theme::accent();
 constexpr qreal kMinScale = 0.1;
 constexpr qreal kMaxScale = 5.0;
 constexpr int kFoldedHeight = 26;          // 折叠小条高度

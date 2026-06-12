@@ -1,5 +1,7 @@
 #include "ui/scroll/ScrollPreview.h"
 
+#include "ui/Theme.h"
+
 #include <QPainter>
 
 #include <algorithm>
@@ -65,8 +67,10 @@ void ScrollPreview::updateContent(const QImage& tail, int totalLogicalHeight) {
 
 void ScrollPreview::paintEvent(QPaintEvent* /*event*/) {
     QPainter painter(this);
-    painter.fillRect(rect(), QColor(33, 33, 33, 235));
-    painter.setPen(QColor(45, 124, 246));
+    QColor bg = theme::surface();
+    bg.setAlpha(235);
+    painter.fillRect(rect(), bg);
+    painter.setPen(theme::accent());
     painter.drawRect(rect().adjusted(0, 0, -1, -1));
 
     QFont font = painter.font();

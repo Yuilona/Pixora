@@ -1,5 +1,7 @@
 #include "ui/notify/ToastWindow.h"
 
+#include "ui/Theme.h"
+
 #include <QEasingCurve>
 #include <QFontMetrics>
 #include <QGuiApplication>
@@ -132,8 +134,10 @@ void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
 
     QPainterPath card;
     card.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
-    p.fillPath(card, QColor(0x2B, 0x2B, 0x2B, 247));
-    p.setPen(QPen(QColor(255, 255, 255, 28), 1));
+    QColor bg = theme::surface();
+    bg.setAlpha(247);
+    p.fillPath(card, bg);
+    p.setPen(QPen(theme::hairline(), 1));
     p.drawPath(card);
 
     const int logoY = (height() - kLogoSize) / 2;
@@ -152,11 +156,11 @@ void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
                          height() - kPadding * 2 - titleFm.height() - 4);
 
     p.setFont(titleFont);
-    p.setPen(QColor(Qt::white));
+    p.setPen(theme::text());
     p.drawText(QRect(textX, kPadding, textW, titleFm.height()),
                Qt::AlignLeft | Qt::AlignVCenter, title_);
     p.setFont(bodyFont);
-    p.setPen(QColor(0xDD, 0xDD, 0xDD));
+    p.setPen(theme::textDim());
     p.drawText(bodyArea, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, message_);
 }
 

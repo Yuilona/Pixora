@@ -1,6 +1,7 @@
 #include "app/TrayService.h"
 
 #include "ui/notify/ToastWindow.h"
+#include "ui/Theme.h"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -30,7 +31,7 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     if (pm.isNull()) {
         spdlog::error("tray icon resource failed to load, using fallback");
         QPixmap fallback(32, 32);
-        fallback.fill(QColor(0x1E, 0x88, 0xE5));
+        fallback.fill(theme::accent());
         tray_.setIcon(QIcon(fallback));
     } else {
         tray_.setIcon(QIcon(pm));

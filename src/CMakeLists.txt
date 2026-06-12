@@ -48,6 +48,7 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/text/ReplaceRenderer.cpp
     core/text/TextProtocols.h
     core/text/TextProtocols.cpp
+    ui/Theme.h
     ui/editor/AnnotationToolbar.h
     ui/editor/AnnotationToolbar.cpp
     ui/history/HistoryWindow.h
