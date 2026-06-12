@@ -138,7 +138,13 @@ QIcon widthIcon(int width) {
 
 QIcon undoIcon() {
     return makeIcon([](QPainter& p) {
-        // ↶:120° 短弧(满半圆太像彩虹),左端大箭头向下
+        // ↶:120° 短弧(满半圆太像彩虹),左端大箭头向下;
+        // 整体顺时针转 45°,箭头落在左下、指向左下,更有"回退"动势;
+        // 放大 1.15(再大箭头尖会出 16 单位画布)
+        p.translate(8, 8);
+        p.rotate(45);
+        p.scale(1.15, 1.15);
+        p.translate(-8, -8);
         p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
         const QRectF r(4.4, 5.0, 8.8, 8.8);
         QPainterPath tail;
@@ -155,7 +161,11 @@ QIcon undoIcon() {
 
 QIcon redoIcon() {
     return makeIcon([](QPainter& p) {
-        // ↷:undo 的镜像
+        // ↷:undo 的镜像,逆时针转 45°,放大 1.15
+        p.translate(8, 8);
+        p.rotate(-45);
+        p.scale(1.15, 1.15);
+        p.translate(-8, -8);
         p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
         const QRectF r(2.8, 5.0, 8.8, 8.8);
         QPainterPath tail;
