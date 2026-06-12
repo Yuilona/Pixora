@@ -5,7 +5,7 @@
 <h1 align="center">Pixora</h1>
 
 <p align="center">
-  截图 · 标注 · 贴图 · <b>长截图</b> —— 轻快顺手的截图工具,把滚动长截图做成一等公民
+  Screenshot · Annotate · Pin · <b>Scrolling capture</b> — a fast, no-fuss screenshot tool that treats scrolling capture as a first-class citizen
 </p>
 
 <p align="center">
@@ -18,79 +18,67 @@
 
 ---
 
-## 功能
+## Features
 
-**截图**
-- `F1` 全局热键,冻结画面所见即所得;悬停自动吸附窗口,按住 `Shift` 细化到**按钮/输入框级 UI 元素**(UIAutomation)
-- 自由框选 + 八向手柄微调;方向键 1px 移动、`Ctrl+方向键` 1px 调边、`Shift` 步长 ×10
-- 放大镜实时显示坐标与色值,按 `C` 复制 HEX(`Shift+C` 复制 RGB)——内置取色器
+**Capture**
+- Global `F1` hotkey freezes the screen — what you see is what you get; hover to snap to windows, hold `Shift` to snap down to **individual UI elements** (buttons, inputs — via UIAutomation)
+- Free selection with 8-way resize handles; arrow keys nudge by 1px, `Ctrl+arrows` resize by 1px, `Shift` for ×10 steps; `Ctrl+A` (or clicking empty desktop) grabs the whole screen
+- Magnifier with live coordinates and pixel color; press `C` to copy HEX (`Shift+C` for RGB) — a color picker built right in
 
-**标注**
-- 矩形 / 椭圆 / 箭头 / 画笔 / 马克笔 / 文字 / 序号 / 马赛克 / 模糊,九件套图标工具栏
-- 条目可二次编辑:选中后拖拽缩放、改色改粗细、文字双击重写,全程可撤销重做
+**Annotate**
+- Rectangle / ellipse / arrow / pen / marker / text / numbered badge / mosaic / blur — a nine-tool icon toolbar
+- Every item stays editable: drag to resize, restyle color and width, double-click text to rewrite — with full undo/redo
 
-**贴图**
-- 截图一键贴出、`F3` 剪贴板贴图;滚轮缩放、边角拖拽缩放、`Ctrl+滚轮`调透明度
-- `Space` 折叠成小条、`R` 旋转、`H` 翻转、点击穿透
-- **跨重启恢复**:位置/缩放/透明度/折叠态全部记住
+**Pin**
+- Pin a capture to the screen in one click, or press `F3` to pin the clipboard; wheel to zoom, drag edges to resize, `Ctrl+wheel` for opacity
+- `Space` folds into a slim bar, `R` rotates, `H` flips, click-through mode available
+- Pins **survive restarts** — position, scale, opacity and folded state are all remembered
 
-**长截图(差异化能力)**
-- 截图工具栏一键转入滚动拼接,手动滚动 / 自动滚动双模式,30fps 抓帧快滚不断链
-- NCC 三带中位数匹配 + sticky 头尾检测,实时预览条贴在捕获区旁,错位当场可见
-- 滚轮失效自动切 PageDown 驱动;复制 / 贴图 / 另存多出口
+**Scrolling capture**
+- One toolbar click switches a selection into scroll-stitching mode; manual and auto-scroll, 30fps frame grabbing keeps up with fast scrolling
+- Multi-band NCC matching with sticky header/footer detection; a live preview strip sits beside the capture area so misalignment is visible immediately
+- Falls back to PageDown injection when wheel events are ignored; copy / pin / save outlets
 
-**输出与历史**
-- 文件名模板 `{yyyy}{MM}{dd}{HH}{mm}{ss}`、PNG/JPEG + 质量、复制时自动存盘
-- 截图历史自动留底,托盘随时翻看、重新复制 / 贴图 / 另存
+**Extract text & translate in place**
+- **Extract text**: OCR the selection straight to your clipboard
+- **Translate**: OCR each line with its position, translate, then redraw the translations over the original text — the result is pinned exactly over the source region, as if the page translated itself; press `Esc` to restore
+- Bring your own services, configured in Settings: OpenAI-compatible vision/chat models, Umi-OCR (local), DeepL, or Baidu Translate
 
-## 安装
+**Output & history**
+- Filename templates (`{yyyy}{MM}{dd}{HH}{mm}{ss}`), PNG/JPEG with quality control, optional auto-save on copy
+- Capture history keeps recent shots — browse from the tray to re-copy, pin or save them again
 
-到 [Releases](https://github.com/Yuilona/Pixora/releases/latest) 下载 `Pixora-x.y.z-win64-portable.zip`,解压即用(免安装)。
+## Install
 
-> 暂无代码签名,Windows SmartScreen 拦截时选「更多信息 → 仍要运行」。
+Download `Pixora-x.y.z-win64-portable.zip` from [Releases](https://github.com/Yuilona/Pixora/releases/latest), unzip and run — no installation required.
 
-## 默认快捷键
+> Builds are not code-signed yet. If Windows SmartScreen objects, choose "More info → Run anyway".
 
-| 按键 | 动作 |
+## Default hotkeys
+
+| Key | Action |
 |---|---|
-| `F1` | 截图(长截图拼接中 = 完成并复制) |
-| `F3` | 剪贴板图像贴出为贴图 |
-| `Ctrl+A` | 全选整个桌面(悬停桌面空白处也会吸附整屏) |
-| `Enter` / 双击 | 复制选区并结束 |
-| `Ctrl+S` | 另存为… |
-| `C` / `Shift+C` | 取色(HEX / RGB) |
-| `Esc` | 逐层退出(工具 → 选中 → 会话) |
+| `F1` | Capture (while stitching: finish & copy) |
+| `F3` | Pin clipboard image |
+| `Ctrl+A` | Select the entire desktop (hovering empty desktop snaps to the screen too) |
+| `Enter` / double-click | Copy selection and finish |
+| `Ctrl+S` | Save as… |
+| `C` / `Shift+C` | Pick color (HEX / RGB) |
+| `Esc` | Step back (tool → selection → session) |
 
-热键、保存目录、历史张数、开机自启均可在 托盘 → 设置 中修改。
+Hotkeys, save directory, history size and autostart are all configurable via tray → Settings.
 
-## 从源码构建
+## Build from source
 
 ```bash
 git clone https://github.com/Yuilona/Pixora.git
 cd Pixora
-cmake --preset win-debug   # 需要 Qt 6.5+、vcpkg(VCPKG_ROOT)、MSVC 2022
+cmake --preset win-debug   # requires Qt 6.5+, vcpkg (VCPKG_ROOT), MSVC 2022
 cmake --build --preset win-debug
 ctest --preset win-debug
 ```
 
-详见 [docs/DEV-SETUP.md](docs/DEV-SETUP.md)。
-
-## 文档
-
-| 文档 | 内容 |
-|---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 总体架构:分层设计、平台抽象、长截图引擎、里程碑路线图 |
-| [docs/DEV-SETUP.md](docs/DEV-SETUP.md) | Windows 开发环境搭建指南 |
-| [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) | 发布与分发策略(打包、签名、各平台信任机制) |
-| [docs/POLISH-BACKLOG.md](docs/POLISH-BACKLOG.md) | 打磨待办与完成记录 |
-
-## 路线图
-
-- **M4 跨平台**:macOS(权限引导)→ Linux X11 → Wayland 降级路径
-- **M5 打磨**:贴图分组、标注序列化二次编辑、性能优化
-- 分发:winget 上架、代码签名
-
-技术栈:C++20 · Qt 6 (Widgets) · CMake + vcpkg · OpenCV(拼接模板匹配)
+Tech stack: C++20 · Qt 6 (Widgets) · CMake + vcpkg · OpenCV (template matching for stitching)
 
 ## License
 
