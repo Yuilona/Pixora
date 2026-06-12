@@ -1,6 +1,8 @@
 #include "ui/scroll/ScrollCaptureBar.h"
 
+#include "ui/InstantTip.h"
 #include "ui/Theme.h"
+#include "ui/ToolIcons.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -25,6 +27,9 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
     status_ = new QLabel(QStringLiteral("滚动目标窗口开始拼接…"), this);
     layout->addWidget(status_);
 
+    auto* tip = new InstantTip(this);
+
+    // "自动滚动"是模式开关,无公认图形,保留文字最清楚
     if (autoModeAvailable) {
         autoBtn_ = new QToolButton(this);
         autoBtn_->setText(QStringLiteral("自动滚动"));
@@ -33,16 +38,24 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
         layout->addWidget(autoBtn_);
     }
 
-    auto addButton = [this, layout](const QString& text, auto signal) {
+    auto addButton = [this, layout, tip](const QIcon& icon, const QString& tooltip,
+                                         auto signal) {
         auto* btn = new QToolButton(this);
-        btn->setText(text);
+        btn->setIcon(icon);
+        btn->setIconSize(QSize(18, 18));
+        btn->setToolTip(tooltip);
+        btn->installEventFilter(tip);
         connect(btn, &QToolButton::clicked, this, signal);
         layout->addWidget(btn);
     };
-    addButton(QStringLiteral("复制"), &ScrollCaptureBar::finishRequested);
-    addButton(QStringLiteral("贴图"), &ScrollCaptureBar::finishPinRequested);
-    addButton(QStringLiteral("另存"), &ScrollCaptureBar::finishSaveRequested);
-    addButton(QStringLiteral("取消"), &ScrollCaptureBar::cancelRequested);
+    addButton(icons::pinIcon(), QStringLiteral("完成并贴图"),
+              &ScrollCaptureBar::finishPinRequested);
+    addButton(icons::saveIcon(), QStringLiteral("完成并另存"),
+              &ScrollCaptureBar::finishSaveRequested);
+    addButton(icons::cancelIcon(), QStringLiteral("取消"),
+              &ScrollCaptureBar::cancelRequested);
+    addButton(icons::confirmIcon(), QStringLiteral("完成并复制 (F1)"),
+              &ScrollCaptureBar::finishRequested);
 
     adjustSize();
     QPoint pos(regionGlobal.left(), regionGlobal.bottom() + 12);

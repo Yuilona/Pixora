@@ -1,22 +1,17 @@
 #include "ui/editor/AnnotationToolbar.h"
 
 #include "core/capture/SnipSession.h"
+#include "ui/InstantTip.h"
 #include "ui/Theme.h"
+#include "ui/ToolIcons.h"
 
-#include <QCursor>
-#include <QEvent>
-#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QPainter>
-#include <QPainterPath>
 #include <QScreen>
-#include <QTimer>
 #include <QToolButton>
-#include <QToolTip>
 
 #include <algorithm>
 #include <array>
-#include <functional>
 
 namespace pixora {
 
@@ -39,118 +34,6 @@ constexpr std::array<ToolSpec, 9> kTools = {{
     {AnnotationTool::Blur, "模糊"},
 }};
 
-// —— 程序绘制的工具图标(16x16 逻辑,2x 渲染保证高 DPI 清晰)——
-// 不引入图片资源;线条色与按钮文字色一致,选中态蓝底上同样可读。
-
-const QColor kIconColor(0xDD, 0xDD, 0xDD);
-
-QIcon makeIcon(const std::function<void(QPainter&)>& draw) {
-    // 逻辑 20x20、2x 渲染;绘制代码仍用 16 单位坐标系,整体缩放适配
-    QPixmap pm(40, 40);
-    pm.setDevicePixelRatio(2.0);
-    pm.fill(Qt::transparent);
-    QPainter p(&pm);
-    p.setRenderHint(QPainter::Antialiasing);
-    p.scale(20.0 / 16.0, 20.0 / 16.0);
-    p.setPen(QPen(kIconColor, 1.6));
-    p.setBrush(Qt::NoBrush);
-    draw(p);
-    return QIcon(pm);
-}
-
-QIcon toolIcon(AnnotationTool tool) {
-    switch (tool) {
-    case AnnotationTool::Rect:
-        return makeIcon([](QPainter& p) { p.drawRect(QRectF(2.5, 3.5, 11, 9)); });
-    case AnnotationTool::Ellipse:
-        return makeIcon([](QPainter& p) { p.drawEllipse(QRectF(2.5, 3, 11, 10)); });
-    case AnnotationTool::Arrow:
-        return makeIcon([](QPainter& p) {
-            p.drawLine(QPointF(3.5, 12.5), QPointF(12, 4));
-            QPainterPath head(QPointF(12.5, 3.5));
-            head.lineTo(QPointF(8.5, 4.5));
-            head.lineTo(QPointF(11.5, 7.5));
-            head.closeSubpath();
-            p.fillPath(head, kIconColor);
-        });
-    case AnnotationTool::Pen:
-        return makeIcon([](QPainter& p) {
-            // 斜置铅笔:描边笔身 + 实心笔尖 + 尾部橡皮分隔线
-            p.setPen(QPen(kIconColor, 1.2, Qt::SolidLine, Qt::RoundCap,
-                          Qt::RoundJoin));
-            QPainterPath body;
-            body.moveTo(QPointF(3.4, 10.2));
-            body.lineTo(QPointF(10.8, 2.8));
-            body.lineTo(QPointF(13.2, 5.2));
-            body.lineTo(QPointF(5.8, 12.6));
-            body.closeSubpath();
-            p.drawPath(body);
-            QPainterPath tip(QPointF(2.4, 13.6)); // 笔尖收于左下
-            tip.lineTo(QPointF(3.4, 10.2));
-            tip.lineTo(QPointF(5.8, 12.6));
-            tip.closeSubpath();
-            p.fillPath(tip, kIconColor);
-            p.drawLine(QPointF(9.2, 4.4), QPointF(11.6, 6.8)); // 橡皮分隔
-        });
-    case AnnotationTool::Marker:
-        return makeIcon([](QPainter& p) {
-            QColor c = kIconColor;
-            c.setAlpha(150);
-            p.setPen(QPen(c, 5, Qt::SolidLine, Qt::RoundCap));
-            p.drawLine(QPointF(4, 12), QPointF(12, 4));
-        });
-    case AnnotationTool::Text:
-        return makeIcon([](QPainter& p) {
-            QFont f = p.font();
-            f.setPixelSize(12);
-            f.setBold(true);
-            p.setFont(f);
-            p.drawText(QRectF(0, 0, 16, 16), Qt::AlignCenter, QStringLiteral("T"));
-        });
-    case AnnotationTool::Badge:
-        return makeIcon([](QPainter& p) {
-            p.drawEllipse(QRectF(2.5, 2.5, 11, 11));
-            QFont f = p.font();
-            f.setPixelSize(8);
-            f.setBold(true);
-            p.setFont(f);
-            p.drawText(QRectF(2.5, 2.5, 11, 11), Qt::AlignCenter, QStringLiteral("1"));
-        });
-    case AnnotationTool::Mosaic:
-        return makeIcon([](QPainter& p) {
-            p.setPen(Qt::NoPen);
-            for (int row = 0; row < 3; ++row) {
-                for (int col = 0; col < 3; ++col) {
-                    QColor c = kIconColor;
-                    c.setAlpha((row + col) % 2 ? 90 : 220);
-                    p.fillRect(QRectF(2.5 + col * 4, 2.5 + row * 4, 3.6, 3.6), c);
-                }
-            }
-        });
-    case AnnotationTool::Blur:
-        return makeIcon([](QPainter& p) {
-            p.setPen(Qt::NoPen);
-            for (int i = 0; i < 3; ++i) {
-                QColor c = kIconColor;
-                c.setAlpha(220 - i * 75);
-                const qreal r = 2.0 + i * 2.2;
-                p.setBrush(c);
-                p.drawEllipse(QPointF(8, 8), r, r);
-            }
-        });
-    }
-    return {};
-}
-
-// 粗细按钮:横线粗细即当前档位
-QIcon widthIcon(int width) {
-    return makeIcon([width](QPainter& p) {
-        p.setPen(QPen(kIconColor, std::clamp(width * 0.55, 1.2, 4.5), Qt::SolidLine,
-                      Qt::RoundCap));
-        p.drawLine(QPointF(3, 8), QPointF(13, 8));
-    });
-}
-
 const std::array<QColor, 6> kPalette = {
     QColor(0xE5, 0x39, 0x35), // 红
     QColor(0xFD, 0xD8, 0x35), // 黄
@@ -172,15 +55,29 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     setAttribute(Qt::WA_TranslucentBackground); // 配合 paintCard 圆角卡片底
     setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/13, /*padV=*/6, /*padH=*/10));
 
+    auto* tip = new InstantTip(this);
+
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(6, 4, 6, 4);
     layout->setSpacing(2);
 
-    auto addButton = [this, layout](const QString& text, auto onClicked,
-                                    bool checkable = false) {
+    // 分组细分隔线:全图标后靠分组保持可扫读性
+    auto addSeparator = [this, layout] {
+        auto* sep = new QWidget(this);
+        sep->setFixedSize(1, 18);
+        sep->setStyleSheet(QStringLiteral("background: rgba(255,255,255,24);"));
+        layout->addSpacing(3);
+        layout->addWidget(sep);
+        layout->addSpacing(3);
+    };
+
+    auto addIconButton = [this, layout, tip](const QIcon& icon, const QString& tooltip,
+                                             auto onClicked) {
         auto* btn = new QToolButton(this);
-        btn->setText(text);
-        btn->setCheckable(checkable);
+        btn->setIcon(icon);
+        btn->setIconSize(QSize(20, 20));
+        btn->setToolTip(tooltip);
+        btn->installEventFilter(tip);
         connect(btn, &QToolButton::clicked, this, onClicked);
         layout->addWidget(btn);
         return btn;
@@ -188,16 +85,18 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
 
     for (const ToolSpec& spec : kTools) {
         auto* btn = new QToolButton(this);
-        btn->setIcon(toolIcon(spec.tool));
+        btn->setIcon(icons::toolIcon(spec.tool));
         btn->setIconSize(QSize(20, 20));
         btn->setToolTip(QString::fromUtf8(spec.label));
         btn->setCheckable(true);
-        btn->installEventFilter(this); // 自管理悬浮提示
+        btn->installEventFilter(tip);
         connect(btn, &QToolButton::clicked, this,
                 [this, spec](bool checked) { chooseTool(spec.tool, checked); });
         layout->addWidget(btn);
         toolButtons_.push_back(btn);
     }
+
+    addSeparator();
 
     for (const QColor& color : kPalette) {
         auto* btn = new QToolButton(this);
@@ -219,25 +118,29 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     }
 
     widthButton_ = new QToolButton(this);
-    widthButton_->setIcon(widthIcon(kWidths[static_cast<size_t>(widthIndex_)]));
+    widthButton_->setIcon(icons::widthIcon(kWidths[static_cast<size_t>(widthIndex_)]));
     widthButton_->setIconSize(QSize(20, 20));
-    widthButton_->installEventFilter(this);
+    widthButton_->installEventFilter(tip);
     widthButton_->setToolTip(
         QStringLiteral("线条粗细:%1(点击切换)").arg(QString::fromUtf8(kWidthNames[widthIndex_])));
     connect(widthButton_, &QToolButton::clicked, this, [this] {
         widthIndex_ = (widthIndex_ + 1) % static_cast<int>(kWidths.size());
         const int width = kWidths[static_cast<size_t>(widthIndex_)];
-        widthButton_->setIcon(widthIcon(width));
+        widthButton_->setIcon(icons::widthIcon(width));
         widthButton_->setToolTip(QStringLiteral("线条粗细:%1(点击切换)")
                                      .arg(QString::fromUtf8(kWidthNames[widthIndex_])));
         session_.chooseWidth(width);
     });
     layout->addWidget(widthButton_);
 
+    addSeparator();
+
     QToolButton* undoBtn =
-        addButton(QStringLiteral("撤销"), [this] { session_.document().undoStack().undo(); });
+        addIconButton(icons::undoIcon(), QStringLiteral("撤销 (Ctrl+Z)"),
+                      [this] { session_.document().undoStack().undo(); });
     QToolButton* redoBtn =
-        addButton(QStringLiteral("重做"), [this] { session_.document().undoStack().redo(); });
+        addIconButton(icons::redoIcon(), QStringLiteral("重做 (Ctrl+Y)"),
+                      [this] { session_.document().undoStack().redo(); });
     undoBtn->setEnabled(false);
     redoBtn->setEnabled(false);
     connect(&session_.document().undoStack(), &QUndoStack::canUndoChanged, undoBtn,
@@ -245,13 +148,25 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     connect(&session_.document().undoStack(), &QUndoStack::canRedoChanged, redoBtn,
             &QToolButton::setEnabled);
 
-    addButton(QStringLiteral("提取文字"), [this] { session_.requestExtractText(); });
-    addButton(QStringLiteral("翻译"), [this] { session_.requestTranslate(); });
-    addButton(QStringLiteral("长截图"), [this] { session_.requestScroll(); });
-    addButton(QStringLiteral("贴图"), [this] { session_.requestPin(); });
-    addButton(QStringLiteral("另存"), [this] { session_.requestSave(); });
-    addButton(QStringLiteral("复制"), [this] { session_.confirm(); });
-    addButton(QStringLiteral("取消"), [this] { session_.cancel(); });
+    addSeparator();
+
+    addIconButton(icons::ocrIcon(), QStringLiteral("提取文字"),
+                  [this] { session_.requestExtractText(); });
+    addIconButton(icons::translateIcon(), QStringLiteral("翻译"),
+                  [this] { session_.requestTranslate(); });
+    addIconButton(icons::scrollIcon(), QStringLiteral("长截图"),
+                  [this] { session_.requestScroll(); });
+
+    addSeparator();
+
+    addIconButton(icons::pinIcon(), QStringLiteral("贴图"),
+                  [this] { session_.requestPin(); });
+    addIconButton(icons::saveIcon(), QStringLiteral("另存 (Ctrl+S)"),
+                  [this] { session_.requestSave(); });
+    addIconButton(icons::cancelIcon(), QStringLiteral("取消"),
+                  [this] { session_.cancel(); });
+    addIconButton(icons::confirmIcon(), QStringLiteral("复制并完成 (Enter)"),
+                  [this] { session_.confirm(); });
 
     connect(&session_, &SnipSession::interactionFinished, this, [this] {
         reposition();
@@ -267,34 +182,6 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
 void AnnotationToolbar::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
     theme::paintCard(p, rect(), 8);
-}
-
-bool AnnotationToolbar::eventFilter(QObject* watched, QEvent* event) {
-    auto* btn = qobject_cast<QToolButton*>(watched);
-    if (!btn || btn->toolTip().isEmpty()) {
-        return QWidget::eventFilter(watched, event);
-    }
-    switch (event->type()) {
-    case QEvent::Enter:
-        // 即时显示,不做延迟
-        QToolTip::showText(QCursor::pos() + QPoint(0, 16), btn->toolTip(), btn);
-        break;
-    case QEvent::MouseButtonRelease:
-        // Qt 的提示标签在鼠标按下时会自动隐藏;松开后重新弹出
-        // (延后到事件处理完,粗细按钮的提示文本此时已是新档位)
-        QTimer::singleShot(0, btn, [btn] {
-            QToolTip::showText(QCursor::pos() + QPoint(0, 16), btn->toolTip(), btn);
-        });
-        break;
-    case QEvent::Leave:
-        QToolTip::hideText();
-        break;
-    case QEvent::ToolTip:
-        return true; // 接管默认 tooltip 通道,避免双重显示
-    default:
-        break;
-    }
-    return QWidget::eventFilter(watched, event);
 }
 
 void AnnotationToolbar::chooseTool(AnnotationTool tool, bool checked) {

@@ -12,18 +12,16 @@ namespace pixora {
 
 class SnipSession;
 
-// 截图工具条:选区交互结束后出现在选区下方。
+// 截图工具条:选区交互结束后出现在选区下方。全图标 + 即时悬浮提示
+// (见 InstantTip),按 工具|颜色粗细|撤销重做|功能|出口 分组。
 // 工具选择/样式 → SnipSession;撤销重做 → AnnotationDocument 的撤销栈;
 // 复制/另存/贴图/取消 → 会话出口(见 ARCHITECTURE §5.2/§8)。
-// 悬浮提示自管理(进入即显,无延迟):本窗为无焦点工具窗
-// (WindowDoesNotAcceptFocus),Qt 默认 tooltip 通道在此场景下不可靠。
 class AnnotationToolbar : public QWidget {
     Q_OBJECT
 public:
     explicit AnnotationToolbar(SnipSession& session);
 
 protected:
-    bool eventFilter(QObject* watched, QEvent* event) override;
     void paintEvent(QPaintEvent* event) override; // 自绘圆角卡片底
 
 private:
