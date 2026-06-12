@@ -70,6 +70,10 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
 )
 
 if(WIN32)
+    # Ninja 只盯 .rc 本身,不追其引用的 .ico —— 换 logo 后 .res 不会
+    # 自动重编,exe 内嵌图标悄悄滞留旧版;显式声明依赖堵住这个坑
+    set_property(SOURCE ${CMAKE_SOURCE_DIR}/resources/windows/pixora.rc
+        PROPERTY OBJECT_DEPENDS ${CMAKE_SOURCE_DIR}/resources/icons/pixora.ico)
     target_sources(pixora PRIVATE
         ${CMAKE_SOURCE_DIR}/resources/windows/pixora.rc
         platform/windows/WinCoordinates.h
