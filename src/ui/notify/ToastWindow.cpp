@@ -1,5 +1,6 @@
 #include "ui/notify/ToastWindow.h"
 
+#include <QEasingCurve>
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QPainter>
@@ -17,7 +18,9 @@ constexpr int kLogoSize = 28;
 constexpr int kGap = 12;          // logo 与文字间距
 constexpr int kMaxTextWidth = 320;
 constexpr int kShowMs = 3500;
-constexpr int kFadeMs = 220;
+constexpr int kEnterMs = 300;     // 滑入时长
+constexpr int kExitMs = 240;      // 滑出时长
+constexpr int kExitSlide = 32;    // 滑出位移(不必出屏,淡出已接管)
 } // namespace
 
 ToastWindow::ToastWindow() {
@@ -32,14 +35,32 @@ ToastWindow::ToastWindow() {
 
     hideTimer_.setSingleShot(true);
     hideTimer_.setInterval(kShowMs);
-    connect(&hideTimer_, &QTimer::timeout, this, &ToastWindow::startFadeOut);
+    connect(&hideTimer_, &QTimer::timeout, this, &ToastWindow::startExit);
 
-    fade_.setTargetObject(this);
-    fade_.setPropertyName("windowOpacity");
-    fade_.setDuration(kFadeMs);
-    fade_.setStartValue(1.0);
-    fade_.setEndValue(0.0);
-    connect(&fade_, &QPropertyAnimation::finished, this, &QWidget::hide);
+    // 入场:从屏幕右缘滑入 + 淡入(OutCubic 先快后缓,落位干脆)
+    enterPos_ = new QPropertyAnimation(this, "pos", this);
+    enterPos_->setDuration(kEnterMs);
+    enterPos_->setEasingCurve(QEasingCurve::OutCubic);
+    enterOpacity_ = new QPropertyAnimation(this, "windowOpacity", this);
+    enterOpacity_->setDuration(kEnterMs * 2 / 3);
+    enterOpacity_->setStartValue(0.0);
+    enterOpacity_->setEndValue(1.0);
+    enter_ = new QParallelAnimationGroup(this);
+    enter_->addAnimation(enterPos_);
+    enter_->addAnimation(enterOpacity_);
+
+    // 退场:轻微右滑 + 淡出
+    exitPos_ = new QPropertyAnimation(this, "pos", this);
+    exitPos_->setDuration(kExitMs);
+    exitPos_->setEasingCurve(QEasingCurve::InCubic);
+    exitOpacity_ = new QPropertyAnimation(this, "windowOpacity", this);
+    exitOpacity_->setDuration(kExitMs);
+    exitOpacity_->setStartValue(1.0);
+    exitOpacity_->setEndValue(0.0);
+    exit_ = new QParallelAnimationGroup(this);
+    exit_->addAnimation(exitPos_);
+    exit_->addAnimation(exitOpacity_);
+    connect(exit_, &QParallelAnimationGroup::finished, this, &QWidget::hide);
 }
 
 void ToastWindow::popup(const QString& title, const QString& message) {
@@ -67,25 +88,41 @@ void ToastWindow::popup(const QString& title, const QString& message) {
 
     QScreen* screen = QGuiApplication::primaryScreen();
     const QRect avail = screen->availableGeometry();
-    move(avail.right() - w - kMargin, avail.bottom() - h - kMargin);
+    const QPoint target(avail.right() - w - kMargin, avail.bottom() - h - kMargin);
 
-    fade_.stop();
-    setWindowOpacity(1.0);
-    show();
-    raise();
+    enter_->stop();
+    exit_->stop();
+    if (isVisible()) {
+        // 已在屏上:直接换内容落位,不重播入场(连发通知不抖动)
+        move(target);
+        setWindowOpacity(1.0);
+        update();
+    } else {
+        const QPoint offscreen(avail.right() + 8, target.y());
+        setWindowOpacity(0.0);
+        move(offscreen);
+        show();
+        raise();
+        enterPos_->setStartValue(offscreen);
+        enterPos_->setEndValue(target);
+        enter_->start();
+    }
     hideTimer_.start();
-    update();
 }
 
-void ToastWindow::startFadeOut() {
-    if (isVisible()) {
-        fade_.start();
+void ToastWindow::startExit() {
+    if (!isVisible()) {
+        return;
     }
+    exitPos_->setStartValue(pos());
+    exitPos_->setEndValue(pos() + QPoint(kExitSlide, 0));
+    exit_->start();
 }
 
 void ToastWindow::mousePressEvent(QMouseEvent* /*event*/) {
     hideTimer_.stop();
-    fade_.stop();
+    enter_->stop();
+    exit_->stop();
     hide();
 }
 
