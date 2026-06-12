@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/platform-Windows-0078D6" alt="Platform"/>
   <img src="https://img.shields.io/badge/C%2B%2B-20-blue" alt="C++20"/>
   <img src="https://img.shields.io/badge/Qt-6-41CD52" alt="Qt 6"/>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Yuilona/Pixora" alt="License"/></a>
 </p>
 
 ---
@@ -82,4 +83,4 @@ Tech stack: C++20 · Qt 6 (Widgets) · CMake + vcpkg · OpenCV (template matchin
 
 ## License
 
-TBD
+[GPL-3.0](LICENSE) — free to use, study and modify; derivative works must remain open source.
