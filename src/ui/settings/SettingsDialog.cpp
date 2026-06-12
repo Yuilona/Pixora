@@ -51,6 +51,9 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     captureEdit_ = new QKeySequenceEdit(settings_.hotkeyCaptureRegion(), this);
     pinEdit_ = new QKeySequenceEdit(settings_.hotkeyPinFromClipboard(), this);
+    // 全局热键只支持单组合键;默认可录 4 段序列("F1, A, B"),只会困惑
+    captureEdit_->setMaximumSequenceLength(1);
+    pinEdit_->setMaximumSequenceLength(1);
     generalForm->addRow(QStringLiteral("截图热键"), captureEdit_);
     generalForm->addRow(QStringLiteral("贴图热键"), pinEdit_);
 

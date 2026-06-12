@@ -7,5 +7,9 @@
         <file>icons/chevron-down-10@2x.png</file>
         <file>icons/chevron-up-10.png</file>
         <file>icons/chevron-up-10@2x.png</file>
+        <file>icons/chevron-down-10-dim.png</file>
+        <file>icons/chevron-down-10-dim@2x.png</file>
+        <file>icons/chevron-up-10-dim.png</file>
+        <file>icons/chevron-up-10-dim@2x.png</file>
     </qresource>
 </RCC>

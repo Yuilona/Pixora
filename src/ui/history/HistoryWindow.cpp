@@ -59,19 +59,19 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
         }
     });
     copyBtn->setStyleSheet(theme::primaryButtonStyle()); // 最高频出口,视觉主按钮
-    addBtn(QStringLiteral("贴图"), [this] {
+    auto* pinBtn = addBtn(QStringLiteral("贴图"), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
             emit pinRequested(img);
         }
     });
-    addBtn(QStringLiteral("另存…"), [this] {
+    auto* saveBtn = addBtn(QStringLiteral("另存…"), [this] {
         const QImage img = currentImage();
         if (!img.isNull()) {
             output_.saveWithDialog(img);
         }
     });
-    addBtn(QStringLiteral("删除"), [this] {
+    auto* deleteBtn = addBtn(QStringLiteral("删除"), [this] {
         QString id;
         if (!currentImage(&id).isNull()) {
             history_.remove(id);
@@ -80,6 +80,12 @@ HistoryWindow::HistoryWindow(HistoryService& history, const SettingsService* set
     buttons->addStretch();
     auto* clearBtn = addBtn(QStringLiteral("清空历史"), [this] { history_.clear(); });
     clearBtn->setStyleSheet(theme::dangerButtonStyle()); // 破坏性操作,红字弱底
+
+    // 无选中条目时单条目操作不可点;无任何历史时清空也不可点
+    selectionButtons_ = {copyBtn, pinBtn, saveBtn, deleteBtn};
+    clearButton_ = clearBtn;
+    connect(list_, &QListWidget::currentItemChanged, this,
+            [this] { updateButtonStates(); });
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(14, 14, 14, 12);
@@ -119,6 +125,15 @@ void HistoryWindow::reload() {
     const bool empty = list_->count() == 0;
     list_->setVisible(!empty);
     emptyHint_->setVisible(empty);
+    updateButtonStates();
+}
+
+void HistoryWindow::updateButtonStates() {
+    const bool hasSelection = list_->currentItem() != nullptr;
+    for (QPushButton* btn : selectionButtons_) {
+        btn->setEnabled(hasSelection);
+    }
+    clearButton_->setEnabled(list_->count() > 0);
 }
 
 QImage HistoryWindow::currentImage(QString* id) const {

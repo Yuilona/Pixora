@@ -174,6 +174,7 @@ QComboBox:disabled {
 
 QComboBox::drop-down { border: none; width: 22px; }
 QComboBox::down-arrow { image: url(:/icons/chevron-down-10.png); }
+QComboBox::down-arrow:disabled { image: url(:/icons/chevron-down-10-dim.png); }
 QComboBox QAbstractItemView {
     background: #FFFFFF;
     color: #1F2329;
@@ -196,6 +197,12 @@ QSpinBox::up-button:hover, QSpinBox::down-button:hover {
 }
 QSpinBox::up-arrow { image: url(:/icons/chevron-up-10.png); }
 QSpinBox::down-arrow { image: url(:/icons/chevron-down-10.png); }
+QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off {
+    image: url(:/icons/chevron-up-10-dim.png);
+}
+QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {
+    image: url(:/icons/chevron-down-10-dim.png);
+}
 
 /* —— 按钮:次级浅灰 / [primary] 实心主题蓝 —— */
 QPushButton {
@@ -247,7 +254,8 @@ QListWidget {
 QListWidget::item { color: #3A4150; border-radius: 6px; padding: 4px; }
 QListWidget::item:hover { background: #EAEDF1; }
 QListWidget::item:selected {
-    background: rgba(45, 124, 246, 0.16);
+    /* QSS 的 rgba alpha 只认 0-255 或百分比,CSS 式 0.16 会被解析成全透明 */
+    background: rgba(45, 124, 246, 16%);
     color: #1F2329;
 }
 
