@@ -138,16 +138,16 @@ QIcon widthIcon(int width) {
 
 QIcon undoIcon() {
     return makeIcon([](QPainter& p) {
-        // ↶:经顶部的半弧,左端向下箭头
+        // ↶:120° 短弧(满半圆太像彩虹),左端大箭头向下
         p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
-        const QRectF r(3.2, 4.6, 9.6, 9.6);
+        const QRectF r(4.4, 5.0, 8.8, 8.8);
         QPainterPath tail;
-        tail.arcMoveTo(r, 180);
-        tail.arcTo(r, 180, -180);
+        tail.arcMoveTo(r, 60);
+        tail.arcTo(r, 60, 120);
         p.drawPath(tail);
-        QPainterPath head(QPointF(3.2, 13.0));
-        head.lineTo(QPointF(1.2, 9.2));
-        head.lineTo(QPointF(5.2, 9.2));
+        QPainterPath head(QPointF(4.4, 13.6));
+        head.lineTo(QPointF(1.9, 9.4));
+        head.lineTo(QPointF(6.9, 9.4));
         head.closeSubpath();
         p.fillPath(head, kIconColor);
     });
@@ -157,14 +157,14 @@ QIcon redoIcon() {
     return makeIcon([](QPainter& p) {
         // ↷:undo 的镜像
         p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
-        const QRectF r(3.2, 4.6, 9.6, 9.6);
+        const QRectF r(2.8, 5.0, 8.8, 8.8);
         QPainterPath tail;
-        tail.arcMoveTo(r, 0);
-        tail.arcTo(r, 0, 180);
+        tail.arcMoveTo(r, 120);
+        tail.arcTo(r, 120, -120);
         p.drawPath(tail);
-        QPainterPath head(QPointF(12.8, 13.0));
-        head.lineTo(QPointF(10.8, 9.2));
-        head.lineTo(QPointF(14.8, 9.2));
+        QPainterPath head(QPointF(11.6, 13.6));
+        head.lineTo(QPointF(9.1, 9.4));
+        head.lineTo(QPointF(14.1, 9.4));
         head.closeSubpath();
         p.fillPath(head, kIconColor);
     });
