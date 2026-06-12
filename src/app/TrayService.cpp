@@ -1,5 +1,7 @@
 #include "app/TrayService.h"
 
+#include "ui/notify/ToastWindow.h"
+
 #include <QApplication>
 #include <QCoreApplication>
 #include <QPixmap>
@@ -37,9 +39,13 @@ TrayService::TrayService(QObject* parent) : QObject(parent) {
     tray_.setContextMenu(&menu_);
 }
 
+TrayService::~TrayService() = default;
+
 void TrayService::notify(const QString& title, const QString& message) {
-    // 传 QIcon 而非 Information 枚举:气泡显示应用 logo,不是系统蓝色感叹号
-    tray_.showMessage(title, message, tray_.icon(), 3000);
+    if (!toast_) {
+        toast_ = std::make_unique<ToastWindow>();
+    }
+    toast_->popup(title, message);
 }
 
 void TrayService::show() {
