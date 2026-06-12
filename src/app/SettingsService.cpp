@@ -10,6 +10,7 @@ namespace {
 namespace keys {
 // 不用 "general/" 前缀:INI 格式里 General 是保留段名,会被写成 [%General]
 const QString language = QStringLiteral("ui/language");
+const QString checkUpdates = QStringLiteral("update/check");
 const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
 const QString outputDir = QStringLiteral("output/dir");
@@ -58,6 +59,14 @@ QString SettingsService::language() const {
 
 void SettingsService::setLanguage(const QString& lang) {
     setValue(keys::language, lang);
+}
+
+bool SettingsService::checkUpdates() const {
+    return value(keys::checkUpdates, true).toBool();
+}
+
+void SettingsService::setCheckUpdates(bool enabled) {
+    setValue(keys::checkUpdates, enabled);
 }
 
 QKeySequence SettingsService::hotkeyCaptureRegion() const {

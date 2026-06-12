@@ -11,14 +11,16 @@ namespace pixora {
 
 // 自绘通知弹窗:右下角深色圆角卡片(logo + 标题 + 正文)。
 // 取代系统托盘气泡——后者强制带 "pixora.exe" 署名行且样式不可控。
-// 不抢焦点;右缘滑入/滑出 + 淡入淡出;点击立即关闭;
-// 新通知复用同一窗口并重置计时(已可见时直接换内容,不重播入场)。
+// 不抢焦点;右缘滑入/滑出 + 淡入淡出;点击立即关闭(带 link 时
+// 先用默认浏览器打开);新通知复用同一窗口并重置计时
+// (已可见时直接换内容,不重播入场)。
 class ToastWindow : public QWidget {
     Q_OBJECT
 public:
     ToastWindow();
 
-    void popup(const QString& title, const QString& message);
+    void popup(const QString& title, const QString& message,
+               const QString& link = {});
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -29,6 +31,7 @@ private:
 
     QString title_;
     QString message_;
+    QString link_; // 非空时点击打开
     QPixmap logo_;
     QTimer hideTimer_;
 

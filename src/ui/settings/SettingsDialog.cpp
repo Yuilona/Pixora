@@ -99,6 +99,10 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
     generalForm->addRow(QString(), autoStartCheck_);
 
+    updateCheck_ = new QCheckBox(tr("Check for updates at startup"), this);
+    updateCheck_->setChecked(settings_.checkUpdates());
+    generalForm->addRow(QString(), updateCheck_);
+
     // —— 输出:目录 / 命名 / 格式 ——
     QFormLayout* outputForm = nullptr;
     auto* outputGroup = makeCard(tr("Output"), outputForm);
@@ -275,6 +279,7 @@ void SettingsDialog::apply() {
         settings_.setHotkeyPinFromClipboard(pinEdit_->keySequence());
     }
     settings_.setLanguage(languageCombo_->currentData().toString());
+    settings_.setCheckUpdates(updateCheck_->isChecked());
     settings_.setOutputDir(outputDirEdit_->text().trimmed());
     settings_.setFileNameTemplate(fileTemplateEdit_->text().trimmed());
     settings_.setOutputFormat(formatCombo_->currentData().toString());

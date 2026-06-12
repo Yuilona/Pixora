@@ -20,6 +20,10 @@ public:
     QString language() const;
     void setLanguage(const QString& lang);
 
+    // 启动时检查更新(GitHub Releases),默认开
+    bool checkUpdates() const;
+    void setCheckUpdates(bool enabled);
+
     QKeySequence hotkeyCaptureRegion() const;
     QKeySequence hotkeyPinFromClipboard() const;
     void setHotkeyCaptureRegion(const QKeySequence& seq);

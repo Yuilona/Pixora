@@ -7,6 +7,7 @@
 #include "app/SettingsService.h"
 #include "app/SingleInstanceGuard.h"
 #include "app/TrayService.h"
+#include "app/UpdateChecker.h"
 #include "common/Log.h"
 #include "ui/history/HistoryWindow.h"
 #include "ui/settings/SettingsDialog.h"
@@ -26,6 +27,7 @@
 #include <QPointer>
 #include <QStandardPaths>
 #include <QStyleFactory>
+#include <QTimer>
 #include <QTranslator>
 
 #include <spdlog/spdlog.h>
@@ -234,6 +236,22 @@ int main(int argc, char* argv[]) {
                                  .arg(action, seq.toString(QKeySequence::NativeText)));
                      });
     hotkeys.registerAll();
+
+    // 更新检查:启动 5s 后拉 GitHub Releases(不挡启动路径),
+    // 有新版弹通知卡,点击打开下载页;设置可关
+    pixora::UpdateChecker updateChecker(&settings);
+    QObject::connect(
+        &updateChecker, &pixora::UpdateChecker::updateAvailable, &tray,
+        [&tray](const QString& version, const QString& url) {
+            tray.notify(QCoreApplication::translate("main", "Update available"),
+                        QCoreApplication::translate(
+                            "main", "Pixora %1 is out (you have %2) - click to "
+                                    "open the download page")
+                            .arg(version, QApplication::applicationVersion()),
+                        url);
+        });
+    QTimer::singleShot(5000, &updateChecker,
+                       &pixora::UpdateChecker::checkOnStartup);
 
     QPointer<pixora::HistoryWindow> historyWindow;
     QObject::connect(&tray, &pixora::TrayService::historyRequested, &tray,

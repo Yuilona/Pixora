@@ -20,7 +20,9 @@ public:
     ~TrayService() override;
 
     void show();
-    void notify(const QString& title, const QString& message);
+    // link 非空时通知卡可点击打开(更新提示用)
+    void notify(const QString& title, const QString& message,
+                const QString& link = {});
     void retranslate(); // 语言切换后重建菜单文案
 
 signals:

@@ -29,6 +29,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     app/SingleInstanceGuard.cpp
     app/TrayService.h
     app/TrayService.cpp
+    app/UpdateChecker.h
+    app/UpdateChecker.cpp
     core/annotate/AnnotationTypes.h
     core/annotate/AnnotationItem.h
     core/annotate/AnnotationDocument.h

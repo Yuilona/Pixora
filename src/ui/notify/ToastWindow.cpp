@@ -2,12 +2,14 @@
 
 #include "ui/Theme.h"
 
+#include <QDesktopServices>
 #include <QEasingCurve>
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QPainter>
 #include <QPainterPath>
 #include <QScreen>
+#include <QUrl>
 
 #include <algorithm>
 
@@ -65,9 +67,11 @@ ToastWindow::ToastWindow() {
     connect(exit_, &QParallelAnimationGroup::finished, this, &QWidget::hide);
 }
 
-void ToastWindow::popup(const QString& title, const QString& message) {
+void ToastWindow::popup(const QString& title, const QString& message,
+                        const QString& link) {
     title_ = title;
     message_ = message;
+    link_ = link;
 
     QFont titleFont = font();
     titleFont.setPixelSize(13);
@@ -125,6 +129,9 @@ void ToastWindow::mousePressEvent(QMouseEvent* /*event*/) {
     hideTimer_.stop();
     enter_->stop();
     exit_->stop();
+    if (!link_.isEmpty()) {
+        QDesktopServices::openUrl(QUrl(link_));
+    }
     hide();
 }
 

@@ -53,11 +53,12 @@ void TrayService::retranslate() {
     buildMenu();
 }
 
-void TrayService::notify(const QString& title, const QString& message) {
+void TrayService::notify(const QString& title, const QString& message,
+                         const QString& link) {
     if (!toast_) {
         toast_ = std::make_unique<ToastWindow>();
     }
-    toast_->popup(title, message);
+    toast_->popup(title, message, link);
 }
 
 void TrayService::show() {

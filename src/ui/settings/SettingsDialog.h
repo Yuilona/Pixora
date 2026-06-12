@@ -45,6 +45,7 @@ private:
     QCheckBox* autoSaveCheck_ = nullptr;
     QSpinBox* historyLimitSpin_ = nullptr;
     QCheckBox* autoStartCheck_ = nullptr;
+    QCheckBox* updateCheck_ = nullptr;
 
     // OCR / 翻译服务(截图翻译)
     QComboBox* ocrProtocolCombo_ = nullptr;
