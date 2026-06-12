@@ -221,8 +221,9 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
         if (protocol == QLatin1String("openai")) {
             trUrlEdit_->setPlaceholderText(QStringLiteral("https://api.deepseek.com/v1"));
         } else if (protocol == QLatin1String("deepl")) {
+            // 留空时按 key 后缀自动选 api-free/api(免费 key 以 :fx 结尾)
             trUrlEdit_->setPlaceholderText(
-                tr("https://api-free.deepl.com (leave empty for default)"));
+                tr("Leave empty to auto-select by API key"));
         } else if (protocol == QLatin1String("deeplx")) {
             trUrlEdit_->setPlaceholderText(
                 tr("http://127.0.0.1:1188 (leave empty for default)"));

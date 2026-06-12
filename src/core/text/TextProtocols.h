@@ -42,4 +42,11 @@ QStringList parseDeepLXReply(const QByteArray& reply, QString* error);
 // —— 百度翻译通用 API 响应 ——
 QStringList parseBaiduReply(const QByteArray& reply, QString* error);
 
+// 行列表按服务商限额分批(保持行序):任一上限为正即生效——
+// maxItems 条数(DeepL 50)、maxUtf8Bytes 请求体字节(DeepL 128KiB)、
+// maxChars 字符数含换行连接符(百度标准版 1000)。
+// 单行独超限时独占一批(发出去由服务端报错,好过静默丢行)。
+QList<QStringList> splitLineBatches(const QStringList& lines, int maxItems,
+                                    int maxUtf8Bytes, int maxChars);
+
 } // namespace pixora::textproto

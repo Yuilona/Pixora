@@ -117,6 +117,39 @@ TEST_CASE("deepl error message surfaced", "[textproto]") {
     CHECK(error.contains(QStringLiteral("Wrong endpoint")));
 }
 
+TEST_CASE("line batches split by item count keeping order", "[textproto]") {
+    QStringList lines;
+    for (int i = 0; i < 7; ++i) {
+        lines << QStringLiteral("line%1").arg(i);
+    }
+    const auto batches = splitLineBatches(lines, 3, -1, -1);
+    REQUIRE(batches.size() == 3);
+    CHECK(batches[0].size() == 3);
+    CHECK(batches[2].size() == 1);
+    CHECK(batches[2][0] == QStringLiteral("line6"));
+}
+
+TEST_CASE("line batches split by char budget, oversized line own batch",
+          "[textproto]") {
+    const QStringList lines = {QStringLiteral("aaaa"), QStringLiteral("bbbb"),
+                               QString(40, QLatin1Char('c')),
+                               QStringLiteral("dddd")};
+    // 上限 12 字符(含 \n 连接符):aaaa+bbbb 恰好一批,超长 c 行独占
+    const auto batches = splitLineBatches(lines, -1, -1, 12);
+    REQUIRE(batches.size() == 3);
+    CHECK(batches[0] == QStringList({QStringLiteral("aaaa"), QStringLiteral("bbbb")}));
+    CHECK(batches[1].size() == 1);
+    CHECK(batches[1][0].size() == 40);
+    CHECK(batches[2] == QStringList{QStringLiteral("dddd")});
+}
+
+TEST_CASE("line batches single batch when under all limits", "[textproto]") {
+    const QStringList lines = {QStringLiteral("a"), QStringLiteral("b")};
+    const auto batches = splitLineBatches(lines, 50, 110 * 1024, -1);
+    REQUIRE(batches.size() == 1);
+    CHECK(batches[0] == lines);
+}
+
 TEST_CASE("deeplx reply split back into lines", "[textproto]") {
     const QByteArray reply =
         R"({"code": 200, "id": 123, "data": "你好\n世界", "method": "Free"})";

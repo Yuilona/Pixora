@@ -100,25 +100,34 @@ QImage renderReplacedText(QImage base, const QList<OcrLine>& lines,
         // 多盖 2px,吃掉抗锯齿残边
         painter.fillRect(box.adjusted(-2, -2, 2, 2).intersected(imageRect), bg);
 
+        // 字号自适应:从"框高≈单行"的字号起逐级缩小,找到换行排版
+        // (TextWordWrap)能整体放进框的最大字号——单行框上与旧的
+        // 纯单行缩放等价;段落框(OCR 合并多行)则自然多行回绘。
         QFont font = painter.font();
         int pixelSize = std::clamp(qRound(box.height() * 0.72), 8, 200);
-        font.setPixelSize(pixelSize);
-        // 字号自适应:放不下逐级缩小,到下限仍超宽则省略号截断
-        while (pixelSize > 8) {
+        bool wrappedFits = false;
+        for (; pixelSize >= 8; --pixelSize) {
             font.setPixelSize(pixelSize);
-            if (QFontMetrics(font).horizontalAdvance(translation) <= box.width()) {
+            const QRect needed = QFontMetrics(font).boundingRect(
+                QRect(0, 0, box.width(), 100000), Qt::TextWordWrap, translation);
+            if (needed.height() <= box.height() && needed.width() <= box.width()) {
+                wrappedFits = true;
                 break;
             }
-            --pixelSize;
         }
-        QString display = translation;
-        const QFontMetrics metrics(font);
-        if (metrics.horizontalAdvance(display) > box.width()) {
-            display = metrics.elidedText(display, Qt::ElideRight, box.width());
-        }
-        painter.setFont(font);
         painter.setPen(fg);
-        painter.drawText(box, Qt::AlignLeft | Qt::AlignVCenter, display);
+        if (wrappedFits) {
+            painter.setFont(font);
+            painter.drawText(box, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap,
+                             translation);
+        } else {
+            // 8px 仍放不下:退回单行省略号
+            font.setPixelSize(8);
+            painter.setFont(font);
+            const QString display = QFontMetrics(font).elidedText(
+                translation, Qt::ElideRight, box.width());
+            painter.drawText(box, Qt::AlignLeft | Qt::AlignVCenter, display);
+        }
     }
     painter.end();
 

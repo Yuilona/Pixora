@@ -147,7 +147,14 @@ void OcrClient::recognizeUmiOcr(const QImage& image, const Config& config) {
     const QJsonObject body{
         {QLatin1String("base64"), QString::fromLatin1(toPngBase64(image))},
         {QLatin1String("options"),
-         QJsonObject{{QLatin1String("data.format"), QLatin1String("dict")}}}};
+         QJsonObject{
+             {QLatin1String("data.format"), QLatin1String("dict")},
+             // 纯单行框,契合逐行回绘——不显式指定会跟随用户 GUI 全局
+             // 设置,若设了段落合并,多行大框会让回绘字号失控
+             {QLatin1String("tbpu.parser"), QLatin1String("multi_none")},
+             // PaddleOCR 引擎默认 960 会把高分屏截图压缩后识别,
+             // 大图小字精度受损;放宽到 4K 级
+             {QLatin1String("ocr.limit_side_len"), 4320}}}};
 
     QNetworkRequest request(QUrl(net::joinUrl(base, QStringLiteral("/api/ocr"))));
     request.setHeader(QNetworkRequest::ContentTypeHeader,

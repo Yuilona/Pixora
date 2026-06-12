@@ -650,27 +650,27 @@ Every capture you copy, save or pin is kept here automatically</source>
         <translation>目标语言</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="225"/>
-        <source>https://api-free.deepl.com (leave empty for default)</source>
-        <translation>https://api-free.deepl.com(留空用默认)</translation>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="226"/>
+        <source>Leave empty to auto-select by API key</source>
+        <translation>留空按密钥自动选择(免费版 key 以 :fx 结尾)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="228"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="229"/>
         <source>http://127.0.0.1:1188 (leave empty for default)</source>
         <translation>http://127.0.0.1:1188(留空用默认)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="232"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="233"/>
         <source>Access token (optional)</source>
         <translation>访问令牌(可选)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="240"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="241"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="242"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="243"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>

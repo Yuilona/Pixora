@@ -259,4 +259,34 @@ QStringList parseBaiduReply(const QByteArray& reply, QString* error) {
     return result;
 }
 
+QList<QStringList> splitLineBatches(const QStringList& lines, int maxItems,
+                                    int maxUtf8Bytes, int maxChars) {
+    QList<QStringList> batches;
+    QStringList current;
+    qsizetype bytes = 0;
+    qsizetype chars = 0;
+    for (const QString& line : lines) {
+        const qsizetype lineBytes = line.toUtf8().size();
+        const qsizetype lineChars = line.size() + 1; // +1 = \n 连接符
+        const bool over =
+            !current.isEmpty() &&
+            ((maxItems > 0 && current.size() >= maxItems) ||
+             (maxUtf8Bytes > 0 && bytes + lineBytes > maxUtf8Bytes) ||
+             (maxChars > 0 && chars + lineChars > maxChars));
+        if (over) {
+            batches.append(current);
+            current.clear();
+            bytes = 0;
+            chars = 0;
+        }
+        current.append(line);
+        bytes += lineBytes;
+        chars += lineChars;
+    }
+    if (!current.isEmpty()) {
+        batches.append(current);
+    }
+    return batches;
+}
+
 } // namespace pixora::textproto

@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QRandomGenerator>
+#include <QTimer>
 #include <QUrl>
 
 #include <spdlog/spdlog.h>
@@ -72,9 +73,47 @@ void TranslateClient::deliver(QStringList translations, qsizetype expected) {
     emit finished(translations);
 }
 
+// 批完成的公共账务:批内补齐/截断(防跨批错位)→ 续发下一批或交付
+void TranslateClient::accumulate(const BatchJobPtr& job, QStringList batchResult,
+                                 qsizetype batchSize,
+                                 void (TranslateClient::*next)(const BatchJobPtr&),
+                                 int delayMs) {
+    if (batchResult.size() != batchSize) {
+        spdlog::warn("translate: batch {} got {} line(s), expected {}", job->index,
+                     batchResult.size(), batchSize);
+        while (batchResult.size() < batchSize) {
+            batchResult.append(QString());
+        }
+        batchResult = batchResult.mid(0, batchSize);
+    }
+    job->results += batchResult;
+    ++job->index;
+    if (job->index >= job->batches.size()) {
+        deliver(job->results, job->expected);
+        return;
+    }
+    if (delayMs > 0) {
+        QTimer::singleShot(delayMs, this, [this, job, next] { (this->*next)(job); });
+    } else {
+        (this->*next)(job);
+    }
+}
+
 void TranslateClient::translateOpenAi(const QStringList& lines, const Config& config) {
+    // 输出会被厂商默认 max_tokens 截断 → 部分行静默不译;
+    // 控制单批输入规模 + 显式 max_tokens 双保险
+    auto job = std::make_shared<BatchJob>();
+    job->batches = textproto::splitLineBatches(lines, 40, -1, 4000);
+    job->config = config;
+    job->expected = lines.size();
+    sendOpenAiBatch(job);
+}
+
+void TranslateClient::sendOpenAiBatch(const BatchJobPtr& job) {
+    const QStringList& batch = job->batches[job->index];
+    const Config& config = job->config;
     QJsonArray input;
-    for (const QString& line : lines) {
+    for (const QString& line : batch) {
         input.append(line);
     }
     // 给模型的指令,非 UI 文案——统一英文
@@ -91,6 +130,8 @@ void TranslateClient::translateOpenAi(const QStringList& lines, const Config& co
     const QJsonObject body{
         {QLatin1String("model"), config.model},
         {QLatin1String("temperature"), 0},
+        // 4096 当前各家普遍支持;过大反而会在低上限模型上 400
+        {QLatin1String("max_tokens"), 4096},
         {QLatin1String("messages"),
          QJsonArray{QJsonObject{{QLatin1String("role"), QLatin1String("user")},
                                 {QLatin1String("content"), prompt}}}}};
@@ -101,13 +142,13 @@ void TranslateClient::translateOpenAi(const QStringList& lines, const Config& co
                       QStringLiteral("application/json"));
     request.setRawHeader("Authorization", "Bearer " + config.apiKey.toUtf8());
 
-    spdlog::info("translate(openai): POST {} model={} lines={}",
+    spdlog::info("translate(openai): POST {} model={} batch {}/{} lines={}",
                  request.url().toString().toStdString(), config.model.toStdString(),
-                 lines.size());
+                 job->index + 1, job->batches.size(), batch.size());
     QNetworkReply* reply =
         nam_.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, expected = lines.size()] {
+            [this, reply, job, batchSize = batch.size()] {
                 reply->deleteLater();
                 if (reply->error() != QNetworkReply::NoError) {
                     QString serverMessage;
@@ -130,16 +171,32 @@ void TranslateClient::translateOpenAi(const QStringList& lines, const Config& co
                     emit failed(error);
                     return;
                 }
-                deliver(translations, expected);
+                accumulate(job, translations, batchSize,
+                           &TranslateClient::sendOpenAiBatch, 0);
             });
 }
 
 void TranslateClient::translateDeepL(const QStringList& lines, const Config& config) {
-    const QString base = config.baseUrl.isEmpty()
-                             ? QStringLiteral("https://api-free.deepl.com")
-                             : config.baseUrl;
+    // 官方限单请求 50 条 / 128KiB 请求体,留余量分批
+    auto job = std::make_shared<BatchJob>();
+    job->batches = textproto::splitLineBatches(lines, 50, 110 * 1024, -1);
+    job->config = config;
+    job->expected = lines.size();
+    sendDeepLBatch(job);
+}
+
+void TranslateClient::sendDeepLBatch(const BatchJobPtr& job) {
+    const QStringList& batch = job->batches[job->index];
+    const Config& config = job->config;
+    QString base = config.baseUrl;
+    if (base.isEmpty()) {
+        // 免费版 key 以 ":fx" 结尾,Pro key 走 api.deepl.com
+        base = config.apiKey.endsWith(QLatin1String(":fx"))
+                   ? QStringLiteral("https://api-free.deepl.com")
+                   : QStringLiteral("https://api.deepl.com");
+    }
     QJsonArray text;
-    for (const QString& line : lines) {
+    for (const QString& line : batch) {
         text.append(line);
     }
     const QJsonObject body{
@@ -152,12 +209,13 @@ void TranslateClient::translateDeepL(const QStringList& lines, const Config& con
     request.setRawHeader("Authorization",
                          "DeepL-Auth-Key " + config.apiKey.toUtf8());
 
-    spdlog::info("translate(deepl): POST {} lines={}",
-                 request.url().toString().toStdString(), lines.size());
+    spdlog::info("translate(deepl): POST {} batch {}/{} lines={}",
+                 request.url().toString().toStdString(), job->index + 1,
+                 job->batches.size(), batch.size());
     QNetworkReply* reply =
         nam_.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, expected = lines.size()] {
+            [this, reply, job, batchSize = batch.size()] {
                 reply->deleteLater();
                 QString error;
                 const QStringList translations =
@@ -171,7 +229,8 @@ void TranslateClient::translateDeepL(const QStringList& lines, const Config& con
                     emit failed(net::httpFailureReason(reply));
                     return;
                 }
-                deliver(translations, expected);
+                accumulate(job, translations, batchSize,
+                           &TranslateClient::sendDeepLBatch, 0);
             });
 }
 
@@ -219,12 +278,24 @@ void TranslateClient::translateDeepLX(const QStringList& lines, const Config& co
 }
 
 void TranslateClient::translateBaidu(const QStringList& lines, const Config& config) {
+    // 标准版限单请求 1000 字符(高级版 6000),按 950 分批保守适配;
+    // 标准版 QPS=1,批间 1.1s 节流(见 sendBaiduBatch)
+    auto job = std::make_shared<BatchJob>();
+    job->batches = textproto::splitLineBatches(lines, -1, -1, 950);
+    job->config = config;
+    job->expected = lines.size();
+    sendBaiduBatch(job);
+}
+
+void TranslateClient::sendBaiduBatch(const BatchJobPtr& job) {
+    const QStringList& batch = job->batches[job->index];
+    const Config& config = job->config;
     const QString url = config.baseUrl.isEmpty()
                             ? QStringLiteral(
                                   "https://fanyi-api.baidu.com/api/trans/vip/translate")
                             : config.baseUrl;
     // 多行以 \n 连接,百度按行返回 trans_result 数组
-    const QString q = lines.join(QLatin1Char('\n'));
+    const QString q = batch.join(QLatin1Char('\n'));
     const QString salt =
         QString::number(QRandomGenerator::global()->generate());
     // sign = MD5(appid + q + salt + 密钥),q 此处不做 URL 编码(官方坑点)
@@ -245,11 +316,11 @@ void TranslateClient::translateBaidu(const QStringList& lines, const Config& con
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/x-www-form-urlencoded"));
 
-    spdlog::info("translate(baidu): POST {} lines={}", url.toStdString(),
-                 lines.size());
+    spdlog::info("translate(baidu): POST {} batch {}/{} lines={}", url.toStdString(),
+                 job->index + 1, job->batches.size(), batch.size());
     QNetworkReply* reply = nam_.post(request, form);
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, expected = lines.size()] {
+            [this, reply, job, batchSize = batch.size()] {
                 reply->deleteLater();
                 if (reply->error() != QNetworkReply::NoError) {
                     emit failed(net::httpFailureReason(reply));
@@ -262,7 +333,8 @@ void TranslateClient::translateBaidu(const QStringList& lines, const Config& con
                     emit failed(error);
                     return;
                 }
-                deliver(translations, expected);
+                accumulate(job, translations, batchSize,
+                           &TranslateClient::sendBaiduBatch, 1100);
             });
 }
 
