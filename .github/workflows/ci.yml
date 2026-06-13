@@ -1,5 +1,5 @@
-# Windows 是主力开发平台:push/PR 只跑 Windows。
-# Linux/macOS 仅在手动触发(workflow_dispatch)或发版(tag/release)时跑,
+# Windows 是主力开发平台:push/PR/发版只跑 Windows。
+# Linux/macOS 暂时不做,仅在手动触发(workflow_dispatch)时按需跑,
 # 作为 GCC/Clang 交叉编译把关(此前 Stitcher 默认参数问题正是它们抓到的)。
 # vcpkg 依赖经 GitHub Actions 缓存(x-gha),Qt 经 install-qt-action 自带缓存。
 # Ninja 已预装于全部默认 runner 镜像,无需安装步骤。
@@ -64,10 +64,8 @@ jobs:
 
   cross-platform:
     name: ${{ matrix.os }}
-    # 仅手动触发或发版时验证 GCC/Clang
-    if: github.event_name == 'workflow_dispatch' ||
-        github.event_name == 'release' ||
-        startsWith(github.ref, 'refs/tags/')
+    # 仅手动触发(workflow_dispatch)时验证 GCC/Clang;发版不再跑三端
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
