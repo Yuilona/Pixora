@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -26,11 +27,31 @@ struct BandMatch {
     double score = 0.0;
 };
 
+// 模板带宽 == 搜索带宽 → matchTemplate 结果是单列,峰只在 y 方向。
+// 周期性内容(如 logo 网格、等距列表)在 dy=k*period 处都得近似满分,
+// minMaxLoc 取错峰 → dy 判错 → 内容被重复追加(成图虚高)。
+// 抑制主峰垂直邻域后求次高分:次峰逼近主峰即判"歧义",返回此比例供调用方拒配。
+double secondPeakRatio(const cv::Mat& scores, const cv::Point& peak, double peakVal) {
+    constexpr int kSuppressRadius = 4; // 主峰邻域抑制半径(行);大于峰肩、小于常见周期
+    if (peakVal <= 0.0) {
+        return 0.0;
+    }
+    cv::Mat masked = scores.clone();
+    const int y0 = std::max(0, peak.y - kSuppressRadius);
+    const int y1 = std::min(scores.rows - 1, peak.y + kSuppressRadius);
+    masked.rowRange(y0, y1 + 1).setTo(cv::Scalar(-1.0));
+    double secondVal = 0.0;
+    cv::minMaxLoc(masked, nullptr, &secondVal);
+    return secondVal / peakVal;
+}
+
 // 0.5x 降采样粗定位 → 全分辨率小窗精修(见 ARCHITECTURE §5.3.2)。
 // 降采样既加速,也平滑 ClearType/分数缩放带来的光栅化相位噪声。
-// 返回 {foundY(search 坐标系), score}。
+// 返回 {foundY(search 坐标系), score};score=0 表示歧义/无效,调用方按失配处理。
 std::pair<int, double> matchBand(const cv::Mat& search, const cv::Mat& templ) {
     constexpr int kRefineWindow = 6;
+    // 次峰≥主峰此比例 → 周期性歧义,主动判失配(宁可漏一帧也不要重复内容)
+    constexpr double kAmbiguityRatio = 0.90;
 
     int coarseY = 0;
     if (templ.rows >= 16 && templ.cols >= 32) {
@@ -41,8 +62,12 @@ std::pair<int, double> matchBand(const cv::Mat& search, const cv::Mat& templ) {
         if (searchSmall.rows >= templSmall.rows && searchSmall.cols >= templSmall.cols) {
             cv::Mat scores;
             cv::matchTemplate(searchSmall, templSmall, scores, cv::TM_CCOEFF_NORMED);
+            double maxVal = 0.0;
             cv::Point loc;
-            cv::minMaxLoc(scores, nullptr, nullptr, nullptr, &loc);
+            cv::minMaxLoc(scores, nullptr, &maxVal, nullptr, &loc);
+            if (secondPeakRatio(scores, loc, maxVal) >= kAmbiguityRatio) {
+                return {0, 0.0}; // 周期性歧义 → 失配
+            }
             coarseY = loc.y * 2;
         }
     } else {
@@ -52,6 +77,9 @@ std::pair<int, double> matchBand(const cv::Mat& search, const cv::Mat& templ) {
         double score = 0.0;
         cv::Point loc;
         cv::minMaxLoc(scores, nullptr, &score, nullptr, &loc);
+        if (secondPeakRatio(scores, loc, score) >= kAmbiguityRatio) {
+            return {0, 0.0};
+        }
         return {loc.y, score};
     }
 
@@ -103,8 +131,7 @@ Stitcher::AppendResult Stitcher::append(const QImage& rawFrame) {
     const int searchWidth = std::max(16, frame.width() - config_.rightGuard);
     const int stripH =
         std::min(config_.templateStripHeight, (contentBottom - fixedTop) / 3);
-    const int stripTop = contentBottom - config_.bottomGuard - stripH;
-    if (stripH < 8 || stripTop <= fixedTop) {
+    if (stripH < 8 || contentBottom - config_.bottomGuard - stripH <= fixedTop) {
         return AppendResult::MatchFailed;
     }
 
@@ -112,45 +139,69 @@ Stitcher::AppendResult Stitcher::append(const QImage& rawFrame) {
     const QImage& lastGray = lastGray_;
     const QImage frameGray = frame.convertToFormat(QImage::Format_Grayscale8);
 
-    // 三条水平模板带分别匹配;搜索限制在内容区(排除 sticky 头尾)
+    // 搜索限制在内容区(排除 sticky 头尾)
     const int searchHeight = contentBottom - fixedTop;
     const int bandCount = searchWidth >= 96 ? 3 : 1;
     const int bandWidth = searchWidth / bandCount;
-    std::vector<BandMatch> matches;
-    std::vector<double> bandScores;
-    for (int i = 0; i < bandCount; ++i) {
-        const int bx = i * bandWidth;
-        const cv::Mat templ =
-            grayView(lastGray)(cv::Rect(bx, stripTop, bandWidth, stripH));
-        const cv::Mat search =
-            grayView(frameGray)(cv::Rect(bx, fixedTop, bandWidth, searchHeight));
-        const auto [foundY, score] = matchBand(search, templ);
-        bandScores.push_back(score);
-        if (score >= config_.minMatchScore) {
-            matches.push_back(BandMatch{stripTop - (fixedTop + foundY), score});
+
+    // 在给定 stripTop 处做三带匹配,返回有效垂直偏移(无有效带 → nullopt)。
+    // 偏移:3 带取中位数(抗局部动画),不足 3 带取分高者。
+    auto matchAtStrip = [&](int stripTop,
+                            std::vector<double>& bandScores) -> std::optional<int> {
+        std::vector<BandMatch> matches;
+        for (int i = 0; i < bandCount; ++i) {
+            const int bx = i * bandWidth;
+            const cv::Mat templ =
+                grayView(lastGray)(cv::Rect(bx, stripTop, bandWidth, stripH));
+            const cv::Mat search =
+                grayView(frameGray)(cv::Rect(bx, fixedTop, bandWidth, searchHeight));
+            const auto [foundY, score] = matchBand(search, templ);
+            bandScores.push_back(score);
+            if (score >= config_.minMatchScore) {
+                matches.push_back(BandMatch{stripTop - (fixedTop + foundY), score});
+            }
+        }
+        if (matches.empty()) {
+            return std::nullopt;
+        }
+        if (matches.size() == 3) {
+            std::sort(matches.begin(), matches.end(),
+                      [](const BandMatch& a, const BandMatch& b) { return a.dy < b.dy; });
+            return matches[1].dy;
+        }
+        return std::max_element(matches.begin(), matches.end(),
+                                [](const BandMatch& a, const BandMatch& b) {
+                                    return a.score < b.score;
+                                })
+            ->dy;
+    };
+
+    // 优先用底部模板带(与新帧重叠最大);若该带周期性歧义或弱纹理失配
+    // (logo 网格、白边),逐级上移取更高的带——更可能落在正文纹理上,
+    // 避免底部带一旦不可匹配就永久卡死(过不去 logo/空白横幅)。
+    constexpr int kMaxStripAttempts = 4;
+    std::optional<int> matchedDy;
+    std::vector<double> lastScores;
+    for (int attempt = 0; attempt < kMaxStripAttempts; ++attempt) {
+        const int stripTop =
+            contentBottom - config_.bottomGuard - stripH - attempt * stripH;
+        if (stripTop <= fixedTop) {
+            break;
+        }
+        lastScores.clear();
+        matchedDy = matchAtStrip(stripTop, lastScores);
+        if (matchedDy) {
+            break;
         }
     }
-    if (matches.empty()) {
+    if (!matchedDy) {
         spdlog::debug("stitcher: match failed, band scores: {:.3f} {:.3f} {:.3f}",
-                      bandScores.size() > 0 ? bandScores[0] : 0.0,
-                      bandScores.size() > 1 ? bandScores[1] : 0.0,
-                      bandScores.size() > 2 ? bandScores[2] : 0.0);
+                      lastScores.size() > 0 ? lastScores[0] : 0.0,
+                      lastScores.size() > 1 ? lastScores[1] : 0.0,
+                      lastScores.size() > 2 ? lastScores[2] : 0.0);
         return AppendResult::MatchFailed;
     }
-
-    // 有效带的偏移取中位数(3 带);2 带取分高者,抵抗单带被动画劫持
-    int dy = 0;
-    if (matches.size() == 3) {
-        std::sort(matches.begin(), matches.end(),
-                  [](const BandMatch& a, const BandMatch& b) { return a.dy < b.dy; });
-        dy = matches[1].dy;
-    } else {
-        dy = std::max_element(matches.begin(), matches.end(),
-                              [](const BandMatch& a, const BandMatch& b) {
-                                  return a.score < b.score;
-                              })
-                 ->dy;
-    }
+    int dy = *matchedDy;
 
     if (dy <= 0) {
         return AppendResult::NoNewContent;
