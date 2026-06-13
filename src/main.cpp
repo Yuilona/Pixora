@@ -171,6 +171,15 @@ int main(int argc, char* argv[]) {
                          }
                          capture.start();
                      });
+    // 重做上次选区:以缓存的上次选区直接发起截图(默认不绑定热键)
+    QObject::connect(&hotkeys, &pixora::HotkeyService::repeatLastRegionRequested,
+                     &capture, [&capture, &scrollCapture] {
+                         spdlog::info("hotkey: repeat last region requested");
+                         if (scrollCapture.isActive()) {
+                             return;
+                         }
+                         capture.startRepeatLastRegion();
+                     });
     // 工具栏[长截图]:截图选区移交给滚动拼接
     QObject::connect(&capture, &pixora::CaptureService::scrollCaptureRequested,
                      &scrollCapture,
@@ -285,7 +294,8 @@ int main(int argc, char* argv[]) {
                              settings, systemIntegration.get());
                          settingsDialog->markHotkeyConflicts(
                              hotkeys.failed(pixora::HotkeyId::CaptureRegion),
-                             hotkeys.failed(pixora::HotkeyId::PinFromClipboard));
+                             hotkeys.failed(pixora::HotkeyId::PinFromClipboard),
+                             hotkeys.failed(pixora::HotkeyId::RepeatLastRegion));
                          QObject::connect(settingsDialog,
                                           &pixora::SettingsDialog::applied, &hotkeys,
                                           &pixora::HotkeyService::reregisterAll);

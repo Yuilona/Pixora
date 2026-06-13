@@ -60,11 +60,15 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     captureEdit_ = new QKeySequenceEdit(settings_.hotkeyCaptureRegion(), this);
     pinEdit_ = new QKeySequenceEdit(settings_.hotkeyPinFromClipboard(), this);
+    repeatEdit_ = new QKeySequenceEdit(settings_.hotkeyRepeatLastRegion(), this);
     // 全局热键只支持单组合键;默认可录 4 段序列("F1, A, B"),只会困惑
     captureEdit_->setMaximumSequenceLength(1);
     pinEdit_->setMaximumSequenceLength(1);
+    repeatEdit_->setMaximumSequenceLength(1);
     generalForm->addRow(tr("Capture hotkey"), captureEdit_);
     generalForm->addRow(tr("Pin hotkey"), pinEdit_);
+    // 默认不绑定;清空即解除绑定(输入框自带清除按钮)
+    generalForm->addRow(tr("Repeat last region"), repeatEdit_);
 
     hotkeyWarning_ = new QLabel(
         tr("Hotkeys marked in red failed to register (possibly taken by another "
@@ -78,7 +82,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     auto clearConflict = [this](QKeySequenceEdit* edit) {
         edit->setStyleSheet(QString());
-        if (captureEdit_->styleSheet().isEmpty() && pinEdit_->styleSheet().isEmpty()) {
+        if (captureEdit_->styleSheet().isEmpty() && pinEdit_->styleSheet().isEmpty() &&
+            repeatEdit_->styleSheet().isEmpty()) {
             hotkeyWarning_->hide();
         }
     };
@@ -86,6 +91,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
             [this, clearConflict] { clearConflict(captureEdit_); });
     connect(pinEdit_, &QKeySequenceEdit::keySequenceChanged, this,
             [this, clearConflict] { clearConflict(pinEdit_); });
+    connect(repeatEdit_, &QKeySequenceEdit::keySequenceChanged, this,
+            [this, clearConflict] { clearConflict(repeatEdit_); });
 
     historyLimitSpin_ = new QSpinBox(this);
     historyLimitSpin_->setRange(0, 100);
@@ -261,13 +268,15 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     layout->addWidget(buttons);
 }
 
-void SettingsDialog::markHotkeyConflicts(bool captureFailed, bool pinFailed) {
+void SettingsDialog::markHotkeyConflicts(bool captureFailed, bool pinFailed,
+                                        bool repeatFailed) {
     // 红框画在内部 QLineEdit 上(QKeySequenceEdit 本体不绘制边框)
     const QString style = QStringLiteral("QLineEdit { border: 1px solid %1; }")
                               .arg(theme::danger().name());
     captureEdit_->setStyleSheet(captureFailed ? style : QString());
     pinEdit_->setStyleSheet(pinFailed ? style : QString());
-    hotkeyWarning_->setVisible(captureFailed || pinFailed);
+    repeatEdit_->setStyleSheet(repeatFailed ? style : QString());
+    hotkeyWarning_->setVisible(captureFailed || pinFailed || repeatFailed);
 }
 
 void SettingsDialog::apply() {
@@ -278,6 +287,8 @@ void SettingsDialog::apply() {
     if (!pinEdit_->keySequence().isEmpty()) {
         settings_.setHotkeyPinFromClipboard(pinEdit_->keySequence());
     }
+    // 重做上次选区默认不绑定,允许清空 → 直接写入(含空序列即解绑)
+    settings_.setHotkeyRepeatLastRegion(repeatEdit_->keySequence());
     settings_.setLanguage(languageCombo_->currentData().toString());
     settings_.setCheckUpdates(updateCheck_->isChecked());
     settings_.setOutputDir(outputDirEdit_->text().trimmed());

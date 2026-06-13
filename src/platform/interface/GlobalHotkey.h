@@ -10,6 +10,7 @@ namespace pixora {
 enum class HotkeyId {
     CaptureRegion = 1,
     PinFromClipboard = 3,
+    RepeatLastRegion = 4, // 以上次选区直接发起截图;默认不绑定
 };
 
 // PAL 纯虚接口:全局热键(见 ARCHITECTURE §4.1)。

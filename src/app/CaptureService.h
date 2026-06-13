@@ -33,6 +33,9 @@ public:
     ~CaptureService() override;
 
     void start();
+    // 以上次提交过的选区直接发起截图并进入确认态(工具栏即出);
+    // 无历史选区或其落点已不在当前屏幕范围内时退化为普通 start()。
+    void startRepeatLastRegion();
     bool isActive() const { return session_ != nullptr; }
 
 signals:
@@ -60,6 +63,7 @@ private:
     std::unique_ptr<SnipSession> session_;
     std::vector<OverlayWindow*> overlays_;
     AnnotationToolbar* toolbar_ = nullptr;
+    QRect lastRegion_; // 上次提交的选区(全局逻辑坐标),供"重做上次选区"复用
 };
 
 } // namespace pixora

@@ -23,7 +23,7 @@ public:
                    QWidget* parent = nullptr);
 
     // 标红注册失败的热键并显示提示;用户改键后自动清除
-    void markHotkeyConflicts(bool captureFailed, bool pinFailed);
+    void markHotkeyConflicts(bool captureFailed, bool pinFailed, bool repeatFailed);
 
 signals:
     void applied();
@@ -37,6 +37,7 @@ private:
     QComboBox* languageCombo_ = nullptr;
     QKeySequenceEdit* captureEdit_ = nullptr;
     QKeySequenceEdit* pinEdit_ = nullptr;
+    QKeySequenceEdit* repeatEdit_ = nullptr;
     QLabel* hotkeyWarning_ = nullptr;
     QLineEdit* outputDirEdit_ = nullptr;
     QLineEdit* fileTemplateEdit_ = nullptr;

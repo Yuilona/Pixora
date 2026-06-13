@@ -13,6 +13,7 @@ const QString language = QStringLiteral("ui/language");
 const QString checkUpdates = QStringLiteral("update/check");
 const QString hotkeyCaptureRegion = QStringLiteral("hotkeys/captureRegion");
 const QString hotkeyPinFromClipboard = QStringLiteral("hotkeys/pinFromClipboard");
+const QString hotkeyRepeatLastRegion = QStringLiteral("hotkeys/repeatLastRegion");
 const QString outputDir = QStringLiteral("output/dir");
 const QString historyLimit = QStringLiteral("history/limit");
 const QString fileNameTemplate = QStringLiteral("output/fileTemplate");
@@ -83,6 +84,15 @@ void SettingsService::setHotkeyCaptureRegion(const QKeySequence& seq) {
 
 void SettingsService::setHotkeyPinFromClipboard(const QKeySequence& seq) {
     setValue(keys::hotkeyPinFromClipboard, seq.toString(QKeySequence::PortableText));
+}
+
+QKeySequence SettingsService::hotkeyRepeatLastRegion() const {
+    // 默认空串 → 空序列;HotkeyService 跳过空序列(不注册、不计失败)
+    return toKeySequence(value(keys::hotkeyRepeatLastRegion, QString()));
+}
+
+void SettingsService::setHotkeyRepeatLastRegion(const QKeySequence& seq) {
+    setValue(keys::hotkeyRepeatLastRegion, seq.toString(QKeySequence::PortableText));
 }
 
 QString SettingsService::outputDir() const {

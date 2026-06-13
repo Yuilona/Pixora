@@ -26,6 +26,7 @@ public:
 signals:
     void captureRequested();
     void pinRequested();
+    void repeatLastRegionRequested();
     // action 为中文动作名("截图"/"贴图"),供 UI 直接拼装提示文案
     void registrationFailed(const QString& action, const QKeySequence& seq);
 

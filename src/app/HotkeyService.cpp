@@ -20,6 +20,9 @@ HotkeyService::HotkeyService(SettingsService& settings, IGlobalHotkey* backend,
         case HotkeyId::PinFromClipboard:
             emit pinRequested();
             break;
+        case HotkeyId::RepeatLastRegion:
+            emit repeatLastRegionRequested();
+            break;
         }
     });
 }
@@ -47,8 +50,15 @@ void HotkeyService::registerAll() {
          tr("capture")},
         {HotkeyId::PinFromClipboard, settings_.hotkeyPinFromClipboard(), "pin",
          tr("pin")},
+        {HotkeyId::RepeatLastRegion, settings_.hotkeyRepeatLastRegion(),
+         "repeat-region", tr("repeat last region")},
     };
     for (const auto& e : entries) {
+        if (e.seq.isEmpty()) {
+            // 空序列 = 用户未绑定该热键(如默认的"重做上次选区"),静默跳过
+            spdlog::info("hotkey {} not bound, skipped", e.name);
+            continue;
+        }
         const bool ok = backend_->registerHotkey(e.id, e.seq);
         spdlog::info("hotkey {} ({}) -> {}", e.name,
                      e.seq.toString(QKeySequence::PortableText).toStdString(),

@@ -53,6 +53,7 @@ void CaptureService::start() {
     }
 
     connect(session_.get(), &SnipSession::confirmed, this, [this](const QRect& region) {
+        lastRegion_ = region; // 供"重做上次选区"复用
         const QImage image = renderAndRecord(region);
         teardown();
         output_.copyToClipboard(image);
@@ -64,6 +65,7 @@ void CaptureService::start() {
     });
     connect(session_.get(), &SnipSession::saveRequested, this,
             [this](const QRect& region) {
+                lastRegion_ = region;
                 const QImage image = renderAndRecord(region);
                 teardown();
                 const QString path = output_.saveWithDialog(image);
@@ -73,6 +75,7 @@ void CaptureService::start() {
             });
     connect(session_.get(), &SnipSession::pinRequested, this,
             [this](const QRect& region) {
+                lastRegion_ = region;
                 const QImage image = renderAndRecord(region);
                 const QPoint topLeft = region.topLeft();
                 teardown();
@@ -115,6 +118,23 @@ void CaptureService::start() {
         overlays_.front()->raise();
     }
     toolbar_ = new AnnotationToolbar(*session_); // 选区交互结束后自行显示
+}
+
+void CaptureService::startRepeatLastRegion() {
+    if (isActive()) {
+        return;
+    }
+    start(); // 同步建好 session 与各屏遮罩
+    if (!session_) {
+        return;
+    }
+    // 有可用历史选区(且仍落在当前屏幕范围内)→ 预置选区并直接进入确认态,
+    // 工具栏随 interactionFinished 自行弹出;否则退化为普通框选。
+    const QRect virtualGeom = session_->snapshot().virtualGeometryLogical();
+    if (lastRegion_.isValid() && virtualGeom.intersects(lastRegion_)) {
+        session_->setSelection(lastRegion_);
+        session_->notifyInteractionFinished();
+    }
 }
 
 QImage CaptureService::renderResult(const QRect& region) const {

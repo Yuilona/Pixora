@@ -26,8 +26,10 @@ public:
 
     QKeySequence hotkeyCaptureRegion() const;
     QKeySequence hotkeyPinFromClipboard() const;
+    QKeySequence hotkeyRepeatLastRegion() const; // 默认空 = 不绑定
     void setHotkeyCaptureRegion(const QKeySequence& seq);
     void setHotkeyPinFromClipboard(const QKeySequence& seq);
+    void setHotkeyRepeatLastRegion(const QKeySequence& seq);
 
     // 截图保存目录;空串表示使用系统图片目录
     QString outputDir() const;
