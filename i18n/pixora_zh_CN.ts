@@ -708,6 +708,11 @@ Every capture you copy, save or pin is kept here automatically</source>
         <translation>截图</translation>
     </message>
     <message>
+        <location filename="../src/app/TrayService.cpp" line="43"/>
+        <source>Pick color</source>
+        <translation>取色</translation>
+    </message>
+    <message>
         <location filename="../src/app/TrayService.cpp" line="45"/>
         <source>Close all pins</source>
         <translation>关闭所有贴图</translation>

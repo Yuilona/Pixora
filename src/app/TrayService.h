@@ -27,6 +27,7 @@ public:
 
 signals:
     void captureRequested();
+    void colorPickRequested();
     void closeAllPinsRequested();
     void historyRequested();
     void settingsRequested();

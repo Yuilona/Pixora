@@ -27,8 +27,11 @@ struct ScreenSnap;
 class OverlayWindow : public QWidget {
     Q_OBJECT
 public:
+    // colorPickOnly:取色专用模式——不框选/不标注,左键单击即取光标处色值
+    // (Shift+单击取 RGB),Esc 退出;遮罩不暗化、不显示工具栏。
     OverlayWindow(const ScreenSnap& snap, SnipSession& session,
-                  IElementLocator* elementLocator = nullptr);
+                  IElementLocator* elementLocator = nullptr,
+                  bool colorPickOnly = false);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -56,6 +59,7 @@ private:
     QRect toLocal(const QRect& globalRect) const;
     QRect selectedItemHandleRect() const; // 选中条目手柄区(本窗局部坐标)
     bool magnifierVisible() const;
+    void pickColorAt(const QPoint& localPos, bool rgb); // 取色:采样并结束会话
     void nudgeSelection(QKeyEvent* event); // 方向键微调选区(Ctrl 调大小)
     void updateElementHover(const QPoint& globalLogical,
                             bool force = false); // Shift 元素级吸附
@@ -65,6 +69,7 @@ private:
 
     SnipSession& session_;
     IElementLocator* elementLocator_;
+    bool colorPickOnly_ = false;
     QElapsedTimer elementThrottle_; // 元素查询节流(UIA 可能较慢)
     QImage frozen_;     // 含 DPR 标记,按逻辑尺寸绘制
     QImage physical_;   // DPR=1 裸图,放大镜取样用

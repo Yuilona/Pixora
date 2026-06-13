@@ -40,6 +40,8 @@ void TrayService::buildMenu() {
     menu_.addSeparator();
     menu_.addAction(tr("Capture") + QStringLiteral("\tF1"), this,
                     [this] { emit captureRequested(); });
+    menu_.addAction(tr("Pick color"), this,
+                    [this] { emit colorPickRequested(); });
     menu_.addAction(tr("Close all pins"), this,
                     [this] { emit closeAllPinsRequested(); });
     menu_.addSeparator();

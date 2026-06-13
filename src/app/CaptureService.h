@@ -36,6 +36,8 @@ public:
     // 以上次提交过的选区直接发起截图并进入确认态(工具栏即出);
     // 无历史选区或其落点已不在当前屏幕范围内时退化为普通 start()。
     void startRepeatLastRegion();
+    // 取色专用会话:遮罩不暗化、无工具栏,左键单击取光标处色值即退出。
+    void startColorPickOnly();
     bool isActive() const { return session_ != nullptr; }
 
 signals:
@@ -50,6 +52,7 @@ signals:
     void translateRequested(const QImage& image, const QRect& regionGlobal);
 
 private:
+    void beginSession(bool colorPickOnly); // start / startColorPickOnly 共用建场
     QImage renderResult(const QRect& region) const; // 截取 + 平铺标注
     void teardown();
 

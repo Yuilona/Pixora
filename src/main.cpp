@@ -139,6 +139,8 @@ int main(int argc, char* argv[]) {
                      });
     QObject::connect(&tray, &pixora::TrayService::captureRequested, &capture,
                      [&capture] { capture.start(); });
+    QObject::connect(&tray, &pixora::TrayService::colorPickRequested, &capture,
+                     [&capture] { capture.startColorPickOnly(); });
 
     const auto systemIntegration = pixora::createSystemIntegration();
     pixora::PinService pins(systemIntegration.get(), &settings);

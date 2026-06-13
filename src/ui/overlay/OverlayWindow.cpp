@@ -23,9 +23,10 @@ constexpr int kDragThreshold = 4;        // 区分"点击吸附"与"拖拽选区
 } // namespace
 
 OverlayWindow::OverlayWindow(const ScreenSnap& snap, SnipSession& session,
-                             IElementLocator* elementLocator)
-    : session_(session), elementLocator_(elementLocator), frozen_(snap.image),
-      physical_(snap.image), dpr_(snap.dpr) {
+                             IElementLocator* elementLocator, bool colorPickOnly)
+    : session_(session), elementLocator_(elementLocator),
+      colorPickOnly_(colorPickOnly), frozen_(snap.image), physical_(snap.image),
+      dpr_(snap.dpr) {
     frozen_.setDevicePixelRatio(snap.dpr);
     elementThrottle_.start();
 
@@ -66,12 +67,43 @@ bool OverlayWindow::magnifierVisible() const {
     if (!hasCursor_) {
         return false;
     }
+    if (colorPickOnly_) {
+        return true; // 取色模式光标在窗内即显示放大镜
+    }
     return !session_.hasSelection() || mode_ == Mode::Creating || mode_ == Mode::Resizing;
+}
+
+// 采样光标处真实像素并结束会话(rgb=true 输出 "R, G, B",否则 #RRGGBB)。
+// localPos 为本窗逻辑坐标,按 DPR 映射回裸图采样。
+void OverlayWindow::pickColorAt(const QPoint& localPos, bool rgb) {
+    QPoint phys(qRound(localPos.x() * dpr_), qRound(localPos.y() * dpr_));
+    phys.setX(std::clamp(phys.x(), 0, physical_.width() - 1));
+    phys.setY(std::clamp(phys.y(), 0, physical_.height() - 1));
+    const QColor color = physical_.pixelColor(phys);
+    session_.pickColor(rgb ? QStringLiteral("%1, %2, %3")
+                                 .arg(color.red())
+                                 .arg(color.green())
+                                 .arg(color.blue())
+                           : color.name(QColor::HexRgb).toUpper());
 }
 
 void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
     QPainter painter(this);
     painter.drawImage(0, 0, frozen_);
+
+    if (colorPickOnly_) {
+        // 取色模式:保留原画面不暗化,只在光标处叠加放大镜读取真实像素
+        if (magnifierVisible()) {
+            Magnifier::Context ctx;
+            ctx.physicalImage = &physical_;
+            ctx.dpr = dpr_;
+            ctx.cursorLocalLogical = cursorLocal_;
+            ctx.cursorGlobalLogical = cursorLocal_ + geometry().topLeft();
+            ctx.widgetSize = size();
+            Magnifier::draw(painter, ctx);
+        }
+        return;
+    }
 
     // 高亮区:已有选区优先,否则为悬停吸附的窗口
     const bool hasSelection = session_.hasSelection();
@@ -157,6 +189,11 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
     if (event->button() != Qt::LeftButton) {
         return;
     }
+    if (colorPickOnly_) {
+        // 单击即取色(Shift 取 RGB);pickColorAt 经会话结束本次取色
+        pickColorAt(event->pos(), event->modifiers() & Qt::ShiftModifier);
+        return;
+    }
     pressGlobal_ = event->globalPosition().toPoint();
     moved_ = false;
 
@@ -231,6 +268,10 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
 void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
     cursorLocal_ = event->pos();
     hasCursor_ = true;
+    if (colorPickOnly_) {
+        update(); // 仅刷新放大镜,不做窗口/元素吸附
+        return;
+    }
     const QPoint global = event->globalPosition().toPoint();
 
     switch (mode_) {
@@ -437,6 +478,17 @@ bool OverlayWindow::eventFilter(QObject* watched, QEvent* event) {
 }
 
 void OverlayWindow::keyPressEvent(QKeyEvent* event) {
+    if (colorPickOnly_) {
+        // 取色模式只保留:Esc 退出、C/Shift+C 取色;其余键位一律忽略
+        if (event->key() == Qt::Key_Escape) {
+            session_.cancel();
+        } else if (event->key() == Qt::Key_C && magnifierVisible()) {
+            pickColorAt(cursorLocal_, event->modifiers() & Qt::ShiftModifier);
+        } else {
+            QWidget::keyPressEvent(event);
+        }
+        return;
+    }
     switch (event->key()) {
     case Qt::Key_Escape:
         // 分层退出:标注工具 → 条目选中 → 取消会话
@@ -466,23 +518,12 @@ void OverlayWindow::keyPressEvent(QKeyEvent* event) {
             session_.notifyInteractionFinished();
         }
         break;
-    case Qt::Key_C: {
+    case Qt::Key_C:
         // 取色器:复制放大镜中心像素色值(C=HEX,Shift+C=RGB)
-        if (!magnifierVisible()) {
-            break;
+        if (magnifierVisible()) {
+            pickColorAt(cursorLocal_, event->modifiers() & Qt::ShiftModifier);
         }
-        QPoint phys(qRound(cursorLocal_.x() * dpr_), qRound(cursorLocal_.y() * dpr_));
-        phys.setX(std::clamp(phys.x(), 0, physical_.width() - 1));
-        phys.setY(std::clamp(phys.y(), 0, physical_.height() - 1));
-        const QColor color = physical_.pixelColor(phys);
-        session_.pickColor(event->modifiers() & Qt::ShiftModifier
-                               ? QStringLiteral("%1, %2, %3")
-                                     .arg(color.red())
-                                     .arg(color.green())
-                                     .arg(color.blue())
-                               : color.name(QColor::HexRgb).toUpper());
         break;
-    }
     case Qt::Key_S:
         if (event->modifiers() & Qt::ControlModifier) {
             session_.requestSave();

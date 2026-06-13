@@ -29,7 +29,7 @@ CaptureService::~CaptureService() {
     teardown();
 }
 
-void CaptureService::start() {
+void CaptureService::beginSession(bool colorPickOnly) {
     if (isActive()) {
         spdlog::debug("snip session already active, ignoring trigger");
         return;
@@ -109,7 +109,8 @@ void CaptureService::start() {
     });
 
     for (const ScreenSnap& snap : session_->snapshot().screens()) {
-        auto* overlay = new OverlayWindow(snap, *session_, elementLocator_);
+        auto* overlay =
+            new OverlayWindow(snap, *session_, elementLocator_, colorPickOnly);
         overlays_.push_back(overlay);
         overlay->show();
     }
@@ -117,7 +118,17 @@ void CaptureService::start() {
         overlays_.front()->activateWindow();
         overlays_.front()->raise();
     }
-    toolbar_ = new AnnotationToolbar(*session_); // 选区交互结束后自行显示
+    if (!colorPickOnly) {
+        toolbar_ = new AnnotationToolbar(*session_); // 取色模式无需标注工具栏
+    }
+}
+
+void CaptureService::start() {
+    beginSession(/*colorPickOnly=*/false);
+}
+
+void CaptureService::startColorPickOnly() {
+    beginSession(/*colorPickOnly=*/true);
 }
 
 void CaptureService::startRepeatLastRegion() {
