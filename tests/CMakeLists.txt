@@ -15,6 +15,7 @@ add_executable(pixora_tests
     unit/text_protocols_test.cpp
     unit/replace_renderer_test.cpp
     unit/update_checker_test.cpp
+    unit/autostart_path_test.cpp
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.h
     ${CMAKE_SOURCE_DIR}/src/app/SettingsService.cpp
     ${CMAKE_SOURCE_DIR}/src/app/HotkeyService.h

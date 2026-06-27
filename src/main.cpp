@@ -143,6 +143,17 @@ int main(int argc, char* argv[]) {
                      [&capture] { capture.startColorPickOnly(); });
 
     const auto systemIntegration = pixora::createSystemIntegration();
+    // 开机自启自愈:用户曾开启(意图)但当前 Run 项缺失/指向旧路径
+    //(便携版被移动、或被安全软件还原)→ 用当前可执行文件路径重写,使其继续生效。
+    // 仅在意图为开启时动作,绝不"复活"用户已关闭的项。
+    if (systemIntegration && settings.autoStartDesired() &&
+        !systemIntegration->isAutoStartEnabled()) {
+        if (systemIntegration->setAutoStart(true)) {
+            spdlog::info("autostart reconciled to current exe path");
+        } else {
+            spdlog::warn("autostart reconcile failed (blocked by security software?)");
+        }
+    }
     pixora::PinService pins(systemIntegration.get(), &settings);
     QObject::connect(&capture, &pixora::CaptureService::pinCaptured, &pins,
                      &pixora::PinService::pinImage);

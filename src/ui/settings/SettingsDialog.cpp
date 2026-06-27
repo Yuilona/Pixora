@@ -14,6 +14,7 @@
 #include <QKeySequenceEdit>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QStandardPaths>
@@ -308,7 +309,20 @@ void SettingsDialog::apply() {
     settings_.setTranslateModel(trModelEdit_->text());
     settings_.setTranslateTargetLang(targetLangCombo_->currentData().toString());
     if (system_) {
-        system_->setAutoStart(autoStartCheck_->isChecked());
+        const bool want = autoStartCheck_->isChecked();
+        const bool ok = system_->setAutoStart(want);
+        // 持久化"实际达成"的状态作为意图:成功→true(启动时对账维持);
+        // 失败→存为真实(false),不每次启动反复重试打扰用户
+        settings_.setAutoStartDesired(system_->isAutoStartEnabled());
+        if (want && !ok) {
+            // 写入被安全软件/权限挡下:复选框回到真实状态,并明确告知原因
+            autoStartCheck_->setChecked(system_->isAutoStartEnabled());
+            QMessageBox::warning(
+                this, tr("Start at login"),
+                tr("Couldn't turn on start at login. Security software may have "
+                   "blocked it — allow Pixora to start at login in your antivirus, "
+                   "or in Windows Settings > Apps > Startup."));
+        }
     }
     emit applied();
 }

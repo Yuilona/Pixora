@@ -24,6 +24,11 @@ public:
     bool checkUpdates() const;
     void setCheckUpdates(bool enabled);
 
+    // 用户是否希望开机自启(意图,默认关)。与注册表实际状态分开存:
+    // 启动时据此对账自愈(便携版被移动/被安全软件还原后,用当前路径重写)。
+    bool autoStartDesired() const;
+    void setAutoStartDesired(bool desired);
+
     QKeySequence hotkeyCaptureRegion() const;
     QKeySequence hotkeyPinFromClipboard() const;
     QKeySequence hotkeyRepeatLastRegion() const; // 默认空 = 不绑定
