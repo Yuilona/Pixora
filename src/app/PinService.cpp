@@ -130,8 +130,8 @@ void PinService::saveManifest() {
         }
         QJsonObject o;
         o[QStringLiteral("id")] = t.id;
-        o[QStringLiteral("x")] = t.win->pos().x();
-        o[QStringLiteral("y")] = t.win->pos().y();
+        o[QStringLiteral("x")] = t.win->imageTopLeft().x();
+        o[QStringLiteral("y")] = t.win->imageTopLeft().y();
         o[QStringLiteral("scale")] = t.win->scale();
         o[QStringLiteral("opacity")] = t.win->windowOpacity();
         o[QStringLiteral("dpr")] = t.win->image().devicePixelRatio();

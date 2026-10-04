@@ -6,6 +6,7 @@
 #include <QClipboard>
 #include <QCloseEvent>
 #include <QContextMenuEvent>
+#include <QEnterEvent>
 #include <QGuiApplication>
 #include <QMenu>
 #include <QMouseEvent>
@@ -20,7 +21,10 @@
 namespace pixora {
 
 namespace {
-const QColor kFrameColor = theme::accent();
+constexpr int kMargin = theme::kShadowMargin; // 投影边距(兼缩放热区)
+constexpr int kEdgeInside = 6;               // 图像内侧的缩放热区宽度
+constexpr int kCloseSize = 22;
+constexpr int kChipMs = 1100;                // 百分比小标签停留时长
 constexpr qreal kMinScale = 0.1;
 constexpr qreal kMaxScale = 5.0;
 constexpr int kFoldedHeight = 26;          // 折叠小条高度
@@ -32,22 +36,59 @@ PinWindow::PinWindow(const QImage& image, const QPoint& topLeftLogical,
     : image_(image), system_(system) {
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_DeleteOnClose);
+    setAttribute(Qt::WA_TranslucentBackground); // 投影画在图像外圈
     setWindowTitle(tr("Pixora pin"));
     setMouseTracking(true); // 边缘热区光标反馈
+    chipTimer_.setSingleShot(true);
+    chipTimer_.setInterval(kChipMs);
+    connect(&chipTimer_, &QTimer::timeout, this, [this] {
+        chip_.clear();
+        update();
+    });
     rebuildDisplayCache();
-    resize(scaledSize());
-    move(topLeftLogical);
+    setContentGeometry(QRect(topLeftLogical, scaledSize()));
+}
+
+QPoint PinWindow::imageTopLeft() const {
+    return pos() + QPoint(kMargin, kMargin);
+}
+
+QRect PinWindow::contentRect() const {
+    return rect().adjusted(kMargin, kMargin, -kMargin, -kMargin);
+}
+
+void PinWindow::setContentGeometry(const QRect& globalContent) {
+    setGeometry(globalContent.adjusted(-kMargin, -kMargin, kMargin, kMargin));
+}
+
+void PinWindow::resizeContent(const QSize& size) {
+    resize(size + QSize(2 * kMargin, 2 * kMargin));
+}
+
+QRect PinWindow::closeButtonRect() const {
+    const QRect c = contentRect();
+    if (folded_ || c.width() < 80 || c.height() < 60) {
+        return {}; // 太小或折叠时不放按钮,双击/Esc/菜单仍可关闭
+    }
+    return QRect(c.right() - 8 - kCloseSize + 1, c.top() + 8, kCloseSize, kCloseSize);
+}
+
+void PinWindow::flashChip(const QString& text) {
+    chip_ = text;
+    chipTimer_.start();
+    update();
 }
 
 PinWindow::Edge PinWindow::edgeAt(const QPoint& pos) const {
     if (folded_) {
         return Edge::None; // 折叠小条不缩放
     }
-    constexpr int m = 6; // 边缘热区宽度
-    const bool left = pos.x() <= m;
-    const bool right = pos.x() >= width() - m;
-    const bool top = pos.y() <= m;
-    const bool bottom = pos.y() >= height() - m;
+    // 热区 = 图像内侧 kEdgeInside + 外圈整个投影边距
+    const QRect c = contentRect();
+    const bool left = pos.x() <= c.left() + kEdgeInside;
+    const bool right = pos.x() >= c.right() - kEdgeInside;
+    const bool top = pos.y() <= c.top() + kEdgeInside;
+    const bool bottom = pos.y() >= c.bottom() - kEdgeInside;
     if (top && left) return Edge::TopLeft;
     if (top && right) return Edge::TopRight;
     if (bottom && left) return Edge::BottomLeft;
@@ -124,8 +165,8 @@ void PinWindow::performResize(const QPoint& globalPos) {
     if (hasTop) {
         topLeft.setY(baseGeometry_.bottom() - sz.height() + 1);
     }
-    setGeometry(QRect(topLeft, sz));
-    update();
+    setContentGeometry(QRect(topLeft, sz));
+    flashChip(QStringLiteral("%1%").arg(qRound(scale_ * 100)));
 }
 
 void PinWindow::rebuildDisplayCache() {
@@ -149,17 +190,17 @@ QSize PinWindow::scaledSize() const {
 
 void PinWindow::applyGeometryForState() {
     if (folded_) {
-        resize(std::clamp(scaledSize().width(), 80, 240), kFoldedHeight);
+        resizeContent(QSize(std::clamp(scaledSize().width(), 80, 240), kFoldedHeight));
     } else {
-        resize(scaledSize());
+        resizeContent(scaledSize());
     }
     update();
 }
 
 void PinWindow::applyScale(qreal scale) {
     scale_ = std::clamp(scale, kMinScale, kMaxScale);
-    resize(scaledSize());
-    update();
+    resizeContent(scaledSize());
+    flashChip(QStringLiteral("%1%").arg(qRound(scale_ * 100)));
     emit stateChanged();
 }
 
@@ -210,31 +251,60 @@ void PinWindow::flipHorizontal() {
 
 void PinWindow::paintEvent(QPaintEvent* /*event*/) {
     QPainter painter(this);
+    const QRect c = contentRect();
+    theme::paintShadow(painter, c, 0);
+
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     if (folded_) {
         // 小条:图像顶部按宽度等比铺放,溢出裁剪
+        painter.save();
+        painter.setClipRect(c);
         const QSizeF s = display_.deviceIndependentSize();
-        const qreal h = s.width() > 0 ? s.height() * width() / s.width() : height();
-        painter.drawImage(QRectF(0, 0, width(), h), display_);
-        painter.fillRect(rect(), QColor(0, 0, 0, 60));
+        const qreal h = s.width() > 0 ? s.height() * c.width() / s.width() : c.height();
+        painter.drawImage(QRectF(c.left(), c.top(), c.width(), h), display_);
+        painter.fillRect(c, QColor(0, 0, 0, 60));
+        painter.restore();
     } else {
-        painter.drawImage(rect(), display_);
+        painter.drawImage(c, display_);
     }
-    painter.setPen(QPen(kFrameColor, 1));
-    painter.drawRect(rect().adjusted(0, 0, -1, -1));
 
-    if (!badge_.isEmpty() && !folded_) {
-        const QFont f = theme::font(theme::fontsize::body);
-        const QFontMetrics fm(f);
-        const QRect r(width() - fm.horizontalAdvance(badge_) - 22, 6,
-                      fm.horizontalAdvance(badge_) + 14, fm.height() + 6);
-        painter.setRenderHint(QPainter::Antialiasing);
+    // 细边:常态淡白(深色图落在深色桌面上也有轮廓),悬停转主题蓝示意可操作
+    painter.setPen(QPen(hovered_ ? theme::accent() : QColor(255, 255, 255, 46), 1));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(QRectF(c).adjusted(0.5, 0.5, -0.5, -0.5));
+
+    painter.setRenderHint(QPainter::Antialiasing);
+    const QRect closeRect = hovered_ ? closeButtonRect() : QRect();
+    if (!closeRect.isNull()) {
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(theme::hudScrim());
+        painter.drawEllipse(closeRect);
+        painter.setPen(QPen(Qt::white, 1.5, Qt::SolidLine, Qt::RoundCap));
+        const QRectF x = QRectF(closeRect).adjusted(7.5, 7.5, -7.5, -7.5);
+        painter.drawLine(x.topLeft(), x.bottomRight());
+        painter.drawLine(x.topRight(), x.bottomLeft());
+    }
+
+    const auto drawChip = [&painter](const QRect& r, const QString& text) {
         painter.setPen(Qt::NoPen);
         painter.setBrush(theme::hudScrim());
         painter.drawRoundedRect(r, theme::corner::chip, theme::corner::chip);
-        painter.setFont(f);
         painter.setPen(Qt::white);
-        painter.drawText(r, Qt::AlignCenter, badge_);
+        painter.drawText(r, Qt::AlignCenter, text);
+    };
+    const QFont f = theme::font(theme::fontsize::body);
+    const QFontMetrics fm(f);
+    painter.setFont(f);
+    if (!badge_.isEmpty() && !folded_) {
+        // 状态角标在右上;悬停出现关闭按钮时让到它左侧
+        const int right = closeRect.isNull() ? c.right() - 7 : closeRect.left() - 6;
+        const int w = fm.horizontalAdvance(badge_) + 14;
+        drawChip(QRect(right - w + 1, c.top() + 8, w, fm.height() + 6), badge_);
+    }
+    if (!chip_.isEmpty() && !folded_) {
+        const int w = fm.horizontalAdvance(chip_) + 14;
+        const int h = fm.height() + 6;
+        drawChip(QRect(c.right() - 7 - w + 1, c.bottom() - 7 - h + 1, w, h), chip_);
     }
 }
 
@@ -242,10 +312,15 @@ void PinWindow::mousePressEvent(QMouseEvent* event) {
     if (event->button() != Qt::LeftButton) {
         return;
     }
+    if (const QRect closeRect = closeButtonRect();
+        hovered_ && !closeRect.isNull() && closeRect.contains(event->pos())) {
+        close();
+        return;
+    }
     resizeEdge_ = edgeAt(event->pos());
     if (resizeEdge_ != Edge::None) {
         resizing_ = true;
-        baseGeometry_ = geometry();
+        baseGeometry_ = geometry().adjusted(kMargin, kMargin, -kMargin, -kMargin);
         pressGlobal_ = event->globalPosition().toPoint();
         return;
     }
@@ -261,7 +336,25 @@ void PinWindow::mouseMoveEvent(QMouseEvent* event) {
         }
         return;
     }
-    setCursor(cursorForEdge(edgeAt(event->pos()))); // 悬停光标反馈
+    // 悬停光标反馈:关闭按钮 → 手形,边缘 → 缩放箭头
+    const QRect closeRect = closeButtonRect();
+    if (!closeRect.isNull() && closeRect.contains(event->pos())) {
+        setCursor(Qt::PointingHandCursor);
+        return;
+    }
+    setCursor(cursorForEdge(edgeAt(event->pos())));
+}
+
+void PinWindow::enterEvent(QEnterEvent* event) {
+    hovered_ = true;
+    update();
+    QWidget::enterEvent(event);
+}
+
+void PinWindow::leaveEvent(QEvent* event) {
+    hovered_ = false;
+    update();
+    QWidget::leaveEvent(event);
 }
 
 void PinWindow::mouseReleaseEvent(QMouseEvent* event) {
@@ -288,6 +381,7 @@ void PinWindow::wheelEvent(QWheelEvent* event) {
         // Ctrl+滚轮:透明度 20%–100%
         const qreal delta = event->angleDelta().y() > 0 ? 0.1 : -0.1;
         setWindowOpacity(std::clamp(windowOpacity() + delta, 0.2, 1.0));
+        flashChip(tr("Opacity %1%").arg(qRound(windowOpacity() * 100)));
         emit stateChanged();
         return;
     }

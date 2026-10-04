@@ -26,6 +26,9 @@ protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
+    QRect cardRect() const;    // 窗口内缩投影边距
+    QRect contentRect() const; // 卡片内的预览图区域
+
     QPixmap scaled_;
     int totalLogicalHeight_ = 0;
 };

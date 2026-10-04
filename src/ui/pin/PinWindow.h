@@ -2,13 +2,17 @@
 
 #include <QImage>
 #include <QPoint>
+#include <QTimer>
 #include <QWidget>
 
 namespace pixora {
 
 class ISystemIntegration;
 
-// 贴图窗:无边框置顶悬浮显示一张图像。
+// 贴图窗:无边框置顶悬浮显示一张图像,四周带柔和投影。
+// 窗口比图像大一圈投影边距;对外的位置一律指图像左上角(imageTopLeft),
+// 与截图选区、持久化坐标一致。投影边距兼作缩放热区(同 Win11 窗口外沿)。
+// 悬停时显示关闭按钮;缩放/调透明度时短暂显示百分比。
 // 交互:左键拖动移动 / 边缘与角落拖拽缩放(等比,如普通窗口)/
 // 滚轮缩放(10%–500%)/ Ctrl+滚轮调透明度 /
 // 双击或 Esc 关闭(折叠态双击=展开)/ Space 折叠为小条 /
@@ -20,8 +24,11 @@ class ISystemIntegration;
 class PinWindow : public QWidget {
     Q_OBJECT
 public:
+    // topLeftLogical:图像左上角(全局逻辑坐标)
     PinWindow(const QImage& image, const QPoint& topLeftLogical,
               ISystemIntegration* system);
+
+    QPoint imageTopLeft() const; // 图像(非窗口)左上角,全局逻辑坐标
 
     const QImage& image() const { return image_; }
     qreal scale() const { return scale_; }
@@ -50,6 +57,8 @@ protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
     void moveEvent(QMoveEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    void enterEvent(QEnterEvent* event) override;
+    void leaveEvent(QEvent* event) override;
 
 private:
     // 边缘/角落拖拽缩放(图像定比,缩放统一作用于 scale_)
@@ -69,6 +78,11 @@ private:
     void performResize(const QPoint& globalPos);
 
     QSize scaledSize() const;
+    QRect contentRect() const;               // 窗口内的图像区(内缩投影边距)
+    QRect closeButtonRect() const;           // 悬停关闭按钮(图像右上角)
+    void setContentGeometry(const QRect& globalContent);
+    void resizeContent(const QSize& size);   // 保持图像左上角不动
+    void flashChip(const QString& text);     // 短暂显示的百分比小标签
     void applyScale(qreal scale);
     void toggleFolded();
     void rotate90();
@@ -85,8 +99,11 @@ private:
     QPoint dragOffset_;
     bool resizing_ = false;
     Edge resizeEdge_ = Edge::None;
-    QRect baseGeometry_; // 按下时的窗口几何(锚定对侧用)
+    QRect baseGeometry_; // 按下时的图像几何(全局,锚定对侧用)
     QPoint pressGlobal_;
+    bool hovered_ = false;
+    QString chip_;       // 缩放/透明度百分比,定时消失
+    QTimer chipTimer_;
 };
 
 } // namespace pixora

@@ -57,7 +57,7 @@ void CaptureService::beginSession(bool colorPickOnly) {
         const QImage image = renderAndRecord(region);
         teardown();
         output_.copyToClipboard(image);
-        emit copiedToClipboard();
+        emit copiedToClipboard(image);
         const QString autoSaved = output_.autoSave(image);
         if (!autoSaved.isEmpty()) {
             emit savedToFile(autoSaved);

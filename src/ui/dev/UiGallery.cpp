@@ -7,12 +7,17 @@
 #include "ui/notify/ToastWindow.h"
 #include "ui/overlay/Magnifier.h"
 #include "ui/overlay/OverlayWindow.h"
+#include "ui/pin/PinWindow.h"
+#include "ui/scroll/RegionIndicator.h"
 #include "ui/scroll/ScrollCaptureBar.h"
+#include "ui/scroll/ScrollPreview.h"
 
 #include <QCoreApplication>
+#include <QEnterEvent>
 #include <QGuiApplication>
 #include <QPainter>
 #include <QScreen>
+#include <QUrl>
 
 #include <spdlog/spdlog.h>
 
@@ -23,7 +28,7 @@ namespace pixora {
 namespace {
 
 constexpr QSize kScene(1120, 640); // 截图场景(逻辑像素)
-constexpr int kStripH = 300;       // 下方条带:工具激活态工具栏 / 长截图 / 通知
+constexpr int kStripH = 560;       // 下方条带:工具激活态工具栏 / 长截图 / 贴图 / 通知
 
 // 示例桌面:左半浅色文档窗,右半深色代码编辑器——HUD 两种典型底色都要好看
 QImage sampleDesktop(qreal dpr) {
@@ -108,15 +113,52 @@ bool renderUiGallery(const QString& outPath) {
     toolToolbar->setAttribute(Qt::WA_DontShowOnScreen);
     toolSession.notifyInteractionFinished();
 
-    auto scrollBar = std::make_unique<ScrollCaptureBar>(
-        QRect(40, stripRect.top() + 160, 420, 40), fullRect, /*autoModeAvailable=*/true);
-    auto toast = std::make_unique<ToastWindow>();
-    toast->setAttribute(Qt::WA_DontShowOnScreen);
-    toast->popup(QStringLiteral("Pixora"),
-                 QCoreApplication::translate("main", "Screenshot copied to clipboard"));
+    // 长截图场景:捕获区域(示例内容)+ 区域框 + 右侧预览 + 下方控制条
+    const auto physical = [dpr](const QRect& logical) {
+        return QRect(logical.topLeft() * dpr, logical.size() * dpr);
+    };
+    const QRect region(40, stripRect.top() + 170, 360, 230);
+    auto indicator = std::make_unique<RegionIndicator>(region);
+    indicator->setAttribute(Qt::WA_DeleteOnClose, false);
+    auto preview = std::make_unique<ScrollPreview>(region, fullRect);
+    preview->setAttribute(Qt::WA_DontShowOnScreen);
+    preview->show(); // 先布局,尺寸确定后再喂内容
+    QImage tail = desktop.copy(physical(QRect(30, 30, 500, 600)));
+    preview->updateContent(tail, 3840);
+    auto scrollBar = std::make_unique<ScrollCaptureBar>(region, fullRect,
+                                                        /*autoModeAvailable=*/true);
+    scrollBar->setProgress(3840);
+    scrollBar->setStatus(QCoreApplication::translate(
+                             "pixora::ScrollCaptureService",
+                             "Keep scrolling; press F1 or Copy to finish"),
+                         ScrollCaptureBar::Tone::Good);
 
-    QImage out(QSize(kScene.width(), kScene.height() + kStripH) * dpr,
-               QImage::Format_ARGB32_Premultiplied);
+    // 贴图:悬停态(关闭按钮 + 主题蓝细边)+ 翻译中角标
+    QImage pinImage = desktop.copy(physical(QRect(600, 30, 300, 180)));
+    pinImage.setDevicePixelRatio(dpr);
+    auto pin = std::make_unique<PinWindow>(pinImage, QPoint(620, stripRect.top() + 170),
+                                           nullptr);
+    pin->setAttribute(Qt::WA_DeleteOnClose, false);
+    pin->setStatusBadge(
+        QCoreApplication::translate("pixora::ScreenTextService", "Translating..."));
+    QEnterEvent enter(QPointF(20, 20), QPointF(20, 20), QPointF(20, 20));
+    QCoreApplication::sendEvent(pin.get(), &enter);
+
+    // 通知:复制(缩略图)+ 保存(点击打开文件夹)
+    auto copiedToast = std::make_unique<ToastWindow>();
+    copiedToast->setAttribute(Qt::WA_DontShowOnScreen);
+    copiedToast->popup(QStringLiteral("Pixora"),
+                       QCoreApplication::translate("main", "Screenshot copied to clipboard"),
+                       {},
+                       desktop.copy(physical(QRect(300, 150, 520, 300))));
+    auto savedToast = std::make_unique<ToastWindow>();
+    savedToast->setAttribute(Qt::WA_DontShowOnScreen);
+    savedToast->popup(QStringLiteral("Pixora"),
+                      QCoreApplication::translate("main", "Screenshot saved: %1")
+                          .arg(QStringLiteral("Pixora_20261004_153012.png")),
+                      QUrl::fromLocalFile(QStringLiteral("C:/Users/Public/Pictures")).toString());
+
+    QImage out(fullRect.size() * dpr, QImage::Format_ARGB32_Premultiplied);
     out.setDevicePixelRatio(dpr);
     QPainter p(&out);
     p.drawPixmap(0, 0, grabHidden(overlay.get()));
@@ -131,14 +173,23 @@ bool renderUiGallery(const QString& outPath) {
     ctx.widgetSize = kScene;
     Magnifier::draw(p, ctx);
 
-    // 下方条带:中灰底,工具激活态工具栏、长截图控制条、右下通知卡
-    p.drawImage(stripRect, blank, QRect(stripRect.topLeft() * dpr, stripRect.size() * dpr));
+    // 下方条带:中灰底
+    p.drawImage(stripRect, blank, physical(stripRect));
     p.drawPixmap(toolToolbar->pos(), grabHidden(toolToolbar.get()));
+    p.drawImage(region, desktop, physical(QRect(30, 30, region.width(), region.height())));
+    p.drawPixmap(indicator->pos(), grabHidden(indicator.get()));
+    p.drawPixmap(preview->pos(), grabHidden(preview.get()));
     p.drawPixmap(scrollBar->pos(), grabHidden(scrollBar.get()));
-    const QPixmap toastPm = grabHidden(toast.get());
-    p.drawPixmap(stripRect.right() - toastPm.deviceIndependentSize().toSize().width() - 20,
-                 stripRect.bottom() - toastPm.deviceIndependentSize().toSize().height() - 20,
-                 toastPm);
+    p.drawPixmap(pin->pos(), grabHidden(pin.get()));
+
+    const QPixmap savedPm = grabHidden(savedToast.get());
+    const QPixmap copiedPm = grabHidden(copiedToast.get());
+    const QSize savedSize = savedPm.deviceIndependentSize().toSize();
+    const QSize copiedSize = copiedPm.deviceIndependentSize().toSize();
+    p.drawPixmap(stripRect.right() - savedSize.width() - 10,
+                 stripRect.bottom() - savedSize.height() - 10, savedPm);
+    p.drawPixmap(stripRect.right() - copiedSize.width() - 10,
+                 stripRect.bottom() - savedSize.height() - copiedSize.height() - 4, copiedPm);
     p.end();
 
     if (!out.save(outPath)) {

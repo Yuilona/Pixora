@@ -30,73 +30,74 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../src/main.cpp" line="126"/>
+        <location filename="../src/main.cpp" line="128"/>
         <source>Pixora exited abnormally last time</source>
         <translation>Pixora 上次异常退出</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="127"/>
+        <location filename="../src/main.cpp" line="129"/>
         <source>A diagnostic file was written; please attach the logs and the crashes folder when reporting the issue</source>
         <translation>已生成诊断文件;反馈问题时请附上日志与 crashes 目录</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="140"/>
-        <location filename="../src/ui/dev/UiGallery.cpp" line="116"/>
+        <location filename="../src/main.cpp" line="147"/>
+        <location filename="../src/ui/dev/UiGallery.cpp" line="151"/>
         <source>Screenshot copied to clipboard</source>
         <translation>截图已复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="145"/>
+        <location filename="../src/main.cpp" line="154"/>
+        <location filename="../src/ui/dev/UiGallery.cpp" line="157"/>
         <source>Screenshot saved: %1</source>
         <translation>截图已保存:%1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="191"/>
+        <location filename="../src/main.cpp" line="201"/>
         <source>Color %1 copied</source>
         <translation>已复制颜色 %1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="229"/>
+        <location filename="../src/main.cpp" line="239"/>
         <source>Scrolling capture copied (%1 px tall)</source>
         <translation>长截图已复制(高 %1 px)</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="238"/>
+        <location filename="../src/main.cpp" line="249"/>
         <source>Scrolling capture saved: %1</source>
         <translation>长截图已保存:%1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="255"/>
+        <location filename="../src/main.cpp" line="267"/>
         <source>Recognized text copied (%1 lines)</source>
         <translation>已复制识别文字(%1 行)</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="261"/>
+        <location filename="../src/main.cpp" line="273"/>
         <source>OCR / Translate</source>
         <translation>OCR / 翻译</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="271"/>
+        <location filename="../src/main.cpp" line="283"/>
         <source>No image in the clipboard</source>
         <translation>剪贴板中没有图像</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="278"/>
+        <location filename="../src/main.cpp" line="290"/>
         <source>Hotkey registration failed</source>
         <translation>热键注册失败</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="280"/>
+        <location filename="../src/main.cpp" line="292"/>
         <source>The %1 hotkey %2 may be taken by another program; change it in tray menu &gt; Settings</source>
         <translation>%1热键 %2 可能已被其它程序占用,请在托盘菜单 → 设置中更换</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="300"/>
+        <location filename="../src/main.cpp" line="312"/>
         <source>Update available</source>
         <translation>发现新版本</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="301"/>
+        <location filename="../src/main.cpp" line="313"/>
         <source>Pixora %1 is out (you have %2) - click to open the download page</source>
         <translation>Pixora %1 已发布(当前 %2),点击打开下载页</translation>
     </message>
@@ -290,47 +291,52 @@ Every capture you copy, save or pin is kept here automatically</source>
 <context>
     <name>pixora::PinWindow</name>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="35"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="40"/>
         <source>Pixora pin</source>
         <translation>Pixora 贴图</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="335"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="384"/>
+        <source>Opacity %1%</source>
+        <translation>不透明度 %1%</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="429"/>
         <source>Copy image</source>
         <translation>复制图像</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="338"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="432"/>
         <source>Save as...</source>
         <translation>另存为…</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="340"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="434"/>
         <source>Unfold</source>
         <translation>展开</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="340"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="434"/>
         <source>Fold into a slim bar</source>
         <translation>折叠</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="343"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="437"/>
         <source>Rotate 90°</source>
         <translation>旋转 90°</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="344"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="438"/>
         <source>Flip horizontally</source>
         <translation>水平翻转</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="348"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="442"/>
         <source>Click-through (turn off via tray menu)</source>
         <translation>点击穿透(经托盘菜单关闭)</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="353"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="447"/>
         <source>Close pin</source>
         <translation>关闭贴图</translation>
     </message>
@@ -350,6 +356,7 @@ Every capture you copy, save or pin is kept here automatically</source>
     </message>
     <message>
         <location filename="../src/app/ScreenTextService.cpp" line="58"/>
+        <location filename="../src/ui/dev/UiGallery.cpp" line="143"/>
         <source>Translating...</source>
         <translation>翻译中…</translation>
     </message>
@@ -393,67 +400,64 @@ Every capture you copy, save or pin is kept here automatically</source>
 <context>
     <name>pixora::ScrollCaptureBar</name>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="28"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="124"/>
         <source>Scroll the target window to start stitching...</source>
         <translation>滚动目标窗口开始拼接…</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="36"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="90"/>
         <source>Auto-scroll</source>
         <translation>自动滚动</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="52"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="110"/>
         <source>Finish and pin</source>
         <translation>完成并贴图</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="54"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="112"/>
         <source>Finish and save</source>
         <translation>完成并另存</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="56"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="114"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="58"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="116"/>
         <source>Finish and copy (F1)</source>
         <translation>完成并复制 (F1)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="119"/>
+        <source>Copy</source>
+        <translation>复制</translation>
     </message>
 </context>
 <context>
     <name>pixora::ScrollCaptureService</name>
     <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="147"/>
+        <location filename="../src/app/ScrollCaptureService.cpp" line="146"/>
+        <location filename="../src/app/ScrollCaptureService.cpp" line="271"/>
         <source>Auto-scrolling...</source>
         <translation>自动滚动中…</translation>
     </message>
     <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="148"/>
+        <location filename="../src/app/ScrollCaptureService.cpp" line="147"/>
         <source>Scroll the target window to keep stitching...</source>
         <translation>滚动目标窗口继续拼接…</translation>
     </message>
     <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="172"/>
+        <location filename="../src/app/ScrollCaptureService.cpp" line="173"/>
         <source>First frame captured, scroll the target window...</source>
         <translation>已捕获首帧,滚动目标窗口…</translation>
     </message>
     <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="268"/>
-        <source>Stitched %1 px (%2 frames)%3</source>
-        <translation>已拼接 %1 px(%2 帧)%3</translation>
-    </message>
-    <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="271"/>
-        <source>, auto-scrolling...</source>
-        <translation>,自动滚动中…</translation>
-    </message>
-    <message>
         <location filename="../src/app/ScrollCaptureService.cpp" line="272"/>
-        <source>, press F1 or the check button to finish</source>
-        <translation>,完成后按 F1 或点对勾</translation>
+        <location filename="../src/ui/dev/UiGallery.cpp" line="131"/>
+        <source>Keep scrolling; press F1 or Copy to finish</source>
+        <translation>继续滚动,按 F1 或点“复制”完成</translation>
     </message>
     <message>
         <location filename="../src/app/ScrollCaptureService.cpp" line="286"/>
@@ -461,12 +465,12 @@ Every capture you copy, save or pin is kept here automatically</source>
         <translation>滚轮无效,已改用 PageDown 驱动…</translation>
     </message>
     <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="300"/>
+        <location filename="../src/app/ScrollCaptureService.cpp" line="301"/>
         <source>Auto-scroll lost alignment; switched back to manual, please scroll by hand</source>
         <translation>自动滚动对齐失败,已切回手动,请手动滚动</translation>
     </message>
     <message>
-        <location filename="../src/app/ScrollCaptureService.cpp" line="305"/>
+        <location filename="../src/app/ScrollCaptureService.cpp" line="307"/>
         <source>Could not align: scroll back a little and go slower</source>
         <translation>未能对齐:请往回滚动少许,放慢速度</translation>
     </message>
@@ -474,12 +478,12 @@ Every capture you copy, save or pin is kept here automatically</source>
 <context>
     <name>pixora::ScrollPreview</name>
     <message>
-        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="80"/>
-        <source>Stitched %1 px</source>
-        <translation>已拼 %1 px</translation>
+        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="93"/>
+        <source>Preview</source>
+        <translation>预览</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="85"/>
+        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="104"/>
         <source>Waiting for the first frame...</source>
         <translation>等待首帧…</translation>
     </message>
@@ -724,6 +728,14 @@ Every capture you copy, save or pin is kept here automatically</source>
         <location filename="../src/ui/settings/SettingsDialog.cpp" line="360"/>
         <source>Couldn&apos;t turn on start at login. Security software may have blocked it - allow Pixora to change startup items in your antivirus, then try again.</source>
         <translation>无法开启开机自动启动,可能被安全软件拦截。请在杀毒软件中允许 Pixora 修改启动项后重试。</translation>
+    </message>
+</context>
+<context>
+    <name>pixora::ToastWindow</name>
+    <message>
+        <location filename="../src/ui/notify/ToastWindow.cpp" line="77"/>
+        <source>Click to open the folder</source>
+        <translation>点击打开所在文件夹</translation>
     </message>
 </context>
 <context>

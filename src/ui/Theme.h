@@ -38,6 +38,8 @@ inline QColor accent() { return {45, 124, 246}; }           // 主题蓝
 inline QColor accentHover() { return {0x4A, 0x90, 0xF8}; }
 inline QColor accentPressed() { return {0x25, 0x66, 0xCC}; }
 inline QColor danger() { return {0xE5, 0x48, 0x4D}; }       // 错误/冲突提示
+inline QColor success() { return {0x3D, 0xB8, 0x6B}; }      // 进行顺利(拼接中)
+inline QColor warning() { return {0xF5, 0xA5, 0x24}; }      // 需注意(对不齐/长截图区域框)
 inline QColor lightWindowBg() { return {0xF5, 0xF6, 0xF8}; } // 浅色窗体底
 inline QColor hudIcon() { return {0xE4, 0xE6, 0xEA}; }        // HUD 图标线条
 // 叠在截图内容上的小信息块底色(尺寸标签/放大镜信息栏/贴图角标):
@@ -71,7 +73,8 @@ inline constexpr qreal toast = 10;  // 通知卡
 //(配合 WA_TranslucentBackground);定位时按卡片而非窗口对齐。
 inline constexpr int kShadowMargin = 14;
 
-// 在 card 外围画两层柔和投影(近处主影 + 大范围环境影),结果按尺寸缓存
+// 在 card 外围画两层柔和投影(近处主影 + 大范围环境影);九宫格拉伸,
+// 任意尺寸(含超长贴图)成本恒定
 void paintShadow(QPainter& p, const QRect& card, qreal radius);
 
 // 圆角悬浮卡片底(工具栏/控制条/通知卡共用):

@@ -3,6 +3,7 @@
 #include "ui/Theme.h"
 
 #include <QDesktopServices>
+#include <QEnterEvent>
 #include <QEasingCurve>
 #include <QFontMetrics>
 #include <QGuiApplication>
@@ -19,6 +20,7 @@ namespace {
 constexpr int kMargin = 16;       // 距屏幕角
 constexpr int kPadding = 14;      // 卡片内边距
 constexpr int kLogoSize = 28;
+constexpr QSize kThumbMax(64, 48); // 缩略图最大逻辑尺寸
 constexpr int kGap = 12;          // logo 与文字间距
 constexpr int kMaxTextWidth = 320;
 constexpr int kShowMs = 3500;
@@ -68,10 +70,25 @@ ToastWindow::ToastWindow() {
 }
 
 void ToastWindow::popup(const QString& title, const QString& message,
-                        const QString& link) {
+                        const QString& link, const QImage& thumbnail) {
     title_ = title;
     message_ = message;
     link_ = link;
+    hint_ = QUrl(link).isLocalFile() ? tr("Click to open the folder") : QString();
+    thumb_ = {};
+    if (!thumbnail.isNull()) {
+        // 长截图等瘦高图只取顶部 4:3 一段,否则缩成一根细条认不出
+        QImage source = thumbnail;
+        if (source.height() > source.width() * 3 / 2) {
+            source = source.copy(0, 0, source.width(), source.width() * 3 / 4);
+        }
+        const qreal dpr = devicePixelRatioF();
+        thumb_ = QPixmap::fromImage(source.scaled(kThumbMax * dpr, Qt::KeepAspectRatio,
+                                                     Qt::SmoothTransformation));
+        thumb_.setDevicePixelRatio(dpr);
+    }
+    const QSize lead = thumb_.isNull() ? QSize(kLogoSize, kLogoSize)
+                                       : thumb_.deviceIndependentSize().toSize();
 
     const QFont titleFont = theme::font(theme::fontsize::label, /*bold=*/true);
     const QFont bodyFont = theme::font(theme::fontsize::body);
@@ -83,11 +100,12 @@ void ToastWindow::popup(const QString& title, const QString& message,
     const int textWidth = std::clamp(
         std::max(titleFm.horizontalAdvance(title_), bodyRect.width()), 120,
         kMaxTextWidth);
-    const int textHeight = titleFm.height() + 4 + bodyRect.height();
+    const int hintHeight = hint_.isEmpty() ? 0 : bodyFm.height() + 2;
+    const int textHeight = titleFm.height() + 4 + bodyRect.height() + hintHeight;
 
     // 窗口 = 卡片 + 四周阴影边距;定位按卡片对齐屏幕角
-    const int cardW = kPadding * 2 + kLogoSize + kGap + textWidth;
-    const int cardH = kPadding * 2 + std::max(kLogoSize, textHeight);
+    const int cardW = kPadding * 2 + lead.width() + kGap + textWidth;
+    const int cardH = kPadding * 2 + std::max(lead.height(), textHeight);
     constexpr int m = theme::kShadowMargin;
     resize(cardW + 2 * m, cardH + 2 * m);
 
@@ -113,7 +131,7 @@ void ToastWindow::popup(const QString& title, const QString& message,
         enterPos_->setEndValue(target);
         enter_->start();
     }
-    hideTimer_.start();
+    hideTimer_.start(kShowMs);
 }
 
 void ToastWindow::startExit() {
@@ -135,6 +153,18 @@ void ToastWindow::mousePressEvent(QMouseEvent* /*event*/) {
     hide();
 }
 
+void ToastWindow::enterEvent(QEnterEvent* event) {
+    hideTimer_.stop(); // 悬停阅读时不消失
+    QWidget::enterEvent(event);
+}
+
+void ToastWindow::leaveEvent(QEvent* event) {
+    if (isVisible() && exit_->state() != QAbstractAnimation::Running) {
+        hideTimer_.start(1500);
+    }
+    QWidget::leaveEvent(event);
+}
+
 void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
@@ -146,17 +176,34 @@ void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
     const int cardW = width() - 2 * m;
     const int cardH = height() - 2 * m;
 
-    const int logoY = (cardH - kLogoSize) / 2;
-    p.drawPixmap(kPadding, logoY, kLogoSize, kLogoSize, logo_);
+    QSize lead(kLogoSize, kLogoSize);
+    if (thumb_.isNull()) {
+        p.drawPixmap(kPadding, (cardH - kLogoSize) / 2, kLogoSize, kLogoSize, logo_);
+    } else {
+        lead = thumb_.deviceIndependentSize().toSize();
+        const QRect r(QPoint(kPadding, (cardH - lead.height()) / 2), lead);
+        QPainterPath clip;
+        clip.addRoundedRect(QRectF(r), theme::corner::chip, theme::corner::chip);
+        p.save();
+        p.setClipPath(clip);
+        p.drawPixmap(r, thumb_);
+        p.restore();
+        p.setPen(QPen(theme::hairline(), 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(QRectF(r).adjusted(0.5, 0.5, -0.5, -0.5), theme::corner::chip,
+                          theme::corner::chip);
+    }
 
     const QFont titleFont = theme::font(theme::fontsize::label, /*bold=*/true);
     const QFont bodyFont = theme::font(theme::fontsize::body);
     const QFontMetrics titleFm(titleFont);
 
-    const int textX = kPadding + kLogoSize + kGap;
+    const QFontMetrics bodyFm(bodyFont);
+    const int textX = kPadding + lead.width() + kGap;
     const int textW = cardW - textX - kPadding;
+    const int hintHeight = hint_.isEmpty() ? 0 : bodyFm.height() + 2;
     const QRect bodyArea(textX, kPadding + titleFm.height() + 4, textW,
-                         cardH - kPadding * 2 - titleFm.height() - 4);
+                         cardH - kPadding * 2 - titleFm.height() - 4 - hintHeight);
 
     p.setFont(titleFont);
     p.setPen(theme::text());
@@ -165,6 +212,11 @@ void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
     p.setFont(bodyFont);
     p.setPen(theme::textDim());
     p.drawText(bodyArea, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, message_);
+    if (!hint_.isEmpty()) {
+        p.setPen(theme::accentHover());
+        p.drawText(QRect(textX, bodyArea.bottom() + 1, textW, hintHeight),
+                   Qt::AlignLeft | Qt::AlignBottom, hint_);
+    }
 }
 
 } // namespace pixora

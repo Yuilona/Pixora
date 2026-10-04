@@ -43,7 +43,7 @@ public:
     enum class Outlet { Copy, Pin, Save };
 
 signals:
-    void copiedToClipboard(int logicalHeight);
+    void copiedToClipboard(int logicalHeight, const QImage& image);
     void pinCaptured(const QImage& image, const QPoint& topLeftLogical);
     void savedToFile(const QString& path);
 

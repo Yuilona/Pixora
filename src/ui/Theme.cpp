@@ -4,6 +4,7 @@
 #include <QImage>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -94,23 +95,53 @@ QImage makeShadow(const QSize& card, qreal radius, int blur, int alpha) {
 } // namespace
 
 void paintShadow(QPainter& p, const QRect& card, qreal radius) {
-    // 卡片尺寸随内容变(通知卡按文字量),缓存设上限防止无界增长
+    // 九宫格:按"能容纳完整圆角 + 模糊衰减"的最小卡片生成一张投影,
+    // 四角原样贴、四边拉伸、中心由卡片覆盖。成本与卡片尺寸无关——
+    // 贴出几千像素高的长截图也只缓存几十像素见方的小图。
+    // 卡片小于最小切片时退化为按实际尺寸整张生成(小图本身就便宜)。
     static QHash<QString, QImage> cache;
-    if (cache.size() > 32) {
+    if (cache.size() > 64) {
         cache.clear();
     }
     for (const ShadowLayer& layer : kLayers) {
+        const int b = layer.blur;
+        const int c = static_cast<int>(std::ceil(radius)) + b + 1; // 角区(卡片内)
+        const bool sliced = card.width() > 2 * c && card.height() > 2 * c;
+        const QSize tileCard = sliced ? QSize(2 * c + 1, 2 * c + 1) : card.size();
         const QString key = QStringLiteral("%1x%2/%3/%4/%5")
-                                .arg(card.width())
-                                .arg(card.height())
+                                .arg(tileCard.width())
+                                .arg(tileCard.height())
                                 .arg(radius)
-                                .arg(layer.blur)
+                                .arg(b)
                                 .arg(layer.alpha);
         auto it = cache.find(key);
         if (it == cache.end()) {
-            it = cache.insert(key, makeShadow(card.size(), radius, layer.blur, layer.alpha));
+            it = cache.insert(key, makeShadow(tileCard, radius, b, layer.alpha));
         }
-        p.drawImage(card.topLeft() + QPoint(-layer.blur, -layer.blur + layer.dy), *it);
+        const QImage& img = *it;
+        const QRect target = card.adjusted(-b, -b, b, b).translated(0, layer.dy);
+        if (!sliced) {
+            p.drawImage(target.topLeft(), img);
+            continue;
+        }
+        const int k = b + c;                // 切片角边长(含外扩)
+        const int tw = target.width() - 2 * k;  // 拉伸段长度
+        const int th = target.height() - 2 * k;
+        const int x[] = {target.left(), target.left() + k, target.right() - k + 1};
+        const int y[] = {target.top(), target.top() + k, target.bottom() - k + 1};
+        const int w[] = {k, tw, k};
+        const int h[] = {k, th, k};
+        const int sx[] = {0, k, k + 1};
+        const int sw[] = {k, 1, k};
+        for (int row = 0; row < 3; ++row) {
+            for (int col = 0; col < 3; ++col) {
+                if (row == 1 && col == 1) {
+                    continue; // 中心被卡片盖住
+                }
+                p.drawImage(QRect(x[col], y[row], w[col], h[row]), img,
+                            QRect(sx[col], sx[row], sw[col], sw[row]));
+            }
+        }
     }
 }
 

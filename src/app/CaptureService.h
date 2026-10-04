@@ -41,7 +41,7 @@ public:
     bool isActive() const { return session_ != nullptr; }
 
 signals:
-    void copiedToClipboard();
+    void copiedToClipboard(const QImage& image);
     void savedToFile(const QString& path);
     void pinCaptured(const QImage& image, const QPoint& topLeftLogical);
     // 工具栏[长截图]:拆掉遮罩后把选区交给 ScrollCaptureService 接管

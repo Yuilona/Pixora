@@ -23,6 +23,7 @@
 
 #include <QApplication>
 #include <QCursor>
+#include <QFileInfo>
 #include <QIcon>
 #include <QLocale>
 #include <QPointer>
@@ -30,6 +31,7 @@
 #include <QStyleFactory>
 #include <QTimer>
 #include <QTranslator>
+#include <QUrl>
 
 #include <spdlog/spdlog.h>
 
@@ -135,16 +137,24 @@ int main(int argc, char* argv[]) {
     pixora::HistoryService history(&settings);
     pixora::CaptureService capture(*screenCapturer, windowEnumerator.get(),
                                    elementLocator.get(), &settings, &history);
-    QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray, [&tray] {
-        tray.notify(QStringLiteral("Pixora"),
-                    QCoreApplication::translate("main", "Screenshot copied to clipboard"));
-    });
+    // 保存通知只写文件名(整条路径没有断点,折行难看),点击打开所在文件夹
+    const auto folderLink = [](const QString& path) {
+        return QUrl::fromLocalFile(QFileInfo(path).absolutePath()).toString();
+    };
+    QObject::connect(&capture, &pixora::CaptureService::copiedToClipboard, &tray,
+                     [&tray](const QImage& image) {
+                         tray.notify(QStringLiteral("Pixora"),
+                                     QCoreApplication::translate(
+                                         "main", "Screenshot copied to clipboard"),
+                                     {}, image);
+                     });
     QObject::connect(&capture, &pixora::CaptureService::savedToFile, &tray,
-                     [&tray](const QString& path) {
+                     [&tray, folderLink](const QString& path) {
                          tray.notify(QStringLiteral("Pixora"),
                                      QCoreApplication::translate(
                                          "main", "Screenshot saved: %1")
-                                         .arg(path));
+                                         .arg(QFileInfo(path).fileName()),
+                                     folderLink(path));
                      });
     QObject::connect(&tray, &pixora::TrayService::captureRequested, &capture,
                      [&capture] { capture.start(); });
@@ -224,20 +234,22 @@ int main(int argc, char* argv[]) {
                      &scrollCapture,
                      [&scrollCapture](const QRect& region) { scrollCapture.start(region); });
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::copiedToClipboard,
-                     &tray, [&tray](int height) {
+                     &tray, [&tray](int height, const QImage& image) {
                          tray.notify(QStringLiteral("Pixora"),
                                      QCoreApplication::translate(
                                          "main", "Scrolling capture copied (%1 px tall)")
-                                         .arg(height));
+                                         .arg(height),
+                                     {}, image);
                      });
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::pinCaptured, &pins,
                      &pixora::PinService::pinImage);
     QObject::connect(&scrollCapture, &pixora::ScrollCaptureService::savedToFile, &tray,
-                     [&tray](const QString& path) {
+                     [&tray, folderLink](const QString& path) {
                          tray.notify(QStringLiteral("Pixora"),
                                      QCoreApplication::translate(
                                          "main", "Scrolling capture saved: %1")
-                                         .arg(path));
+                                         .arg(QFileInfo(path).fileName()),
+                                     folderLink(path));
                      });
     // 提取文字 / 截图翻译(无感替换为译文贴图)
     pixora::ScreenTextService textService(&settings, &pins);
