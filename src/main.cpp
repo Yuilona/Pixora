@@ -46,7 +46,11 @@ int main(int argc, char* argv[]) {
     // 与系统浅色标题栏衔接;悬浮 HUD(工具栏/通知卡)保持暗色(见 ui/Theme.h)
     QApplication::setStyle(new pixora::theme::DropDownStyle(
         QStyleFactory::create(QStringLiteral("Fusion"))));
-    QPalette palette = QApplication::palette();
+    // 固定浅色调色板:Qt 6 默认跟随系统深色模式换深色调色板,而文档型窗口的
+    // 样式表是浅色系——两者混用时未被样式表覆盖的区域(滚动区、对话框子控件)
+    // 会继承深色底。悬浮 HUD 全部自绘,不受调色板影响
+    QPalette palette = QApplication::style()->standardPalette();
+    palette.setColor(QPalette::Window, pixora::theme::lightWindowBg());
     palette.setColor(QPalette::Highlight, pixora::theme::accent());
     palette.setColor(QPalette::HighlightedText, Qt::white);
     QApplication::setPalette(palette);
@@ -221,14 +225,17 @@ int main(int argc, char* argv[]) {
                          capture.start();
                      });
     // 重做上次选区:以缓存的上次选区直接发起截图(默认不绑定热键)
+    const auto repeatLastRegion = [&capture, &scrollCapture] {
+        spdlog::info("repeat last region requested");
+        if (scrollCapture.isActive()) {
+            return;
+        }
+        capture.startRepeatLastRegion();
+    };
     QObject::connect(&hotkeys, &pixora::HotkeyService::repeatLastRegionRequested,
-                     &capture, [&capture, &scrollCapture] {
-                         spdlog::info("hotkey: repeat last region requested");
-                         if (scrollCapture.isActive()) {
-                             return;
-                         }
-                         capture.startRepeatLastRegion();
-                     });
+                     &capture, repeatLastRegion);
+    QObject::connect(&tray, &pixora::TrayService::repeatLastRegionRequested, &capture,
+                     repeatLastRegion);
     // 工具栏[长截图]:截图选区移交给滚动拼接
     QObject::connect(&capture, &pixora::CaptureService::scrollCaptureRequested,
                      &scrollCapture,
@@ -275,15 +282,17 @@ int main(int argc, char* argv[]) {
                                      reason);
                      });
 
+    const auto pinFromClipboard = [&pins, &tray] {
+        spdlog::info("pin from clipboard requested");
+        if (!pins.pinFromClipboard()) {
+            tray.notify(QStringLiteral("Pixora"),
+                        QCoreApplication::translate("main", "No image in the clipboard"));
+        }
+    };
     QObject::connect(&hotkeys, &pixora::HotkeyService::pinRequested, &pins,
-                     [&pins, &tray] {
-                         spdlog::info("hotkey: pin requested");
-                         if (!pins.pinFromClipboard()) {
-                             tray.notify(QStringLiteral("Pixora"),
-                                         QCoreApplication::translate(
-                                             "main", "No image in the clipboard"));
-                         }
-                     });
+                     pinFromClipboard);
+    QObject::connect(&tray, &pixora::TrayService::pinFromClipboardRequested, &pins,
+                     pinFromClipboard);
     QObject::connect(&hotkeys, &pixora::HotkeyService::registrationFailed, &tray,
                      [&tray](const QString& action, const QKeySequence& seq) {
                          tray.notify(
@@ -296,6 +305,18 @@ int main(int argc, char* argv[]) {
                                  .arg(action, seq.toString(QKeySequence::NativeText)));
                      });
     hotkeys.registerAll();
+    // 托盘菜单显示当前热键;改键后随设置刷新
+    const auto syncTrayHotkeys = [&tray, &settings] {
+        tray.setHotkeys(settings.hotkeyCaptureRegion(), settings.hotkeyPinFromClipboard(),
+                        settings.hotkeyRepeatLastRegion());
+    };
+    syncTrayHotkeys();
+    QObject::connect(&settings, &pixora::SettingsService::changed, &tray,
+                     [syncTrayHotkeys](const QString& key) {
+                         if (key.startsWith(QLatin1String("hotkeys/"))) {
+                             syncTrayHotkeys();
+                         }
+                     });
 
     // 更新检查:启动 5s 后拉 GitHub Releases(不挡启动路径),
     // 有新版弹通知卡,点击打开下载页;设置可关。
@@ -341,7 +362,8 @@ int main(int argc, char* argv[]) {
 
     QPointer<pixora::SettingsDialog> settingsDialog;
     QObject::connect(&tray, &pixora::TrayService::settingsRequested, &tray,
-                     [&settings, &hotkeys, &systemIntegration, &settingsDialog] {
+                     [&settings, &hotkeys, &systemIntegration, &settingsDialog,
+                      &textService, &updateChecker] {
                          if (settingsDialog) {
                              settingsDialog->raise();
                              settingsDialog->activateWindow();
@@ -356,6 +378,45 @@ int main(int argc, char* argv[]) {
                          QObject::connect(settingsDialog,
                                           &pixora::SettingsDialog::applied, &hotkeys,
                                           &pixora::HotkeyService::reregisterAll);
+                         // 测试连接 / 检查更新:对话框只发请求,结果回填
+                         QObject::connect(
+                             settingsDialog, &pixora::SettingsDialog::ocrTestRequested,
+                             &textService,
+                             [&textService](const QString& protocol, const QString& baseUrl,
+                                            const QString& apiKey, const QString& model) {
+                                 textService.testOcr({protocol, baseUrl, apiKey, model});
+                             });
+                         QObject::connect(&textService,
+                                          &pixora::ScreenTextService::ocrTestFinished,
+                                          settingsDialog,
+                                          &pixora::SettingsDialog::showOcrTestResult);
+                         QObject::connect(
+                             settingsDialog,
+                             &pixora::SettingsDialog::translateTestRequested, &textService,
+                             [&textService](const QString& protocol, const QString& baseUrl,
+                                            const QString& apiKey, const QString& appId,
+                                            const QString& model, const QString& lang) {
+                                 textService.testTranslate(
+                                     {protocol, baseUrl, apiKey, appId, model, lang});
+                             });
+                         QObject::connect(&textService,
+                                          &pixora::ScreenTextService::translateTestFinished,
+                                          settingsDialog,
+                                          &pixora::SettingsDialog::showTranslateTestResult);
+                         QObject::connect(settingsDialog,
+                                          &pixora::SettingsDialog::updateCheckRequested,
+                                          &updateChecker, &pixora::UpdateChecker::checkNow);
+                         QObject::connect(
+                             &updateChecker, &pixora::UpdateChecker::manualCheckFinished,
+                             settingsDialog,
+                             [dialog = settingsDialog.data()](
+                                 pixora::UpdateChecker::Outcome outcome,
+                                 const QString& version, const QString& url) {
+                                 using Outcome = pixora::UpdateChecker::Outcome;
+                                 dialog->showUpdateCheckResult(outcome != Outcome::Failed,
+                                                               outcome == Outcome::NewVersion,
+                                                               version, url);
+                             });
                          settingsDialog->show();
                          settingsDialog->raise();
                          settingsDialog->activateWindow();

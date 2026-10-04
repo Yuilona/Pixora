@@ -2,6 +2,7 @@
 
 #include "ui/notify/ToastWindow.h"
 #include "ui/Theme.h"
+#include "ui/ToolIcons.h"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -38,20 +39,43 @@ void TrayService::buildMenu() {
         QStringLiteral("Pixora %1").arg(QApplication::applicationVersion()));
     title->setEnabled(false);
     menu_.addSeparator();
-    menu_.addAction(tr("Capture") + QStringLiteral("\tF1"), this,
-                    [this] { emit captureRequested(); });
-    menu_.addAction(tr("Pick color"), this,
+
+    // 菜单项:图标 + 文案 + 右对齐的当前热键(\t 后为快捷键列)
+    const auto withKey = [](const QString& text, const QKeySequence& key) {
+        return key.isEmpty() ? text
+                             : text + QLatin1Char('\t') +
+                                   key.toString(QKeySequence::NativeText);
+    };
+    menu_.addAction(icons::lightIcon("screenshot"), withKey(tr("Capture"), captureKey_),
+                    this, [this] { emit captureRequested(); });
+    menu_.addAction(icons::lightIcon("clipboard_image"),
+                    withKey(tr("Pin from clipboard"), pinKey_), this,
+                    [this] { emit pinFromClipboardRequested(); });
+    menu_.addAction(icons::lightIcon("arrow_counterclockwise"),
+                    withKey(tr("Repeat last region"), repeatKey_), this,
+                    [this] { emit repeatLastRegionRequested(); });
+    menu_.addAction(icons::lightIcon("eyedropper"), tr("Pick color"), this,
                     [this] { emit colorPickRequested(); });
-    menu_.addAction(tr("Close all pins"), this,
+    menu_.addSeparator();
+    menu_.addAction(icons::lightIcon("pin_off"), tr("Close all pins"), this,
                     [this] { emit closeAllPinsRequested(); });
+    menu_.addAction(icons::lightIcon("history"), tr("History..."), this,
+                    [this] { emit historyRequested(); });
+    menu_.addAction(icons::lightIcon("settings"), tr("Settings..."), this,
+                    [this] { emit settingsRequested(); });
     menu_.addSeparator();
-    menu_.addAction(tr("History..."), this, [this] { emit historyRequested(); });
-    menu_.addAction(tr("Settings..."), this, [this] { emit settingsRequested(); });
-    menu_.addSeparator();
-    menu_.addAction(tr("Quit"), [] { QCoreApplication::quit(); });
+    menu_.addAction(icons::lightIcon("power"), tr("Quit"), [] { QCoreApplication::quit(); });
 }
 
 void TrayService::retranslate() {
+    buildMenu();
+}
+
+void TrayService::setHotkeys(const QKeySequence& capture, const QKeySequence& pin,
+                             const QKeySequence& repeatLastRegion) {
+    captureKey_ = capture;
+    pinKey_ = pin;
+    repeatKey_ = repeatLastRegion;
     buildMenu();
 }
 

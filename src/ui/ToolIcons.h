@@ -33,4 +33,10 @@ QIcon cancelIcon();
 // 主出口按钮上的对勾(白色,落在主题蓝实心底上)
 QIcon primaryConfirmIcon();
 
+// 浅色窗体与菜单用的 Fluent 图标(name 为 resources/icons/fluent 下的
+// 造型名,如 "settings"):深灰线条,菜单高亮行上转白、列表选中项上转主题蓝
+QIcon lightIcon(const char* name);
+// 叠在图片上的白色图标(历史卡片悬停操作等,底下自带深色衬底)
+QIcon onImageIcon(const char* name);
+
 } // namespace pixora::icons

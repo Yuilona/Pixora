@@ -29,17 +29,26 @@ public:
     void extractText(const QImage& image);
     void translateInPlace(const QImage& image, const QRect& regionGlobal);
 
+    // 设置面板"测试连接":用表单当前值(可未保存)发一次最小请求,
+    // 结果经 *TestFinished 回报。独立的临时客户端,不干扰进行中的任务。
+    void testOcr(const OcrClient::Config& config);
+    void testTranslate(const TranslateClient::Config& config);
+
 signals:
     void started(const QString& message); // 任务开始(供托盘提示进行中)
     void textCopied(int lineCount);
     void translateFinished(int lineCount);
     void failed(const QString& reason);
+    void ocrTestFinished(bool ok, const QString& detail);
+    void translateTestFinished(bool ok, const QString& detail);
 
 private:
     void onOcrFinished(const QList<OcrLine>& lines);
     void onTranslated(const QStringList& translations);
     void onFailed(const QString& reason);
     QString configError(bool needTranslate) const;
+    static QString ocrConfigError(const OcrClient::Config& config);
+    static QString translateConfigError(const TranslateClient::Config& config);
     OcrClient::Config ocrConfig() const;
     TranslateClient::Config translateConfig() const;
 

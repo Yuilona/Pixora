@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QImage>
+#include <QKeySequence>
 #include <QMenu>
 #include <QObject>
 #include <QSystemTrayIcon>
@@ -26,9 +27,15 @@ public:
     void notify(const QString& title, const QString& message,
                 const QString& link = {}, const QImage& thumbnail = {});
     void retranslate(); // 语言切换后重建菜单文案
+    QMenu* menuForPreview() { return &menu_; } // 仅 --ui-gallery 离屏渲染用
+    // 菜单项右侧显示的热键(随设置变化刷新;空序列 = 未绑定,不显示)
+    void setHotkeys(const QKeySequence& capture, const QKeySequence& pin,
+                    const QKeySequence& repeatLastRegion);
 
 signals:
     void captureRequested();
+    void pinFromClipboardRequested();
+    void repeatLastRegionRequested();
     void colorPickRequested();
     void closeAllPinsRequested();
     void historyRequested();
@@ -39,6 +46,9 @@ private:
 
     QSystemTrayIcon tray_;
     QMenu menu_;
+    QKeySequence captureKey_{Qt::Key_F1};
+    QKeySequence pinKey_{Qt::Key_F3};
+    QKeySequence repeatKey_;
     std::unique_ptr<ToastWindow> toast_; // 懒创建,复用同一窗口
 };
 

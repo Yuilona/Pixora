@@ -59,6 +59,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     ui/dev/UiGallery.cpp
     ui/editor/AnnotationToolbar.h
     ui/editor/AnnotationToolbar.cpp
+    ui/history/FlowLayout.h
+    ui/history/FlowLayout.cpp
     ui/history/HistoryWindow.h
     ui/history/HistoryWindow.cpp
     ui/notify/ToastWindow.h

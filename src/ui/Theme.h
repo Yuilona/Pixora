@@ -41,6 +41,7 @@ inline QColor danger() { return {0xE5, 0x48, 0x4D}; }       // 错误/冲突提�
 inline QColor success() { return {0x3D, 0xB8, 0x6B}; }      // 进行顺利(拼接中)
 inline QColor warning() { return {0xF5, 0xA5, 0x24}; }      // 需注意(对不齐/长截图区域框)
 inline QColor lightWindowBg() { return {0xF5, 0xF6, 0xF8}; } // 浅色窗体底
+inline QColor successOnLight() { return {0x1E, 0x8E, 0x4E}; } // 浅底上的成功文字
 inline QColor hudIcon() { return {0xE4, 0xE6, 0xEA}; }        // HUD 图标线条
 // 叠在截图内容上的小信息块底色(尺寸标签/放大镜信息栏/贴图角标):
 // 任意底图上都要读得清,比卡片底更深更实

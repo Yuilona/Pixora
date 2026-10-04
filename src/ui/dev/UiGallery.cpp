@@ -1,9 +1,13 @@
 #include "ui/dev/UiGallery.h"
 
+#include "app/HistoryService.h"
+#include "app/SettingsService.h"
+#include "app/TrayService.h"
 #include "core/capture/DesktopSnapshot.h"
 #include "core/capture/SnipSession.h"
 #include "ui/Theme.h"
 #include "ui/editor/AnnotationToolbar.h"
+#include "ui/history/HistoryWindow.h"
 #include "ui/notify/ToastWindow.h"
 #include "ui/overlay/Magnifier.h"
 #include "ui/overlay/OverlayWindow.h"
@@ -11,9 +15,18 @@
 #include "ui/scroll/RegionIndicator.h"
 #include "ui/scroll/ScrollCaptureBar.h"
 #include "ui/scroll/ScrollPreview.h"
+#include "ui/settings/SettingsDialog.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QEnterEvent>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QListWidget>
+#include <QMenu>
+#include <QTemporaryDir>
 #include <QGuiApplication>
 #include <QPainter>
 #include <QScreen>
@@ -72,6 +85,71 @@ QPixmap grabHidden(QWidget* w) {
         w->show();
     }
     return w->grab();
+}
+
+// 文档型窗口(设置各页 / 历史 / 托盘菜单)各存一张:<out>-settings-N.png 等。
+// 数据全部来自临时目录,不读写用户真实设置与历史。
+void renderWindows(const QString& outPath, const QImage& desktop, qreal dpr) {
+    const QString base = outPath.endsWith(QLatin1String(".png"), Qt::CaseInsensitive)
+                             ? outPath.left(outPath.size() - 4)
+                             : outPath;
+    QTemporaryDir temp;
+    SettingsService settings(temp.filePath(QStringLiteral("gallery.ini")));
+
+    auto dialog = std::make_unique<SettingsDialog>(settings, nullptr);
+    dialog->setAttribute(Qt::WA_DeleteOnClose, false);
+    dialog->setAttribute(Qt::WA_DontShowOnScreen);
+    dialog->show();
+    auto* nav = dialog->findChild<QListWidget*>(QStringLiteral("settingsNav"));
+    for (int i = 0; nav && i < nav->count(); ++i) {
+        nav->setCurrentRow(i);
+        dialog->grab().save(QStringLiteral("%1-settings-%2.png").arg(base).arg(i + 1));
+    }
+
+    // 历史:今天 3 张、昨天 2 张、三天前 1 张(手写清单,时间可控)
+    const QString historyDir = temp.filePath(QStringLiteral("history"));
+    QDir().mkpath(historyDir);
+    const QDateTime now = QDateTime::currentDateTime();
+    const struct {
+        int daysAgo;
+        QRect crop;
+    } samples[] = {
+        {0, QRect(300, 150, 520, 300)}, {0, QRect(30, 30, 500, 260)},
+        {0, QRect(600, 30, 400, 400)},  {1, QRect(40, 80, 300, 500)},
+        {1, QRect(560, 200, 520, 160)}, {3, QRect(100, 300, 700, 300)},
+    };
+    QJsonArray manifest;
+    int seq = 0;
+    for (const auto& s : samples) {
+        const QString id = QStringLiteral("sample_%1").arg(seq);
+        QImage img = desktop.copy(QRect(s.crop.topLeft() * dpr, s.crop.size() * dpr));
+        img.save(QStringLiteral("%1/%2.png").arg(historyDir, id));
+        QJsonObject o;
+        o[QStringLiteral("id")] = id;
+        o[QStringLiteral("time")] =
+            now.addDays(-s.daysAgo).addSecs(-600 * seq).toString(Qt::ISODate);
+        o[QStringLiteral("dpr")] = dpr;
+        manifest.append(o);
+        ++seq;
+    }
+    QFile file(historyDir + QStringLiteral("/history.json"));
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(manifest).toJson());
+        file.close();
+    }
+    HistoryService history(&settings, historyDir);
+    auto historyWindow = std::make_unique<HistoryWindow>(history, &settings);
+    historyWindow->setAttribute(Qt::WA_DeleteOnClose, false);
+    historyWindow->setAttribute(Qt::WA_DontShowOnScreen);
+    historyWindow->show();
+    historyWindow->grab().save(base + QStringLiteral("-history.png"));
+
+    TrayService tray;
+    QMenu* menu = tray.menuForPreview();
+    menu->setAttribute(Qt::WA_DontShowOnScreen);
+    menu->show();
+    menu->grab().save(base + QStringLiteral("-tray.png"));
+    menu->hide();
 }
 
 } // namespace
@@ -196,6 +274,7 @@ bool renderUiGallery(const QString& outPath) {
         spdlog::error("ui gallery: failed to write {}", outPath.toStdString());
         return false;
     }
+    renderWindows(outPath, desktop, dpr);
     spdlog::info("ui gallery written to {}", outPath.toStdString());
     return true;
 }

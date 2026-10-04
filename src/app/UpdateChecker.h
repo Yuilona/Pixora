@@ -24,9 +24,10 @@ inline bool isNewerVersion(const QString& tag, const QString& current) {
     return !latest.isNull() && !mine.isNull() && latest > mine;
 }
 
-// 启动时检查 GitHub Releases 最新版本(设置项可关,默认开)。
-// 仅发现新版时发 updateAvailable;网络失败/解析失败静默,只写日志
-// ——更新检查不该打扰正常使用。
+// 检查 GitHub Releases 最新版本。
+// - 启动检查(设置项可关,默认开):仅发现新版时发 updateAvailable;
+//   网络失败/解析失败静默,只写日志——更新检查不该打扰正常使用;
+// - 手动检查(设置面板"关于"页):无视开关,结果一律经 manualCheckFinished 回报。
 class UpdateChecker : public QObject {
     Q_OBJECT
 public:
@@ -35,11 +36,20 @@ public:
     ~UpdateChecker() override;
 
     void checkOnStartup();
+    void checkNow();
+
+    enum class Outcome { UpToDate, NewVersion, Failed };
+    Q_ENUM(Outcome)
 
 signals:
     void updateAvailable(const QString& version, const QString& url);
+    // version/url 仅 NewVersion 时有效;Failed 时 version 为失败原因
+    void manualCheckFinished(pixora::UpdateChecker::Outcome outcome, const QString& version,
+                             const QString& url);
 
 private:
+    void request(bool manual);
+
     const SettingsService* settings_;
     std::unique_ptr<QNetworkAccessManager> nam_;
 };

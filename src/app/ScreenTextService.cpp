@@ -6,6 +6,7 @@
 #include "ui/pin/PinWindow.h"
 
 #include <QClipboard>
+#include <QPainter>
 #include <QGuiApplication>
 
 #include <spdlog/spdlog.h>
@@ -137,16 +138,22 @@ void ScreenTextService::onFailed(const QString& reason) {
 }
 
 QString ScreenTextService::configError(bool needTranslate) const {
-    const auto ocr = ocrConfig();
+    if (const QString error = ocrConfigError(ocrConfig()); !error.isEmpty()) {
+        return error;
+    }
+    return needTranslate ? translateConfigError(translateConfig()) : QString();
+}
+
+QString ScreenTextService::ocrConfigError(const OcrClient::Config& ocr) {
     if (ocr.protocol == QLatin1String("openai") &&
         (ocr.baseUrl.isEmpty() || ocr.apiKey.isEmpty() || ocr.model.isEmpty())) {
         return tr("Fill in the OCR service endpoint, API key and model in "
                   "Settings first");
     }
-    if (!needTranslate) {
-        return {};
-    }
-    const auto trc = translateConfig();
+    return {};
+}
+
+QString ScreenTextService::translateConfigError(const TranslateClient::Config& trc) {
     if (trc.protocol == QLatin1String("openai") &&
         (trc.baseUrl.isEmpty() || trc.apiKey.isEmpty() || trc.model.isEmpty())) {
         return tr("Fill in the translation service endpoint, API key and model "
@@ -161,6 +168,68 @@ QString ScreenTextService::configError(bool needTranslate) const {
                   "Settings first");
     }
     return {};
+}
+
+void ScreenTextService::testOcr(const OcrClient::Config& config) {
+    if (const QString error = ocrConfigError(config); !error.isEmpty()) {
+        emit ocrTestFinished(false, error);
+        return;
+    }
+    // 样张:白底黑字一行,任何 OCR 都应能认出
+    QImage sample(420, 96, QImage::Format_RGB32);
+    sample.fill(Qt::white);
+    {
+        QPainter p(&sample);
+        QFont font;
+        font.setPixelSize(44);
+        font.setBold(true);
+        p.setFont(font);
+        p.setPen(Qt::black);
+        p.drawText(sample.rect(), Qt::AlignCenter, QStringLiteral("Pixora 2026"));
+    }
+    auto* client = new OcrClient(this);
+    connect(client, &OcrClient::finished, this, [this, client](const QList<OcrLine>& lines) {
+        client->deleteLater();
+        QStringList texts;
+        for (const OcrLine& line : lines) {
+            texts << line.text;
+        }
+        const QString joined = texts.join(QLatin1Char(' ')).simplified();
+        if (joined.isEmpty()) {
+            emit ocrTestFinished(false, tr("Connected, but no text was recognized"));
+        } else {
+            emit ocrTestFinished(true, tr("Recognized: %1").arg(joined));
+        }
+    });
+    connect(client, &OcrClient::failed, this, [this, client](const QString& reason) {
+        client->deleteLater();
+        emit ocrTestFinished(false, reason);
+    });
+    client->recognize(sample, config);
+}
+
+void ScreenTextService::testTranslate(const TranslateClient::Config& config) {
+    if (const QString error = translateConfigError(config); !error.isEmpty()) {
+        emit translateTestFinished(false, error);
+        return;
+    }
+    auto* client = new TranslateClient(this);
+    connect(client, &TranslateClient::finished, this,
+            [this, client](const QStringList& translations) {
+                client->deleteLater();
+                const QString text = translations.value(0).trimmed();
+                if (text.isEmpty()) {
+                    emit translateTestFinished(false,
+                                               tr("Connected, but the reply was empty"));
+                } else {
+                    emit translateTestFinished(true, tr("Translated: %1").arg(text));
+                }
+            });
+    connect(client, &TranslateClient::failed, this, [this, client](const QString& reason) {
+        client->deleteLater();
+        emit translateTestFinished(false, reason);
+    });
+    client->translate({QStringLiteral("Hello, world!")}, config);
 }
 
 OcrClient::Config ScreenTextService::ocrConfig() const {

@@ -12,29 +12,45 @@
         <file>icons/chevron-up-10-dim.png</file>
         <file>icons/chevron-up-10-dim@2x.png</file>
         <file>icons/fluent/arrow_autofit_down_20_regular.svg</file>
+        <file>icons/fluent/arrow_counterclockwise_20_regular.svg</file>
         <file>icons/fluent/arrow_redo_20_regular.svg</file>
+        <file>icons/fluent/arrow_sync_20_regular.svg</file>
         <file>icons/fluent/arrow_undo_20_regular.svg</file>
         <file>icons/fluent/arrow_up_right_20_filled.svg</file>
         <file>icons/fluent/arrow_up_right_20_regular.svg</file>
         <file>icons/fluent/blur_20_filled.svg</file>
         <file>icons/fluent/blur_20_regular.svg</file>
         <file>icons/fluent/checkmark_20_regular.svg</file>
+        <file>icons/fluent/clipboard_image_20_regular.svg</file>
+        <file>icons/fluent/copy_20_regular.svg</file>
+        <file>icons/fluent/delete_20_regular.svg</file>
         <file>icons/fluent/dismiss_20_regular.svg</file>
+        <file>icons/fluent/eyedropper_20_regular.svg</file>
+        <file>icons/fluent/folder_open_20_regular.svg</file>
         <file>icons/fluent/highlight_20_filled.svg</file>
         <file>icons/fluent/highlight_20_regular.svg</file>
+        <file>icons/fluent/history_20_regular.svg</file>
+        <file>icons/fluent/image_20_regular.svg</file>
+        <file>icons/fluent/info_20_regular.svg</file>
+        <file>icons/fluent/keyboard_20_regular.svg</file>
         <file>icons/fluent/mosaic_20_filled.svg</file>
         <file>icons/fluent/mosaic_20_regular.svg</file>
         <file>icons/fluent/number_circle_1_20_filled.svg</file>
         <file>icons/fluent/number_circle_1_20_regular.svg</file>
+        <file>icons/fluent/open_20_regular.svg</file>
         <file>icons/fluent/oval_20_filled.svg</file>
         <file>icons/fluent/oval_20_regular.svg</file>
         <file>icons/fluent/pen_20_filled.svg</file>
         <file>icons/fluent/pen_20_regular.svg</file>
         <file>icons/fluent/pin_20_regular.svg</file>
+        <file>icons/fluent/pin_off_20_regular.svg</file>
+        <file>icons/fluent/power_20_regular.svg</file>
         <file>icons/fluent/rectangle_landscape_20_filled.svg</file>
         <file>icons/fluent/rectangle_landscape_20_regular.svg</file>
         <file>icons/fluent/save_20_regular.svg</file>
         <file>icons/fluent/scan_text_20_regular.svg</file>
+        <file>icons/fluent/screenshot_20_regular.svg</file>
+        <file>icons/fluent/settings_20_regular.svg</file>
         <file>icons/fluent/text_t_20_filled.svg</file>
         <file>icons/fluent/text_t_20_regular.svg</file>
         <file>icons/fluent/translate_20_regular.svg</file>

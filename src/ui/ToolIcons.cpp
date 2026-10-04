@@ -20,8 +20,12 @@ namespace {
 // 不存在固定倍率位图在 125%/150% 缩放下的发虚。
 class TintedSvgEngine : public QIconEngine {
 public:
-    TintedSvgEngine(QString offPath, QString onPath, QColor color)
-        : offPath_(std::move(offPath)), onPath_(std::move(onPath)), color_(color) {}
+    // activeColor:悬停/菜单高亮(Active)态颜色;无效色 = 同常态。
+    // selectedColor:选中(Selected/On)态颜色,默认白(落在主题蓝选中底上)
+    TintedSvgEngine(QString offPath, QString onPath, QColor color, QColor activeColor = {},
+                    QColor selectedColor = Qt::white)
+        : offPath_(std::move(offPath)), onPath_(std::move(onPath)), color_(color),
+          activeColor_(activeColor), selectedColor_(selectedColor) {}
 
     void paint(QPainter* painter, const QRect& rect, QIcon::Mode mode,
                QIcon::State state) override {
@@ -70,7 +74,10 @@ private:
             return c;
         }
         if (state == QIcon::On || mode == QIcon::Selected) {
-            return Qt::white; // 选中态落在主题蓝底上
+            return selectedColor_;
+        }
+        if (mode == QIcon::Active && activeColor_.isValid()) {
+            return activeColor_;
         }
         return color_;
     }
@@ -78,6 +85,8 @@ private:
     QString offPath_;
     QString onPath_;
     QColor color_;
+    QColor activeColor_;
+    QColor selectedColor_;
     QHash<QString, QPixmap> cache_;
 };
 
@@ -163,5 +172,16 @@ QIcon saveIcon() { return svgIcon("save"); }
 QIcon confirmIcon() { return svgIcon("checkmark", theme::accentHover()); }
 QIcon cancelIcon() { return svgIcon("dismiss", theme::danger().lighter(118)); }
 QIcon primaryConfirmIcon() { return svgIcon("checkmark", Qt::white); }
+
+QIcon lightIcon(const char* name) {
+    // 浅色窗体/菜单:深灰线条;菜单高亮行(主题蓝底)上转白;
+    // 列表选中项(设置导航,白色浮起块)上转主题蓝
+    return QIcon(new TintedSvgEngine(fluent(name), QString(), QColor(0x4A, 0x52, 0x60),
+                                     Qt::white, theme::accent()));
+}
+
+QIcon onImageIcon(const char* name) {
+    return svgIcon(name, Qt::white);
+}
 
 } // namespace pixora::icons
