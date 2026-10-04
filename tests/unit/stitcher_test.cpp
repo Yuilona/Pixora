@@ -5,6 +5,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+
 using pixora::Stitcher;
 
 namespace {
@@ -272,6 +274,215 @@ TEST_CASE("max canvas height caps growth", "[stitch]") {
     CHECK(stitcher.append(viewport(content, 150, 300)) ==
           Stitcher::AppendResult::Appended); // 450 ≤ 500
     CHECK(stitcher.append(viewport(content, 350, 300)) ==
-          Stitcher::AppendResult::NoNewContent); // 超限被拒
+          Stitcher::AppendResult::LimitReached); // 超限被拒,调用方据此提示
     CHECK(stitcher.resultHeight() == 450);
+}
+
+namespace {
+
+// 两图在 rect 内逐像素相同(格式统一为 ARGB32 后比较)
+bool sameIn(const QImage& a, const QImage& b, const QRect& rect) {
+    return a.copy(rect).convertToFormat(QImage::Format_ARGB32) ==
+           b.copy(rect).convertToFormat(QImage::Format_ARGB32);
+}
+
+QImage argb(const QImage& img) {
+    return img.convertToFormat(QImage::Format_ARGB32);
+}
+
+} // namespace
+
+TEST_CASE("blank rows mistaken for a footer are not lost", "[stitch]") {
+    // 区域底部恰是段落间空白、首步又很小:首对帧底部空白行原地相同,
+    // 被当作底栏。旧版剔除后估计回落,剔掉的行永久丢失(成图短 20px 且错位)
+    QImage content = makeContent(320, 1400);
+    QPainter(&content).fillRect(0, 280, 320, 120, Qt::white);
+    Stitcher stitcher;
+    stitcher.begin(viewport(content, 0, 300));
+    int top = 0;
+    for (const int step : {10, 100, 100, 100, 100, 100}) {
+        top += step;
+        REQUIRE(stitcher.append(viewport(content, top, 300)) ==
+                Stitcher::AppendResult::Appended);
+    }
+    CHECK(stitcher.result() == argb(viewport(content, 0, top + 300)));
+}
+
+TEST_CASE("scrollbar thumb crossing a sticky footer keeps it once", "[stitch]") {
+    // 区域含滚动条:滑块下行压到底栏行时,旧版整行比较判底栏"变了",
+    // 估计被永久打掉,成图丢失底栏
+    const QImage content = makeContent(320, 2000);
+    const QImage footer = makeContent(320, 40, 9);
+    auto frame = [&](int top, int thumbY) {
+        QImage f(320, 300, QImage::Format_ARGB32);
+        QPainter p(&f);
+        p.drawImage(0, 0, content, 0, top, 320, 260);
+        p.drawImage(0, 260, footer);
+        p.fillRect(306, 0, 14, 300, QColor(240, 240, 240));
+        p.fillRect(306, thumbY, 14, 60, QColor(120, 120, 120));
+        return f;
+    };
+    Stitcher stitcher;
+    stitcher.begin(frame(0, 0));
+    int top = 0;
+    for (int i = 1; i <= 10; ++i) {
+        top += 100;
+        REQUIRE(stitcher.append(frame(top, i * 24)) == Stitcher::AppendResult::Appended);
+    }
+    const QImage result = stitcher.result();
+    REQUIRE(result.height() == top + 260 + 40);
+    CHECK(sameIn(result, viewport(content, 0, top + 260), QRect(0, 0, 296, top + 260)));
+    CHECK(sameIn(result.copy(0, top + 260, 320, 40), footer, QRect(0, 0, 296, 40)));
+}
+
+TEST_CASE("floating button is kept once instead of stamped per segment", "[stitch]") {
+    // "回到顶部"/聊天气泡固定在视口右下:旧版每段都把它拼进去(9 次)
+    const QImage content = makeContent(330, 2000);
+    const QColor magenta(255, 0, 255);
+    auto frame = [&](int top) {
+        QImage f = viewport(content, top, 400);
+        QPainter(&f).fillRect(250, 330, 40, 40, magenta);
+        return f;
+    };
+    Stitcher stitcher;
+    stitcher.begin(frame(0));
+    int top = 0;
+    for (int i = 0; i < 8; ++i) {
+        top += 120;
+        REQUIRE(stitcher.append(frame(top)) == Stitcher::AppendResult::Appended);
+    }
+    const QImage result = stitcher.result();
+    REQUIRE(result.height() == top + 400);
+    int stamps = 0;
+    bool inside = false;
+    for (int y = 0; y < result.height(); ++y) {
+        const bool hit = result.pixel(270, y) == magenta.rgb();
+        stamps += hit && !inside;
+        inside = hit;
+    }
+    CHECK(stamps == 1);
+    // 除最后一帧的按钮处,成图与原内容逐像素一致
+    CHECK(sameIn(result, viewport(content, 0, top + 400), QRect(0, 0, 330, top + 330)));
+}
+
+TEST_CASE("lazy-loaded image replaces its placeholder", "[stitch]") {
+    // 图片刚进视口时是灰色占位,下一帧才加载完成:旧版占位永久留在成图里
+    const QImage content = makeContent(320, 2000);
+    auto frame = [&](int top, bool loaded) {
+        QImage f = viewport(content, top, 400);
+        if (!loaded) {
+            QPainter(&f).fillRect(0, 700 - top, 320, 100, QColor(200, 200, 200));
+        }
+        return f;
+    };
+    Stitcher stitcher;
+    stitcher.begin(frame(0, false));
+    int top = 0;
+    bool seen = false;
+    for (int i = 0; i < 10; ++i) {
+        top += 120;
+        REQUIRE(stitcher.append(frame(top, seen)) == Stitcher::AppendResult::Appended);
+        seen = seen || 700 < top + 400;
+    }
+    CHECK(stitcher.result() == argb(viewport(content, 0, top + 400)));
+}
+
+TEST_CASE("blank lower part of a tall region does not block matching", "[stitch]") {
+    // 区域下部是大段留白(高于旧版 4 次上移的 252px 搜索范围):旧版全部失配
+    QImage content = makeContent(320, 4000);
+    for (int y = 500; y < 4000; y += 900) {
+        QPainter(&content).fillRect(0, y, 320, 400, Qt::white);
+    }
+    Stitcher stitcher;
+    stitcher.begin(viewport(content, 0, 900));
+    int top = 0;
+    for (int i = 0; i < 8; ++i) {
+        top += 150;
+        REQUIRE(stitcher.append(viewport(content, top, 900)) ==
+                Stitcher::AppendResult::Appended);
+    }
+    CHECK(stitcher.result() == argb(viewport(content, 0, top + 900)));
+}
+
+TEST_CASE("fully periodic content is rejected rather than duplicated", "[stitch]") {
+    QImage content(320, 1200, QImage::Format_ARGB32);
+    paintPeriodicStripes(content, 0, 1200, 20);
+    Stitcher stitcher;
+    stitcher.begin(viewport(content, 0, 300));
+    // 整帧周期:任何 k*周期 的偏移都同样成立,无从判断,只能拒配
+    CHECK(stitcher.append(viewport(content, 90, 300)) ==
+          Stitcher::AppendResult::MatchFailed);
+    CHECK(stitcher.resultHeight() == 300);
+}
+
+TEST_CASE("rendering noise does not shift alignment", "[stitch]") {
+    // 分数缩放/ClearType:同一内容两次渲染有轻微像素差
+    const QImage content = makeContent(320, 1600);
+    auto noisy = [&](int top, quint32 seed) {
+        QImage f = viewport(content, top, 300);
+        const QImage noise = makeContent(320, 300, seed);
+        for (int y = 0; y < 300; ++y) {
+            auto* line = reinterpret_cast<QRgb*>(f.scanLine(y));
+            const auto* n = reinterpret_cast<const QRgb*>(noise.constScanLine(y));
+            for (int x = 0; x < 320; ++x) {
+                const int d = int(n[x] & 0x7) - 3; // -3..4
+                line[x] = qRgb(std::clamp(qRed(line[x]) + d, 0, 255),
+                               std::clamp(qGreen(line[x]) + d, 0, 255),
+                               std::clamp(qBlue(line[x]) + d, 0, 255));
+            }
+        }
+        return f;
+    };
+    Stitcher stitcher;
+    stitcher.begin(noisy(0, 500));
+    int top = 0;
+    for (int i = 1; i <= 8; ++i) {
+        top += 117;
+        REQUIRE(stitcher.append(noisy(top, 500 + static_cast<quint32>(i))) ==
+                Stitcher::AppendResult::Appended);
+    }
+    CHECK(stitcher.resultHeight() == top + 300);
+}
+
+TEST_CASE("undo rolls back the last segment and stitching resumes", "[stitch]") {
+    const QImage content = makeContent(320, 1600);
+    Stitcher stitcher;
+    stitcher.begin(viewport(content, 0, 300));
+    CHECK_FALSE(stitcher.canUndo());
+    REQUIRE(stitcher.append(viewport(content, 120, 300)) == Stitcher::AppendResult::Appended);
+    REQUIRE(stitcher.append(viewport(content, 240, 300)) == Stitcher::AppendResult::Appended);
+    // 一段"坏"拼接(此处用正常帧模拟),撤销后回到 240 处的状态
+    REQUIRE(stitcher.append(viewport(content, 360, 300)) == Stitcher::AppendResult::Appended);
+    REQUIRE(stitcher.undo());
+    CHECK(stitcher.resultHeight() == 240 + 300);
+    CHECK(stitcher.result() == argb(viewport(content, 0, 540)));
+    // 用户已滚到更下方(与撤销后的上一帧无重叠)→ 失配,提示回滚
+    CHECK(stitcher.append(viewport(content, 600, 300)) == Stitcher::AppendResult::MatchFailed);
+    // 回滚到有重叠的位置后继续
+    REQUIRE(stitcher.append(viewport(content, 400, 300)) == Stitcher::AppendResult::Appended);
+    REQUIRE(stitcher.append(viewport(content, 520, 300)) == Stitcher::AppendResult::Appended);
+    CHECK(stitcher.result() == argb(viewport(content, 0, 820)));
+    REQUIRE(stitcher.undo());
+    REQUIRE(stitcher.undo());
+    REQUIRE(stitcher.undo());
+    REQUIRE(stitcher.undo());
+    CHECK_FALSE(stitcher.undo());
+    CHECK(stitcher.result() == argb(viewport(content, 0, 300)));
+}
+
+TEST_CASE("in-place change without scrolling refreshes the tail", "[stitch]") {
+    const QImage content = makeContent(320, 1200);
+    auto frame = [&](int top, bool loaded) {
+        QImage f = viewport(content, top, 300);
+        if (!loaded) {
+            QPainter(&f).fillRect(0, 220, 320, 60, QColor(200, 200, 200));
+        }
+        return f;
+    };
+    Stitcher stitcher;
+    stitcher.begin(viewport(content, 0, 300));
+    REQUIRE(stitcher.append(frame(150, false)) == Stitcher::AppendResult::Appended);
+    // 停止滚动后图片加载完成:无新内容,但成图应是加载后的样子
+    CHECK(stitcher.append(frame(150, true)) == Stitcher::AppendResult::NoNewContent);
+    CHECK(stitcher.result() == argb(viewport(content, 0, 450)));
 }

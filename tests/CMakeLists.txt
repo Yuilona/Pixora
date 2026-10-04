@@ -25,6 +25,8 @@ add_executable(pixora_tests
     ${CMAKE_SOURCE_DIR}/src/app/HistoryService.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.h
     ${CMAKE_SOURCE_DIR}/src/core/stitch/FixedRegionDetector.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/stitch/RowCanvas.h
+    ${CMAKE_SOURCE_DIR}/src/core/stitch/RowCanvas.cpp
     ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.h
     ${CMAKE_SOURCE_DIR}/src/core/stitch/Stitcher.cpp
     ${CMAKE_SOURCE_DIR}/src/core/annotate/AnnotationDocument.h

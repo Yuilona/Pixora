@@ -43,6 +43,8 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/capture/SnipSession.cpp
     core/stitch/FixedRegionDetector.h
     core/stitch/FixedRegionDetector.cpp
+    core/stitch/RowCanvas.h
+    core/stitch/RowCanvas.cpp
     core/stitch/Stitcher.h
     core/stitch/Stitcher.cpp
     core/text/OcrTypes.h
