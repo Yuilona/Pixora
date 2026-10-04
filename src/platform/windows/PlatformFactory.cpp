@@ -1,6 +1,6 @@
 #include "platform/interface/PlatformFactory.h"
 
-#include "platform/shared/QtScreenCapturer.h"
+#include "platform/windows/WinScreenCapturer.h"
 #include "platform/windows/WinElementLocator.h"
 #include "platform/windows/WinGlobalHotkey.h"
 #include "platform/windows/WinInputInjector.h"
@@ -14,7 +14,7 @@ std::unique_ptr<IGlobalHotkey> createGlobalHotkey() {
 }
 
 std::unique_ptr<IScreenCapturer> createScreenCapturer() {
-    return std::make_unique<QtScreenCapturer>();
+    return std::make_unique<WinScreenCapturer>();
 }
 
 std::unique_ptr<IWindowEnumerator> createWindowEnumerator() {

@@ -112,6 +112,8 @@ if(WIN32)
         platform/windows/WinGlobalHotkey.cpp
         platform/windows/WinInputInjector.h
         platform/windows/WinInputInjector.cpp
+        platform/windows/WinScreenCapturer.h
+        platform/windows/WinScreenCapturer.cpp
         platform/windows/WinSystemIntegration.h
         platform/windows/WinSystemIntegration.cpp
         platform/windows/WinWindowEnumerator.h
@@ -137,5 +139,5 @@ target_link_libraries(pixora PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(pixora PRIVATE user32 advapi32 dwmapi dbghelp)
+    target_link_libraries(pixora PRIVATE user32 advapi32 dwmapi dbghelp d3d11 dxgi)
 endif()
