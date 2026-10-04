@@ -13,7 +13,7 @@ public:
     // 在全局逻辑坐标处注入垂直滚轮;deltaY 负值向下滚动内容。
     virtual bool sendScroll(const QPoint& globalLogical, int deltaY) = 0;
 
-    // 向该点下窗口注入按键(PageDown 备选驱动用)。
+    // 向该点下窗口注入按键(备选驱动用:PageDown/PageUp、方向键 Down/Up、End)。
     virtual bool sendKey(const QPoint& globalLogical, Qt::Key key) = 0;
 };
 

@@ -35,6 +35,12 @@ bool WinInputInjector::sendKey(const QPoint& globalLogical, Qt::Key key) {
     case Qt::Key_End:
         vk = VK_END;
         break;
+    case Qt::Key_Down:
+        vk = VK_DOWN;
+        break;
+    case Qt::Key_Up:
+        vk = VK_UP;
+        break;
     default:
         return false;
     }

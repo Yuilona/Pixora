@@ -107,6 +107,13 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
         layout->addWidget(btn);
         return btn;
     };
+    // 撤销最后一段:预览里看到错位时回退,滚回去重拼
+    undoBtn_ = addButton(icons::undoIcon(), tr("Undo last segment"),
+                         &ScrollCaptureBar::undoRequested);
+    undoBtn_->setEnabled(false);
+    layout->addSpacing(4);
+    layout->addWidget(separator(this));
+    layout->addSpacing(4);
     addButton(icons::pinIcon(), tr("Finish and pin"),
               &ScrollCaptureBar::finishPinRequested);
     addButton(icons::saveIcon(), tr("Finish and save"),
@@ -146,6 +153,10 @@ void ScrollCaptureBar::setStatus(const QString& text, Tone tone) {
     dot_->setStyleSheet(QStringLiteral("background: %1; border-radius: %2px;")
                             .arg(toneColor(tone).name())
                             .arg(kDotSize / 2));
+}
+
+void ScrollCaptureBar::setUndoEnabled(bool enabled) {
+    undoBtn_->setEnabled(enabled);
 }
 
 void ScrollCaptureBar::setAutoChecked(bool checked) {
