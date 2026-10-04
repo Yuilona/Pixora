@@ -73,9 +73,7 @@ void ScrollPreview::paintEvent(QPaintEvent* /*event*/) {
     painter.setPen(theme::accent());
     painter.drawRect(rect().adjusted(0, 0, -1, -1));
 
-    QFont font = painter.font();
-    font.setPixelSize(11);
-    painter.setFont(font);
+    painter.setFont(theme::font(theme::fontsize::caption));
     painter.setPen(Qt::white);
     painter.drawText(QRect(kPadding, 0, width() - 2 * kPadding, kHeaderH),
                      Qt::AlignVCenter,

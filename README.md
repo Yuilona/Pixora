@@ -84,3 +84,5 @@ Tech stack: C++20 · Qt 6 (Widgets) · CMake + vcpkg · OpenCV (template matchin
 ## License
 
 [GPL-3.0](LICENSE) — free to use, study and modify; derivative works must remain open source.
+
+Toolbar icons come from [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) (MIT, see [resources/icons/fluent/LICENSE](resources/icons/fluent/LICENSE)).

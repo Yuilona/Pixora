@@ -158,9 +158,7 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
         const QRect global = hasSelection ? session_.selection() : session_.hoverRect();
         const QString label =
             QStringLiteral("%1 × %2").arg(global.width()).arg(global.height());
-        QFont font = painter.font();
-        font.setPixelSize(12);
-        painter.setFont(font);
+        painter.setFont(theme::font(theme::fontsize::body));
         const QRect textRect =
             painter.fontMetrics().boundingRect(label).adjusted(-6, -3, 6, 3);
         QPoint anchor(active.left(), active.top() - textRect.height() - 4);
@@ -168,8 +166,9 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
             anchor.setY(active.top() + 4);
         }
         painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(0, 0, 0, 180));
-        painter.drawRoundedRect(QRect(anchor, textRect.size()), 3, 3);
+        painter.setBrush(theme::hudScrim());
+        painter.drawRoundedRect(QRect(anchor, textRect.size()), theme::corner::chip,
+                                theme::corner::chip);
         painter.setPen(Qt::white);
         painter.drawText(QRect(anchor, textRect.size()), Qt::AlignCenter, label);
     }

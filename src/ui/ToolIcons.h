@@ -4,15 +4,16 @@
 
 #include <QIcon>
 
-// 程序绘制的工具条图标(16x16 逻辑坐标系,2x 渲染保证高 DPI 清晰)。
-// 不引入图片资源;线条色与按钮文字色一致,选中态蓝底上同样可读;
-// 禁用态自带 35% 透明度变体。截图工具条与长截图控制条共用。
+// 工具条图标:Fluent UI System Icons(MIT,见 resources/icons/fluent/LICENSE)
+// 的 20px SVG,运行时按目标尺寸与 DPR 渲染并着色——任意缩放比都清晰。
+// 常态取 HUD 图标色;禁用态 35% 透明;选中(On)态换实心(filled)造型
+// 并转白,在主题蓝选中底上可读。截图工具条与长截图控制条共用。
 namespace pixora::icons {
 
-// 标注工具
+// 标注工具(带 filled 选中态)
 QIcon toolIcon(AnnotationTool tool);
 
-// 线条粗细档位:横线粗细即当前档位
+// 线条粗细档位:横线粗细即当前档位(程序绘制,随档位变化)
 QIcon widthIcon(int width);
 
 // 编辑动作
@@ -20,9 +21,9 @@ QIcon undoIcon();
 QIcon redoIcon();
 
 // 功能动作
-QIcon ocrIcon();       // 提取文字:四角扫描框 + T
-QIcon translateIcon(); // 翻译:文/A
-QIcon scrollIcon();    // 长截图:屏幕 + 下行箭头
+QIcon ocrIcon();       // 提取文字:扫描框 + 文本行
+QIcon translateIcon(); // 翻译
+QIcon scrollIcon();    // 长截图:框 + 向下延伸箭头
 QIcon pinIcon();       // 贴图:图钉
 QIcon saveIcon();      // 另存:软盘
 

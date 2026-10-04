@@ -17,11 +17,12 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                    Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_ShowWithoutActivating);
-    setAttribute(Qt::WA_TranslucentBackground); // 配合 paintCard 圆角卡片底
-    setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/12, /*padV=*/4, /*padH=*/10));
+    setAttribute(Qt::WA_TranslucentBackground); // 配合 paintFloatingCard 圆角卡片 + 投影
+    setStyleSheet(theme::chromeStyleSheet(theme::fontsize::body, /*padV=*/4, /*padH=*/10));
 
     auto* layout = new QHBoxLayout(this);
-    layout->setContentsMargins(6, 4, 6, 4);
+    constexpr int m = theme::kShadowMargin; // 四周留出投影边距
+    layout->setContentsMargins(m + 6, m + 4, m + 6, m + 4);
     layout->setSpacing(2);
 
     status_ = new QLabel(tr("Scroll the target window to start stitching..."), this);
@@ -58,13 +59,17 @@ ScrollCaptureBar::ScrollCaptureBar(const QRect& regionGlobal, const QRect& virtu
               &ScrollCaptureBar::finishRequested);
 
     adjustSize();
+    // 按卡片对齐捕获区域。卡片与区域留 12px 间距,投影向上只伸 blur-dy(7px),
+    // 不会落进捕获区域污染拼接帧
+    const int cardW = width() - 2 * m;
+    const int cardH = height() - 2 * m;
     QPoint pos(regionGlobal.left(), regionGlobal.bottom() + 12);
-    if (pos.y() + height() > virtualBounds.bottom()) {
-        pos.setY(regionGlobal.top() - height() - 12);
+    if (pos.y() + cardH > virtualBounds.bottom()) {
+        pos.setY(regionGlobal.top() - cardH - 12);
     }
     pos.setX(std::clamp(pos.x(), virtualBounds.left(),
-                        virtualBounds.right() - width() + 1));
-    move(pos);
+                        virtualBounds.right() - cardW + 1));
+    move(pos - QPoint(m, m));
 }
 
 void ScrollCaptureBar::setStatus(const QString& text) {
@@ -80,7 +85,7 @@ void ScrollCaptureBar::setAutoChecked(bool checked) {
 
 void ScrollCaptureBar::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
-    theme::paintCard(p, rect(), 8);
+    theme::paintFloatingCard(p, rect(), theme::corner::card);
 }
 
 } // namespace pixora

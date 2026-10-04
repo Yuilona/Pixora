@@ -52,8 +52,11 @@ qt_add_executable(pixora WIN32 MACOSX_BUNDLE
     core/text/TextProtocols.cpp
     ui/InstantTip.h
     ui/Theme.h
+    ui/Theme.cpp
     ui/ToolIcons.h
     ui/ToolIcons.cpp
+    ui/dev/UiGallery.h
+    ui/dev/UiGallery.cpp
     ui/editor/AnnotationToolbar.h
     ui/editor/AnnotationToolbar.cpp
     ui/history/HistoryWindow.h
@@ -124,6 +127,7 @@ target_compile_definitions(pixora PRIVATE PIXORA_VERSION="${PROJECT_VERSION}")
 target_link_libraries(pixora PRIVATE
     Qt6::Widgets
     Qt6::Network
+    Qt6::Svg
     spdlog::spdlog
     ${OpenCV_LIBS}
 )

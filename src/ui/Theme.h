@@ -3,6 +3,7 @@
 #include <QAbstractItemView>
 #include <QColor>
 #include <QComboBox>
+#include <QFont>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPalette>
@@ -17,10 +18,9 @@
 //   蓝灰系暗色,浮在任意屏幕内容上都稳得住;
 // - 文档型窗口(设置/历史等带标题栏的常规窗口):白色系,
 //   与系统浅色标题栏自然衔接(见 appStyleSheet)。
-// 圆角体系:输入框/按钮 6px,卡片/菜单/工具栏 8px,通知卡 10px。
-//
-// 所有窗体"外壳"色集中在此,禁止在窗体里硬编码外壳色。
-// 不在此列的色彩:标注六色画笔(内容色)、遮罩/放大镜 HUD(刻意纯黑高对比)、
+// 视觉规范(色板 / 字号 fontsize / 圆角 corner / 投影 kShadowMargin)集中在此,
+// 禁止在窗体里硬编码外壳色、散写字号与圆角。
+// 不在此列的色彩:标注六色画笔(内容色)、截图遮罩暗化层、
 // 长截图区域框(刻意橙色与选区蓝区分)。
 namespace pixora::theme {
 
@@ -39,6 +39,40 @@ inline QColor accentHover() { return {0x4A, 0x90, 0xF8}; }
 inline QColor accentPressed() { return {0x25, 0x66, 0xCC}; }
 inline QColor danger() { return {0xE5, 0x48, 0x4D}; }       // 错误/冲突提示
 inline QColor lightWindowBg() { return {0xF5, 0xF6, 0xF8}; } // 浅色窗体底
+inline QColor hudIcon() { return {0xE4, 0xE6, 0xEA}; }        // HUD 图标线条
+// 叠在截图内容上的小信息块底色(尺寸标签/放大镜信息栏/贴图角标):
+// 任意底图上都要读得清,比卡片底更深更实
+inline QColor hudScrim() { return {0x14, 0x16, 0x1A, 215}; }
+
+// —— 字号(px):自绘文字一律取这几档,不在窗体里写散值 ——
+namespace fontsize {
+inline constexpr int caption = 11; // 次要信息:放大镜坐标、预览条表头
+inline constexpr int body = 12;    // 正文:通知内容、尺寸标签、角标
+inline constexpr int label = 13;   // 强调:工具条文字、通知标题
+} // namespace fontsize
+
+inline QFont font(int px, bool bold = false) {
+    QFont f; // 应用默认字体族(系统 UI 字体),只定字号与字重
+    f.setPixelSize(px);
+    f.setBold(bold);
+    return f;
+}
+
+// —— 圆角(px)——
+namespace corner {
+inline constexpr qreal chip = 4;    // 尺寸标签/角标等小信息块
+inline constexpr qreal control = 6; // 输入框/按钮
+inline constexpr qreal card = 8;    // 工具条/控制条/菜单
+inline constexpr qreal toast = 10;  // 通知卡
+} // namespace corner
+
+// —— 悬浮卡片阴影 ——
+// 阴影画在卡片外围,窗口须四周预留 kShadowMargin 的透明边距
+//(配合 WA_TranslucentBackground);定位时按卡片而非窗口对齐。
+inline constexpr int kShadowMargin = 14;
+
+// 在 card 外围画两层柔和投影(近处主影 + 大范围环境影),结果按尺寸缓存
+void paintShadow(QPainter& p, const QRect& card, qreal radius);
 
 // 圆角悬浮卡片底(工具栏/控制条/通知卡共用):
 // QSS 样式背景在 WA_TranslucentBackground 顶层窗上不可靠,统一自绘。
@@ -53,6 +87,15 @@ inline void paintCard(QPainter& p, const QRect& rect, qreal radius,
     p.fillPath(card, bg);
     p.setPen(QPen(hairline(), 1));
     p.drawPath(card);
+}
+
+// 带投影的悬浮卡片:widgetRect 为整个窗口,卡片 = 内缩 kShadowMargin
+inline void paintFloatingCard(QPainter& p, const QRect& widgetRect, qreal radius,
+                              int bgAlpha = 255) {
+    const QRect card = widgetRect.adjusted(kShadowMargin, kShadowMargin,
+                                           -kShadowMargin, -kShadowMargin);
+    paintShadow(p, card, radius);
+    paintCard(p, card, radius, bgAlpha);
 }
 
 // 截图工具栏 / 长截图控制条共用的"工具条壳"样式(底块由 paintCard 自绘,

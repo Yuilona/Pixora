@@ -2,10 +2,11 @@
 
 #include "ui/Theme.h"
 
-#include <QFont>
+#include <QHash>
+#include <QIconEngine>
 #include <QPainter>
-#include <QPainterPath>
 #include <QPixmap>
+#include <QSvgRenderer>
 
 #include <algorithm>
 #include <functional>
@@ -14,23 +15,99 @@ namespace pixora::icons {
 
 namespace {
 
-const QColor kIconColor(0xDD, 0xDD, 0xDD);
+// SVG 着色图标引擎:Fluent SVG 为单色路径,渲染后以 SourceIn 整体染色,
+// 一份矢量源即可覆盖常态/禁用/选中各色,且按请求尺寸 × DPR 现渲,
+// 不存在固定倍率位图在 125%/150% 缩放下的发虚。
+class TintedSvgEngine : public QIconEngine {
+public:
+    TintedSvgEngine(QString offPath, QString onPath, QColor color)
+        : offPath_(std::move(offPath)), onPath_(std::move(onPath)), color_(color) {}
 
-QIcon makeIcon(const std::function<void(QPainter&)>& draw) {
-    // 逻辑 20x20、2x 渲染;绘制代码仍用 16 单位坐标系,整体缩放适配
+    void paint(QPainter* painter, const QRect& rect, QIcon::Mode mode,
+               QIcon::State state) override {
+        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+        painter->drawPixmap(rect, scaledPixmap(rect.size(), mode, state, dpr));
+    }
+
+    QPixmap pixmap(const QSize& size, QIcon::Mode mode, QIcon::State state) override {
+        return scaledPixmap(size, mode, state, 1.0);
+    }
+
+    QPixmap scaledPixmap(const QSize& size, QIcon::Mode mode, QIcon::State state,
+                         qreal scale) override {
+        const QSize px = size * scale;
+        const bool on = state == QIcon::On && !onPath_.isEmpty();
+        const QString key = QStringLiteral("%1x%2/%3/%4")
+                                .arg(px.width())
+                                .arg(px.height())
+                                .arg(static_cast<int>(mode))
+                                .arg(on);
+        if (const auto it = cache_.constFind(key); it != cache_.constEnd()) {
+            return *it;
+        }
+
+        QPixmap pm(px);
+        pm.fill(Qt::transparent);
+        QPainter p(&pm);
+        QSvgRenderer(on ? onPath_ : offPath_).render(&p, QRectF(QPointF(0, 0), px));
+        p.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        p.fillRect(pm.rect(), colorFor(mode, state));
+        p.end();
+        pm.setDevicePixelRatio(scale);
+        cache_.insert(key, pm);
+        return pm;
+    }
+
+    QIconEngine* clone() const override { return new TintedSvgEngine(*this); }
+    QString key() const override { return QStringLiteral("pixora.tinted-svg"); }
+
+private:
+    QColor colorFor(QIcon::Mode mode, QIcon::State state) const {
+        if (mode == QIcon::Disabled) {
+            // Qt 自动生成的灰化版在深色底上几乎不可辨,改为同色 35% 透明
+            QColor c = color_;
+            c.setAlphaF(0.35f);
+            return c;
+        }
+        if (state == QIcon::On || mode == QIcon::Selected) {
+            return Qt::white; // 选中态落在主题蓝底上
+        }
+        return color_;
+    }
+
+    QString offPath_;
+    QString onPath_;
+    QColor color_;
+    QHash<QString, QPixmap> cache_;
+};
+
+QString fluent(const char* name, const char* style = "regular") {
+    return QStringLiteral(":/icons/fluent/%1_20_%2.svg")
+        .arg(QLatin1String(name), QLatin1String(style));
+}
+
+QIcon svgIcon(const char* name, QColor color = theme::hudIcon()) {
+    return QIcon(new TintedSvgEngine(fluent(name), QString(), color));
+}
+
+// 标注工具:未选中描边造型,选中换实心造型
+QIcon toolSvgIcon(const char* name) {
+    return QIcon(new TintedSvgEngine(fluent(name), fluent(name, "filled"),
+                                     theme::hudIcon()));
+}
+
+QIcon paintedIcon(const std::function<void(QPainter&)>& draw) {
+    // 逻辑 20x20、2x 渲染;绘制代码用 16 单位坐标系,整体缩放适配
     QPixmap pm(40, 40);
     pm.setDevicePixelRatio(2.0);
     pm.fill(Qt::transparent);
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing);
     p.scale(20.0 / 16.0, 20.0 / 16.0);
-    p.setPen(QPen(kIconColor, 1.6));
-    p.setBrush(Qt::NoBrush);
     draw(p);
     p.end();
 
     QIcon icon(pm);
-    // 禁用态:同图 35% 透明(Qt 自动生成的灰化版在深色底上几乎不可辨)
     QPixmap dim(40, 40);
     dim.setDevicePixelRatio(2.0);
     dim.fill(Qt::transparent);
@@ -47,239 +124,43 @@ QIcon makeIcon(const std::function<void(QPainter&)>& draw) {
 QIcon toolIcon(AnnotationTool tool) {
     switch (tool) {
     case AnnotationTool::Rect:
-        return makeIcon([](QPainter& p) { p.drawRect(QRectF(2.5, 3.5, 11, 9)); });
+        return toolSvgIcon("rectangle_landscape");
     case AnnotationTool::Ellipse:
-        return makeIcon([](QPainter& p) { p.drawEllipse(QRectF(2.5, 3, 11, 10)); });
+        return toolSvgIcon("oval");
     case AnnotationTool::Arrow:
-        return makeIcon([](QPainter& p) {
-            p.drawLine(QPointF(3.5, 12.5), QPointF(12, 4));
-            QPainterPath head(QPointF(12.5, 3.5));
-            head.lineTo(QPointF(8.5, 4.5));
-            head.lineTo(QPointF(11.5, 7.5));
-            head.closeSubpath();
-            p.fillPath(head, kIconColor);
-        });
+        return toolSvgIcon("arrow_up_right");
     case AnnotationTool::Pen:
-        return makeIcon([](QPainter& p) {
-            // 斜置铅笔:描边笔身 + 实心笔尖 + 尾部橡皮分隔线
-            p.setPen(QPen(kIconColor, 1.2, Qt::SolidLine, Qt::RoundCap,
-                          Qt::RoundJoin));
-            QPainterPath body;
-            body.moveTo(QPointF(3.4, 10.2));
-            body.lineTo(QPointF(10.8, 2.8));
-            body.lineTo(QPointF(13.2, 5.2));
-            body.lineTo(QPointF(5.8, 12.6));
-            body.closeSubpath();
-            p.drawPath(body);
-            QPainterPath tip(QPointF(2.4, 13.6)); // 笔尖收于左下
-            tip.lineTo(QPointF(3.4, 10.2));
-            tip.lineTo(QPointF(5.8, 12.6));
-            tip.closeSubpath();
-            p.fillPath(tip, kIconColor);
-            p.drawLine(QPointF(9.2, 4.4), QPointF(11.6, 6.8)); // 橡皮分隔
-        });
+        return toolSvgIcon("pen");
     case AnnotationTool::Marker:
-        return makeIcon([](QPainter& p) {
-            QColor c = kIconColor;
-            c.setAlpha(150);
-            p.setPen(QPen(c, 5, Qt::SolidLine, Qt::RoundCap));
-            p.drawLine(QPointF(4, 12), QPointF(12, 4));
-        });
+        return toolSvgIcon("highlight");
     case AnnotationTool::Text:
-        return makeIcon([](QPainter& p) {
-            QFont f = p.font();
-            f.setPixelSize(12);
-            f.setBold(true);
-            p.setFont(f);
-            p.drawText(QRectF(0, 0, 16, 16), Qt::AlignCenter, QStringLiteral("T"));
-        });
+        return toolSvgIcon("text_t");
     case AnnotationTool::Badge:
-        return makeIcon([](QPainter& p) {
-            p.drawEllipse(QRectF(2.5, 2.5, 11, 11));
-            QFont f = p.font();
-            f.setPixelSize(8);
-            f.setBold(true);
-            p.setFont(f);
-            p.drawText(QRectF(2.5, 2.5, 11, 11), Qt::AlignCenter, QStringLiteral("1"));
-        });
+        return toolSvgIcon("number_circle_1");
     case AnnotationTool::Mosaic:
-        return makeIcon([](QPainter& p) {
-            p.setPen(Qt::NoPen);
-            for (int row = 0; row < 3; ++row) {
-                for (int col = 0; col < 3; ++col) {
-                    QColor c = kIconColor;
-                    c.setAlpha((row + col) % 2 ? 90 : 220);
-                    p.fillRect(QRectF(2.5 + col * 4, 2.5 + row * 4, 3.6, 3.6), c);
-                }
-            }
-        });
+        return toolSvgIcon("mosaic"); // Fluent 无棋盘格造型,按同规格自绘
     case AnnotationTool::Blur:
-        return makeIcon([](QPainter& p) {
-            p.setPen(Qt::NoPen);
-            for (int i = 0; i < 3; ++i) {
-                QColor c = kIconColor;
-                c.setAlpha(220 - i * 75);
-                const qreal r = 2.0 + i * 2.2;
-                p.setBrush(c);
-                p.drawEllipse(QPointF(8, 8), r, r);
-            }
-        });
+        return toolSvgIcon("blur");
     }
     return {};
 }
 
 QIcon widthIcon(int width) {
-    return makeIcon([width](QPainter& p) {
-        p.setPen(QPen(kIconColor, std::clamp(width * 0.55, 1.2, 4.5), Qt::SolidLine,
-                      Qt::RoundCap));
+    return paintedIcon([width](QPainter& p) {
+        p.setPen(QPen(theme::hudIcon(), std::clamp(width * 0.55, 1.2, 4.5),
+                      Qt::SolidLine, Qt::RoundCap));
         p.drawLine(QPointF(3, 8), QPointF(13, 8));
     });
 }
 
-QIcon undoIcon() {
-    return makeIcon([](QPainter& p) {
-        // ↶:120° 短弧(满半圆太像彩虹),左端大箭头向下;
-        // 整体顺时针转 45°,箭头落在左下、指向左下,更有"回退"动势;
-        // 放大 1.15(再大箭头尖会出 16 单位画布)
-        p.translate(8, 8);
-        p.rotate(45);
-        p.scale(1.15, 1.15);
-        p.translate(-8, -8);
-        p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
-        const QRectF r(4.4, 5.0, 8.8, 8.8);
-        QPainterPath tail;
-        tail.arcMoveTo(r, 60);
-        tail.arcTo(r, 60, 120);
-        p.drawPath(tail);
-        QPainterPath head(QPointF(4.4, 13.6));
-        head.lineTo(QPointF(1.9, 9.4));
-        head.lineTo(QPointF(6.9, 9.4));
-        head.closeSubpath();
-        p.fillPath(head, kIconColor);
-    });
-}
-
-QIcon redoIcon() {
-    return makeIcon([](QPainter& p) {
-        // ↷:undo 的镜像,逆时针转 45°,放大 1.15
-        p.translate(8, 8);
-        p.rotate(-45);
-        p.scale(1.15, 1.15);
-        p.translate(-8, -8);
-        p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
-        const QRectF r(2.8, 5.0, 8.8, 8.8);
-        QPainterPath tail;
-        tail.arcMoveTo(r, 120);
-        tail.arcTo(r, 120, -120);
-        p.drawPath(tail);
-        QPainterPath head(QPointF(11.6, 13.6));
-        head.lineTo(QPointF(9.1, 9.4));
-        head.lineTo(QPointF(14.1, 9.4));
-        head.closeSubpath();
-        p.fillPath(head, kIconColor);
-    });
-}
-
-QIcon ocrIcon() {
-    return makeIcon([](QPainter& p) {
-        // 四角扫描框
-        p.setPen(QPen(kIconColor, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        const qreal c = 3.2;
-        const QPointF tl(2, 2), tr(14, 2), bl(2, 14), br(14, 14);
-        p.drawPolyline(QPolygonF({tl + QPointF(0, c), tl, tl + QPointF(c, 0)}));
-        p.drawPolyline(QPolygonF({tr - QPointF(c, 0), tr, tr + QPointF(0, c)}));
-        p.drawPolyline(QPolygonF({bl - QPointF(0, c), bl, bl + QPointF(c, 0)}));
-        p.drawPolyline(QPolygonF({br - QPointF(c, 0), br, br - QPointF(0, c)}));
-        QFont f = p.font();
-        f.setPixelSize(8);
-        f.setBold(true);
-        p.setFont(f);
-        p.drawText(QRectF(2, 2, 12, 12), Qt::AlignCenter, QStringLiteral("T"));
-    });
-}
-
-QIcon translateIcon() {
-    return makeIcon([](QPainter& p) {
-        QFont f = p.font();
-        f.setPixelSize(9);
-        f.setBold(true);
-        p.setFont(f);
-        p.drawText(QRectF(0, 0.5, 10, 9), Qt::AlignCenter, QStringLiteral("文"));
-        f.setPixelSize(8);
-        p.setFont(f);
-        p.drawText(QRectF(7.5, 7, 8, 8), Qt::AlignCenter, QStringLiteral("A"));
-        QColor c = kIconColor;
-        c.setAlpha(140);
-        p.setPen(QPen(c, 1.1, Qt::SolidLine, Qt::RoundCap));
-        p.drawLine(QPointF(6.4, 13.2), QPointF(9.8, 3.0));
-    });
-}
-
-QIcon scrollIcon() {
-    return makeIcon([](QPainter& p) {
-        // 屏幕 + 下行箭头:上半矩形,下方箭头示意继续向下拼接
-        p.drawRect(QRectF(3, 2.5, 10, 6.5));
-        p.setPen(QPen(kIconColor, 1.6, Qt::SolidLine, Qt::RoundCap));
-        p.drawLine(QPointF(8, 10.6), QPointF(8, 12.6));
-        QPainterPath head(QPointF(8, 14.8));
-        head.lineTo(QPointF(5.9, 11.8));
-        head.lineTo(QPointF(10.1, 11.8));
-        head.closeSubpath();
-        p.fillPath(head, kIconColor);
-    });
-}
-
-QIcon pinIcon() {
-    return makeIcon([](QPainter& p) {
-        // 正置图钉:帽 + 颈 + 托盘 + 针
-        p.setPen(Qt::NoPen);
-        QPainterPath cap;
-        cap.addRoundedRect(QRectF(5.2, 2.2, 5.6, 2.6), 1.2, 1.2);
-        p.fillPath(cap, kIconColor);
-        p.fillRect(QRectF(6.9, 4.6, 2.2, 2.8), kIconColor);
-        QPainterPath flange;
-        flange.addRoundedRect(QRectF(4.0, 7.4, 8.0, 1.8), 0.9, 0.9);
-        p.fillPath(flange, kIconColor);
-        p.setPen(QPen(kIconColor, 1.5, Qt::SolidLine, Qt::RoundCap));
-        p.drawLine(QPointF(8, 9.4), QPointF(8, 13.6));
-    });
-}
-
-QIcon saveIcon() {
-    return makeIcon([](QPainter& p) {
-        // 软盘:切角外框 + 快门 + 标签
-        p.setPen(QPen(kIconColor, 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        QPainterPath body;
-        body.moveTo(QPointF(3, 3));
-        body.lineTo(QPointF(10.6, 3));
-        body.lineTo(QPointF(13, 5.4));
-        body.lineTo(QPointF(13, 13));
-        body.lineTo(QPointF(3, 13));
-        body.closeSubpath();
-        p.drawPath(body);
-        p.drawRect(QRectF(5.6, 3.2, 4.2, 2.8));
-        p.drawRect(QRectF(5.2, 9.0, 5.6, 4.0));
-    });
-}
-
-QIcon confirmIcon() {
-    return makeIcon([](QPainter& p) {
-        p.setPen(QPen(theme::accentHover(), 2.0, Qt::SolidLine, Qt::RoundCap,
-                      Qt::RoundJoin));
-        QPainterPath check(QPointF(3.0, 8.6));
-        check.lineTo(QPointF(6.6, 12.0));
-        check.lineTo(QPointF(13.2, 4.4));
-        p.drawPath(check);
-    });
-}
-
-QIcon cancelIcon() {
-    return makeIcon([](QPainter& p) {
-        p.setPen(QPen(theme::danger().lighter(118), 1.8, Qt::SolidLine,
-                      Qt::RoundCap));
-        p.drawLine(QPointF(4.2, 4.2), QPointF(11.8, 11.8));
-        p.drawLine(QPointF(11.8, 4.2), QPointF(4.2, 11.8));
-    });
-}
+QIcon undoIcon() { return svgIcon("arrow_undo"); }
+QIcon redoIcon() { return svgIcon("arrow_redo"); }
+QIcon ocrIcon() { return svgIcon("scan_text"); }
+QIcon translateIcon() { return svgIcon("translate"); }
+QIcon scrollIcon() { return svgIcon("arrow_autofit_down"); }
+QIcon pinIcon() { return svgIcon("pin"); }
+QIcon saveIcon() { return svgIcon("save"); }
+QIcon confirmIcon() { return svgIcon("checkmark", theme::accentHover()); }
+QIcon cancelIcon() { return svgIcon("dismiss", theme::danger().lighter(118)); }
 
 } // namespace pixora::icons

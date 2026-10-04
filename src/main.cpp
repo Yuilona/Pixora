@@ -9,6 +9,7 @@
 #include "app/TrayService.h"
 #include "app/UpdateChecker.h"
 #include "common/Log.h"
+#include "ui/dev/UiGallery.h"
 #include "ui/history/HistoryWindow.h"
 #include "ui/settings/SettingsDialog.h"
 #include "ui/Theme.h"
@@ -91,6 +92,14 @@ int main(int argc, char* argv[]) {
         QObject::connect(dialog, &QDialog::finished, &app, &QApplication::quit);
         dialog->show();
         return QApplication::exec();
+    }
+
+    if (const qsizetype i = app.arguments().indexOf(QStringLiteral("--ui-gallery")); i >= 0) {
+        // 隐藏参数:把各悬浮 HUD 离屏渲染成一张对照图,视觉调试用(不显示任何窗口,
+        // 可与主实例并存);第二个参数为输出路径
+        const QString out =
+            app.arguments().value(i + 1, QStringLiteral("pixora-ui-gallery.png"));
+        return pixora::renderUiGallery(out) ? 0 : 1;
     }
 
     pixora::SingleInstanceGuard guard(QStringLiteral("pixora-single-instance"));

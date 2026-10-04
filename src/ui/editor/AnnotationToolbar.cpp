@@ -58,20 +58,26 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                    Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_ShowWithoutActivating);
-    setAttribute(Qt::WA_TranslucentBackground); // 配合 paintCard 圆角卡片底
-    setStyleSheet(theme::chromeStyleSheet(/*fontPx=*/13, /*padV=*/6, /*padH=*/10));
+    setAttribute(Qt::WA_TranslucentBackground); // 配合 paintFloatingCard 圆角卡片 + 投影
+    setStyleSheet(theme::chromeStyleSheet(theme::fontsize::label, /*padV=*/6, /*padH=*/10));
 
     auto* tip = new InstantTip(this);
 
     auto* layout = new QHBoxLayout(this);
-    layout->setContentsMargins(6, 4, 6, 4);
+    constexpr int m = theme::kShadowMargin; // 四周留出投影边距
+    layout->setContentsMargins(m + 6, m + 4, m + 6, m + 4);
     layout->setSpacing(2);
 
     // 分组细分隔线:全图标后靠分组保持可扫读性
     auto addSeparator = [this, layout] {
         auto* sep = new QWidget(this);
         sep->setFixedSize(1, 18);
-        sep->setStyleSheet(QStringLiteral("background: rgba(255,255,255,24);"));
+        const QColor line = theme::hairline();
+        sep->setStyleSheet(QStringLiteral("background: rgba(%1,%2,%3,%4);")
+                               .arg(line.red())
+                               .arg(line.green())
+                               .arg(line.blue())
+                               .arg(line.alpha()));
         layout->addSpacing(3);
         layout->addWidget(sep);
         layout->addSpacing(3);
@@ -187,7 +193,7 @@ AnnotationToolbar::AnnotationToolbar(SnipSession& session) : session_(session) {
 
 void AnnotationToolbar::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
-    theme::paintCard(p, rect(), 8);
+    theme::paintFloatingCard(p, rect(), theme::corner::card);
 }
 
 void AnnotationToolbar::chooseTool(AnnotationTool tool, bool checked) {
@@ -206,15 +212,19 @@ void AnnotationToolbar::reposition() {
     const QRect sel = session_.selection();
     const QRect bounds = session_.snapshot().virtualGeometryLogical();
 
-    QPoint pos(sel.right() - width() + 1, sel.bottom() + 8);
-    if (pos.y() + height() > bounds.bottom()) {
-        pos.setY(sel.top() - height() - 8); // 下方放不下 → 选区上方
+    // 按卡片(窗口内缩投影边距)对齐选区,投影可伸出屏幕边缘
+    constexpr int m = theme::kShadowMargin;
+    const int cardW = width() - 2 * m;
+    const int cardH = height() - 2 * m;
+    QPoint pos(sel.right() - cardW + 1, sel.bottom() + 8);
+    if (pos.y() + cardH > bounds.bottom()) {
+        pos.setY(sel.top() - cardH - 8); // 下方放不下 → 选区上方
     }
     if (pos.y() < bounds.top()) {
-        pos.setY(sel.bottom() - height() - 8); // 还不行 → 选区内部底边
+        pos.setY(sel.bottom() - cardH - 8); // 还不行 → 选区内部底边
     }
-    pos.setX(std::clamp(pos.x(), bounds.left(), bounds.right() - width() + 1));
-    move(pos);
+    pos.setX(std::clamp(pos.x(), bounds.left(), bounds.right() - cardW + 1));
+    move(pos - QPoint(m, m));
 }
 
 } // namespace pixora

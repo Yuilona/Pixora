@@ -224,15 +224,14 @@ void PinWindow::paintEvent(QPaintEvent* /*event*/) {
     painter.drawRect(rect().adjusted(0, 0, -1, -1));
 
     if (!badge_.isEmpty() && !folded_) {
-        QFont f = font();
-        f.setPixelSize(12);
+        const QFont f = theme::font(theme::fontsize::body);
         const QFontMetrics fm(f);
         const QRect r(width() - fm.horizontalAdvance(badge_) - 22, 6,
                       fm.horizontalAdvance(badge_) + 14, fm.height() + 6);
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(0, 0, 0, 150));
-        painter.drawRoundedRect(r, 4, 4);
+        painter.setBrush(theme::hudScrim());
+        painter.drawRoundedRect(r, theme::corner::chip, theme::corner::chip);
         painter.setFont(f);
         painter.setPen(Qt::white);
         painter.drawText(r, Qt::AlignCenter, badge_);

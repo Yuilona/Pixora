@@ -73,11 +73,8 @@ void ToastWindow::popup(const QString& title, const QString& message,
     message_ = message;
     link_ = link;
 
-    QFont titleFont = font();
-    titleFont.setPixelSize(13);
-    titleFont.setBold(true);
-    QFont bodyFont = font();
-    bodyFont.setPixelSize(12);
+    const QFont titleFont = theme::font(theme::fontsize::label, /*bold=*/true);
+    const QFont bodyFont = theme::font(theme::fontsize::body);
 
     const QFontMetrics titleFm(titleFont);
     const QFontMetrics bodyFm(bodyFont);
@@ -88,13 +85,16 @@ void ToastWindow::popup(const QString& title, const QString& message,
         kMaxTextWidth);
     const int textHeight = titleFm.height() + 4 + bodyRect.height();
 
-    const int w = kPadding * 2 + kLogoSize + kGap + textWidth;
-    const int h = kPadding * 2 + std::max(kLogoSize, textHeight);
-    resize(w, h);
+    // 窗口 = 卡片 + 四周阴影边距;定位按卡片对齐屏幕角
+    const int cardW = kPadding * 2 + kLogoSize + kGap + textWidth;
+    const int cardH = kPadding * 2 + std::max(kLogoSize, textHeight);
+    constexpr int m = theme::kShadowMargin;
+    resize(cardW + 2 * m, cardH + 2 * m);
 
     QScreen* screen = QGuiApplication::primaryScreen();
     const QRect avail = screen->availableGeometry();
-    const QPoint target(avail.right() - w - kMargin, avail.bottom() - h - kMargin);
+    const QPoint target(avail.right() - cardW - kMargin - m,
+                        avail.bottom() - cardH - kMargin - m);
 
     enter_->stop();
     exit_->stop();
@@ -104,7 +104,7 @@ void ToastWindow::popup(const QString& title, const QString& message,
         setWindowOpacity(1.0);
         update();
     } else {
-        const QPoint offscreen(avail.right() + 8, target.y());
+        const QPoint offscreen(avail.right() + 8 - m, target.y());
         setWindowOpacity(0.0);
         move(offscreen);
         show();
@@ -139,22 +139,24 @@ void ToastWindow::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    theme::paintCard(p, rect(), 10, /*bgAlpha=*/247);
+    theme::paintFloatingCard(p, rect(), theme::corner::toast, /*bgAlpha=*/247);
+    // 以下内容均以卡片左上角为原点
+    constexpr int m = theme::kShadowMargin;
+    p.translate(m, m);
+    const int cardW = width() - 2 * m;
+    const int cardH = height() - 2 * m;
 
-    const int logoY = (height() - kLogoSize) / 2;
+    const int logoY = (cardH - kLogoSize) / 2;
     p.drawPixmap(kPadding, logoY, kLogoSize, kLogoSize, logo_);
 
-    QFont titleFont = font();
-    titleFont.setPixelSize(13);
-    titleFont.setBold(true);
-    QFont bodyFont = font();
-    bodyFont.setPixelSize(12);
+    const QFont titleFont = theme::font(theme::fontsize::label, /*bold=*/true);
+    const QFont bodyFont = theme::font(theme::fontsize::body);
     const QFontMetrics titleFm(titleFont);
 
     const int textX = kPadding + kLogoSize + kGap;
-    const int textW = width() - textX - kPadding;
+    const int textW = cardW - textX - kPadding;
     const QRect bodyArea(textX, kPadding + titleFm.height() + 4, textW,
-                         height() - kPadding * 2 - titleFm.height() - 4);
+                         cardH - kPadding * 2 - titleFm.height() - 4);
 
     p.setFont(titleFont);
     p.setPen(theme::text());

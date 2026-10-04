@@ -12,7 +12,7 @@ if(MSVC)
   add_compile_options(/utf-8 /permissive- /W4)
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Network LinguistTools)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Network Svg LinguistTools)
 find_package(spdlog CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED) # core + imgproc(拼接模板匹配用)
 

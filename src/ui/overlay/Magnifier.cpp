@@ -1,5 +1,7 @@
 #include "ui/overlay/Magnifier.h"
 
+#include "ui/Theme.h"
+
 #include <QCoreApplication>
 #include <QPainter>
 
@@ -68,12 +70,10 @@ void draw(QPainter& painter, const Context& ctx) {
     const QRect infoRect(topLeft + QPoint(0, zoomSize.height()),
                          QSize(boxSize.width(), kInfoHeight));
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(0, 0, 0, 200));
+    painter.setBrush(theme::hudScrim());
     painter.drawRect(infoRect);
 
-    QFont font = painter.font();
-    font.setPixelSize(11);
-    painter.setFont(font);
+    painter.setFont(theme::font(theme::fontsize::caption));
     painter.setPen(Qt::white);
     const QString posText = QStringLiteral("POS (%1, %2)")
                                 .arg(ctx.cursorGlobalLogical.x())
