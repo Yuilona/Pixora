@@ -129,5 +129,5 @@ target_link_libraries(pixora PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(pixora PRIVATE user32 dwmapi dbghelp)
+    target_link_libraries(pixora PRIVATE user32 advapi32 dwmapi dbghelp)
 endif()

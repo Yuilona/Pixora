@@ -4,8 +4,11 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFileInfo>
 #include <QSettings>
 #include <QWindow>
+
+#include <spdlog/spdlog.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -17,6 +20,35 @@ namespace {
 const QString kRunKey = QStringLiteral(
     "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 const QString kRunValue = QStringLiteral("Pixora");
+
+// 任务管理器/系统设置的启用开关(REG_BINARY)。QSettings 会把 REG_BINARY
+// 当 UTF-16 字符串读,字节不可靠,故直接走 Win32 API。
+constexpr wchar_t kApprovedSubKey[] =
+    L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+constexpr wchar_t kApprovedValue[] = L"Pixora";
+
+QByteArray readStartupApproved() {
+    DWORD size = 0;
+    if (::RegGetValueW(HKEY_CURRENT_USER, kApprovedSubKey, kApprovedValue,
+                       RRF_RT_REG_BINARY, nullptr, nullptr, &size) != ERROR_SUCCESS ||
+        size == 0) {
+        return {};
+    }
+    QByteArray data(static_cast<qsizetype>(size), '\0');
+    if (::RegGetValueW(HKEY_CURRENT_USER, kApprovedSubKey, kApprovedValue,
+                       RRF_RT_REG_BINARY, nullptr, data.data(), &size) != ERROR_SUCCESS) {
+        return {};
+    }
+    data.truncate(static_cast<qsizetype>(size));
+    return data;
+}
+
+// 删除系统侧启用/禁用记录:值不存在即视为启用(任务管理器下次会按需重建)
+bool clearStartupApproved() {
+    const LSTATUS rc =
+        ::RegDeleteKeyValueW(HKEY_CURRENT_USER, kApprovedSubKey, kApprovedValue);
+    return rc == ERROR_SUCCESS || rc == ERROR_FILE_NOT_FOUND || rc == ERROR_PATH_NOT_FOUND;
+}
 } // namespace
 
 void WinSystemIntegration::setClickThrough(QWindow* window, bool enabled) {
@@ -37,8 +69,9 @@ bool WinSystemIntegration::setAutoStart(bool enabled) {
     const QString exe = QCoreApplication::applicationFilePath();
     QSettings run(kRunKey, QSettings::NativeFormat);
     if (enabled) {
-        run.setValue(kRunValue, QStringLiteral("\"%1\"").arg(
-                                    QDir::toNativeSeparators(exe)));
+        run.setValue(kRunValue, QStringLiteral("\"%1\" %2").arg(
+                                    QDir::toNativeSeparators(exe),
+                                    QLatin1String(kAutoStartArgument)));
     } else {
         run.remove(kRunValue);
     }
@@ -49,14 +82,23 @@ bool WinSystemIntegration::setAutoStart(bool enabled) {
     if (run.status() != QSettings::NoError) {
         return false;
     }
-    const QString stored = run.value(kRunValue).toString();
-    return enabled ? autostart::sameExecutablePath(stored, exe) : stored.isEmpty();
+    // 任务管理器里的"已禁用"记录会压过 Run 项:开启时必须清除,否则写了也不生效;
+    // 关闭时顺手清理残留
+    if (!clearStartupApproved()) {
+        spdlog::warn("failed to clear StartupApproved entry");
+    }
+    const AutoStartState state = autoStartStatus().state;
+    return enabled ? state == AutoStartState::Enabled : state == AutoStartState::Off;
 }
 
-bool WinSystemIntegration::isAutoStartEnabled() const {
+AutoStartStatus WinSystemIntegration::autoStartStatus() const {
     QSettings run(kRunKey, QSettings::NativeFormat);
-    return autostart::sameExecutablePath(run.value(kRunValue).toString(),
-                                         QCoreApplication::applicationFilePath());
+    const QString command = run.value(kRunValue).toString();
+    const QString target = autostart::executableFromCommand(command);
+    const bool targetExists = !target.isEmpty() && QFileInfo::exists(target);
+    return {autostart::classify(command, readStartupApproved(),
+                                QCoreApplication::applicationFilePath(), targetExists),
+            QDir::toNativeSeparators(target)};
 }
 
 } // namespace pixora

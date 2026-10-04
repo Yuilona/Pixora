@@ -104,8 +104,42 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
 
     autoStartCheck_ = new QCheckBox(tr("Start at login"), this);
     autoStartCheck_->setEnabled(system_ != nullptr);
-    autoStartCheck_->setChecked(system_ && system_->isAutoStartEnabled());
+    const AutoStartStatus autoStart = system_ ? system_->autoStartStatus() : AutoStartStatus{};
+    autoStartInitial_ = autoStart.state == AutoStartState::Enabled;
+    autoStartCheck_->setChecked(autoStartInitial_);
     generalForm->addRow(QString(), autoStartCheck_);
+
+    // 有自启项却显示未勾选时说明原因,免得用户以为"勾了又没了"。
+    // 路径分隔符后插零宽空格,长路径才能折行而不撑宽窗口
+    const QString breakableSep = QString(QLatin1Char('\\')) + QChar(0x200B);
+    const QString target =
+        QString(autoStart.target).replace(QLatin1Char('\\'), breakableSep);
+    QString autoStartNote;
+    switch (autoStart.state) {
+    case AutoStartState::DisabledBySystem:
+        autoStartNote = tr("Turned off in Windows startup settings (Task Manager). "
+                           "Check to turn it back on.");
+        break;
+    case AutoStartState::OtherCopy:
+        autoStartNote = tr("Currently starts another copy of Pixora: %1. "
+                           "Check to start this copy instead.")
+                            .arg(target);
+        break;
+    case AutoStartState::StalePath:
+        autoStartNote = tr("The startup entry points to a missing file: %1. "
+                           "Check to repair it.")
+                            .arg(target);
+        break;
+    case AutoStartState::Off:
+    case AutoStartState::Enabled:
+        break;
+    }
+    if (!autoStartNote.isEmpty()) {
+        auto* note = new QLabel(autoStartNote, this);
+        note->setWordWrap(true);
+        note->setStyleSheet(QStringLiteral("color:%1;").arg(theme::textFaint().name()));
+        generalForm->addRow(QString(), note);
+    }
 
     updateCheck_ = new QCheckBox(tr("Check for updates at startup"), this);
     updateCheck_->setChecked(settings_.checkUpdates());
@@ -308,20 +342,24 @@ void SettingsDialog::apply() {
     settings_.setTranslateApiKey(trKeyEdit_->text());
     settings_.setTranslateModel(trModelEdit_->text());
     settings_.setTranslateTargetLang(targetLangCombo_->currentData().toString());
-    if (system_) {
+    // 只在用户改动复选框时写注册表:每次保存都重写 Run 项,安全软件会反复弹
+    // "修改启动项"拦截,用户一点拦截反倒把自启关掉
+    if (system_ && autoStartCheck_->isChecked() != autoStartInitial_) {
         const bool want = autoStartCheck_->isChecked();
         const bool ok = system_->setAutoStart(want);
+        const bool enabled = system_->isAutoStartEnabled();
         // 持久化"实际达成"的状态作为意图:成功→true(启动时对账维持);
         // 失败→存为真实(false),不每次启动反复重试打扰用户
-        settings_.setAutoStartDesired(system_->isAutoStartEnabled());
+        settings_.setAutoStartDesired(enabled);
+        autoStartInitial_ = enabled;
         if (want && !ok) {
             // 写入被安全软件/权限挡下:复选框回到真实状态,并明确告知原因
-            autoStartCheck_->setChecked(system_->isAutoStartEnabled());
+            autoStartCheck_->setChecked(enabled);
             QMessageBox::warning(
                 this, tr("Start at login"),
                 tr("Couldn't turn on start at login. Security software may have "
-                   "blocked it — allow Pixora to start at login in your antivirus, "
-                   "or in Windows Settings > Apps > Startup."));
+                   "blocked it - allow Pixora to change startup items in your "
+                   "antivirus, then try again."));
         }
     }
     emit applied();

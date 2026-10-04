@@ -46,6 +46,7 @@ private:
     QCheckBox* autoSaveCheck_ = nullptr;
     QSpinBox* historyLimitSpin_ = nullptr;
     QCheckBox* autoStartCheck_ = nullptr;
+    bool autoStartInitial_ = false; // 打开时的实际状态,保存时据此判断是否改动
     QCheckBox* updateCheck_ = nullptr;
 
     // OCR / 翻译服务(截图翻译)

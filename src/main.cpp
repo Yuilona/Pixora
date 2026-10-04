@@ -143,15 +143,32 @@ int main(int argc, char* argv[]) {
                      [&capture] { capture.startColorPickOnly(); });
 
     const auto systemIntegration = pixora::createSystemIntegration();
-    // 开机自启自愈:用户曾开启(意图)但当前 Run 项缺失/指向旧路径
+    // 开机自启自愈:用户曾开启(意图)但自启项缺失/指向已不存在的旧路径
     //(便携版被移动、或被安全软件还原)→ 用当前可执行文件路径重写,使其继续生效。
-    // 仅在意图为开启时动作,绝不"复活"用户已关闭的项。
-    if (systemIntegration && settings.autoStartDesired() &&
-        !systemIntegration->isAutoStartEnabled()) {
-        if (systemIntegration->setAutoStart(true)) {
-            spdlog::info("autostart reconciled to current exe path");
-        } else {
-            spdlog::warn("autostart reconcile failed (blocked by security software?)");
+    // 仅在意图为开启时动作,绝不"复活"用户已关闭的项;也不动以下两种:
+    // - 指向另一个仍存在的副本(安装版/开发构建共用同一份设置):抢过来会让
+    //   自启在各副本间来回漂移,开发机跑一次 Debug 构建就把自启劫持到构建目录;
+    // - 被任务管理器/系统设置禁用:那是用户在系统侧的明确选择。
+    if (systemIntegration && settings.autoStartDesired()) {
+        const pixora::AutoStartStatus status = systemIntegration->autoStartStatus();
+        switch (status.state) {
+        case pixora::AutoStartState::Off:
+        case pixora::AutoStartState::StalePath:
+            if (systemIntegration->setAutoStart(true)) {
+                spdlog::info("autostart reconciled to current exe path");
+            } else {
+                spdlog::warn("autostart reconcile failed (blocked by security software?)");
+            }
+            break;
+        case pixora::AutoStartState::OtherCopy:
+            spdlog::info("autostart belongs to another copy ({}), left untouched",
+                         status.target.toStdString());
+            break;
+        case pixora::AutoStartState::DisabledBySystem:
+            spdlog::info("autostart disabled in Windows startup settings, left untouched");
+            break;
+        case pixora::AutoStartState::Enabled:
+            break;
         }
     }
     pixora::PinService pins(systemIntegration.get(), &settings);
@@ -260,7 +277,13 @@ int main(int argc, char* argv[]) {
     hotkeys.registerAll();
 
     // 更新检查:启动 5s 后拉 GitHub Releases(不挡启动路径),
-    // 有新版弹通知卡,点击打开下载页;设置可关
+    // 有新版弹通知卡,点击打开下载页;设置可关。
+    // 开机自启拉起时推迟到 60s:登录初期网络常未就绪,通知也不宜抢在桌面加载时弹
+    const bool launchedAtLogin =
+        app.arguments().contains(QLatin1String(pixora::kAutoStartArgument));
+    if (launchedAtLogin) {
+        spdlog::info("launched at login");
+    }
     pixora::UpdateChecker updateChecker(&settings);
     QObject::connect(
         &updateChecker, &pixora::UpdateChecker::updateAvailable, &tray,
@@ -272,7 +295,7 @@ int main(int argc, char* argv[]) {
                             .arg(version, QApplication::applicationVersion()),
                         url);
         });
-    QTimer::singleShot(5000, &updateChecker,
+    QTimer::singleShot(launchedAtLogin ? 60000 : 5000, &updateChecker,
                        &pixora::UpdateChecker::checkOnStartup);
 
     QPointer<pixora::HistoryWindow> historyWindow;

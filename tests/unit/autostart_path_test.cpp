@@ -2,6 +2,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <initializer_list>
+
 using pixora::autostart::sameExecutablePath;
 
 // 注册表 Run 项里存的是引号包裹的反斜杠路径,applicationFilePath() 给的是
@@ -36,4 +38,59 @@ TEST_CASE("autostart path match handles spaces and non-ASCII", "[autostart]") {
         QStringLiteral("\"C:\\Users\\张三\\我的 程序\\Pixora\\pixora.exe\""), exe));
     CHECK_FALSE(sameExecutablePath(
         QStringLiteral("\"C:\\Users\\李四\\Pixora\\pixora.exe\""), exe));
+}
+
+TEST_CASE("autostart command with launch argument still matches its exe", "[autostart]") {
+    using pixora::autostart::executableFromCommand;
+    const QString exe = QStringLiteral("C:/Program Files/Pixora/pixora.exe");
+    // 新写入形态带 --autostart;旧版本/安装器写的不带参数,两种都要认
+    CHECK(sameExecutablePath(
+        QStringLiteral("\"C:\\Program Files\\Pixora\\pixora.exe\" --autostart"), exe));
+    CHECK(executableFromCommand(
+              QStringLiteral("\"C:\\Program Files\\Pixora\\pixora.exe\" --autostart")) ==
+          QStringLiteral("C:\\Program Files\\Pixora\\pixora.exe"));
+    CHECK(executableFromCommand(QStringLiteral("  \"C:\\a b\\x.exe\"  ")) ==
+          QStringLiteral("C:\\a b\\x.exe"));
+    // 缺右引号:取引号后全部,不崩
+    CHECK(executableFromCommand(QStringLiteral("\"C:\\a\\x.exe")) ==
+          QStringLiteral("C:\\a\\x.exe"));
+    CHECK(executableFromCommand(QString()).isEmpty());
+}
+
+TEST_CASE("StartupApproved flag: odd first byte means disabled", "[autostart]") {
+    using pixora::autostart::startupApprovedDisabled;
+    const auto bytes = [](std::initializer_list<unsigned char> b) {
+        QByteArray a;
+        for (unsigned char c : b) {
+            a.append(static_cast<char>(c));
+        }
+        return a;
+    };
+    CHECK_FALSE(startupApprovedDisabled(QByteArray())); // 无值 = 启用
+    CHECK_FALSE(startupApprovedDisabled(bytes({0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})));
+    CHECK_FALSE(startupApprovedDisabled(bytes({0x06, 0, 0, 0})));
+    CHECK(startupApprovedDisabled(bytes({0x03, 0, 0, 0, 0x8E, 0x1F, 0x2A, 0x01, 0, 0, 0, 0})));
+    CHECK(startupApprovedDisabled(bytes({0x07})));
+}
+
+TEST_CASE("autostart state classification", "[autostart]") {
+    using pixora::AutoStartState;
+    using pixora::autostart::classify;
+    const QString exe = QStringLiteral("C:/Apps/Pixora/pixora.exe");
+    const QString mine = QStringLiteral("\"C:\\Apps\\Pixora\\pixora.exe\" --autostart");
+    const QString other = QStringLiteral("\"E:\\Dev\\Pixora\\build\\dev\\pixora.exe\"");
+    const QByteArray disabled(1, '\x03');
+    const QByteArray enabled(1, '\x02');
+
+    CHECK(classify(QString(), {}, exe, false) == AutoStartState::Off);
+    CHECK(classify(QStringLiteral("\"\""), {}, exe, false) == AutoStartState::Off);
+    CHECK(classify(mine, {}, exe, true) == AutoStartState::Enabled);
+    CHECK(classify(mine, enabled, exe, true) == AutoStartState::Enabled);
+    // Run 项还在,但任务管理器里关掉了 → 不能显示为已开启
+    CHECK(classify(mine, disabled, exe, true) == AutoStartState::DisabledBySystem);
+    // 指向别的副本:存在 → OtherCopy(不抢);不存在 → StalePath(可修复)
+    CHECK(classify(other, {}, exe, true) == AutoStartState::OtherCopy);
+    CHECK(classify(other, {}, exe, false) == AutoStartState::StalePath);
+    // 别的副本被系统禁用,仍按"别的副本"归类
+    CHECK(classify(other, disabled, exe, true) == AutoStartState::OtherCopy);
 }

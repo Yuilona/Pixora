@@ -38,3 +38,15 @@ $zip = "$root\build\dist\$distName.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path $dist -DestinationPath $zip
 Write-Output "PACKAGE OK: $zip"
+
+# 安装包(可选):找到 Inno Setup 编译器时一并生成,版本号从 CMakeLists.txt 传入
+$iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+$defaultIscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+if (-not $iscc -and (Test-Path $defaultIscc)) { $iscc = $defaultIscc }
+if ($iscc) {
+    & $iscc "/DAppVersion=$version" "$PSScriptRoot\pixora.iss"
+    if ($LASTEXITCODE) { exit 1 }
+    Write-Output "INSTALLER OK: $root\build\dist\Pixora-$version-win64-setup.exe"
+} else {
+    Write-Output "Inno Setup not found, installer skipped"
+}

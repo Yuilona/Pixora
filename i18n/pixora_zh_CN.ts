@@ -50,52 +50,52 @@
         <translation>截图已保存:%1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="154"/>
+        <location filename="../src/main.cpp" line="182"/>
         <source>Color %1 copied</source>
         <translation>已复制颜色 %1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="192"/>
+        <location filename="../src/main.cpp" line="220"/>
         <source>Scrolling capture copied (%1 px tall)</source>
         <translation>长截图已复制(高 %1 px)</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="201"/>
+        <location filename="../src/main.cpp" line="229"/>
         <source>Scrolling capture saved: %1</source>
         <translation>长截图已保存:%1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="218"/>
+        <location filename="../src/main.cpp" line="246"/>
         <source>Recognized text copied (%1 lines)</source>
         <translation>已复制识别文字(%1 行)</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="224"/>
+        <location filename="../src/main.cpp" line="252"/>
         <source>OCR / Translate</source>
         <translation>OCR / 翻译</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="234"/>
+        <location filename="../src/main.cpp" line="262"/>
         <source>No image in the clipboard</source>
         <translation>剪贴板中没有图像</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="241"/>
+        <location filename="../src/main.cpp" line="269"/>
         <source>Hotkey registration failed</source>
         <translation>热键注册失败</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="243"/>
+        <location filename="../src/main.cpp" line="271"/>
         <source>The %1 hotkey %2 may be taken by another program; change it in tray menu &gt; Settings</source>
         <translation>%1热键 %2 可能已被其它程序占用,请在托盘菜单 → 设置中更换</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="257"/>
+        <location filename="../src/main.cpp" line="291"/>
         <source>Update available</source>
         <translation>发现新版本</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="258"/>
+        <location filename="../src/main.cpp" line="292"/>
         <source>Pixora %1 is out (you have %2) - click to open the download page</source>
         <translation>Pixora %1 已发布(当前 %2),点击打开下载页</translation>
     </message>
@@ -482,222 +482,243 @@ Every capture you copy, save or pin is kept here automatically</source>
 <context>
     <name>pixora::SettingsDialog</name>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="28"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="29"/>
         <source>Settings - Pixora</source>
         <translation>设置 — Pixora</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="50"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="51"/>
         <source>General</source>
         <translation>通用</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="54"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="55"/>
         <source>Follow system</source>
         <translation>跟随系统</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="59"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="60"/>
         <source>Language</source>
         <translation>界面语言</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="68"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="69"/>
         <source>Capture hotkey</source>
         <translation>截图热键</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="69"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="70"/>
         <source>Pin hotkey</source>
         <translation>贴图热键</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="71"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="72"/>
         <source>Repeat last region</source>
         <translation>重做上次选区</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="74"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="75"/>
         <source>Hotkeys marked in red failed to register (possibly taken by another program); change them and save</source>
         <translation>标红的热键注册失败(可能已被其它程序占用),请更换后保存</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="100"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="101"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="102"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="103"/>
         <source>History size</source>
         <translation>历史保留张数</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="104"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="105"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="359"/>
         <source>Start at login</source>
         <translation>开机自动启动</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="109"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="120"/>
+        <source>Turned off in Windows startup settings (Task Manager). Check to turn it back on.</source>
+        <translation>已在 Windows 启动设置(任务管理器)中被关闭。勾选即可重新开启。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="124"/>
+        <source>Currently starts another copy of Pixora: %1. Check to start this copy instead.</source>
+        <translation>当前开机启动的是另一个 Pixora 副本:%1。勾选可改为启动当前这个。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="129"/>
+        <source>The startup entry points to a missing file: %1. Check to repair it.</source>
+        <translation>开机启动项指向的文件已不存在:%1。勾选即可修复。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="144"/>
         <source>Check for updates at startup</source>
         <translation>启动时检查更新</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="115"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="150"/>
         <source>Output</source>
         <translation>输出</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="121"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="156"/>
         <source>Browse...</source>
         <translation>浏览…</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="124"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="159"/>
         <source>Choose save folder</source>
         <translation>选择保存目录</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="133"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="168"/>
         <source>Save folder</source>
         <translation>保存目录</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="138"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="173"/>
         <source>Filename template</source>
         <translation>文件名模板</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="158"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="193"/>
         <source>Quality</source>
         <translation>质量</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="160"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="195"/>
         <source>Format</source>
         <translation>保存格式</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="162"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="197"/>
         <source>Also save to the folder when copying</source>
         <translation>复制时自动保存到保存目录</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="168"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="203"/>
         <source>OCR (extract text / translate)</source>
         <translation>OCR 识别(提取文字 / 翻译)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="170"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="205"/>
         <source>OpenAI-compatible vision model</source>
         <translation>OpenAI 兼容视觉模型</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="172"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="207"/>
         <source>Umi-OCR local service</source>
         <translation>Umi-OCR 本地服务</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="181"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="216"/>
         <source>e.g. qwen-vl-plus / glm-4v-flash</source>
         <translation>如 qwen-vl-plus / glm-4v-flash</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="182"/>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="221"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="217"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="256"/>
         <source>Protocol</source>
         <translation>协议</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="183"/>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="222"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="218"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="257"/>
         <source>Endpoint</source>
         <translation>接口地址</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="185"/>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="225"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="220"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="260"/>
         <source>Model</source>
         <translation>模型名</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="193"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="228"/>
         <source>http://127.0.0.1:1224 (leave empty for default)</source>
         <translation>http://127.0.0.1:1224(留空用默认)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="200"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="235"/>
         <source>Translation (screenshot translate)</source>
         <translation>翻译服务(截图翻译)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="202"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="237"/>
         <source>OpenAI-compatible chat model</source>
         <translation>OpenAI 兼容大模型</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="205"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="240"/>
         <source>DeepLX (self-hosted)</source>
         <translation>DeepLX(自托管)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="206"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="241"/>
         <source>Baidu Translate</source>
         <translation>百度翻译</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="214"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="249"/>
         <source>e.g. deepseek-chat / qwen-turbo</source>
         <translation>如 deepseek-chat / qwen-turbo</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="216"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="251"/>
         <source>Chinese</source>
         <translation>中文</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="217"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="252"/>
         <source>English</source>
         <translation>英文</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="218"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="253"/>
         <source>Japanese</source>
         <translation>日文</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="224"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="259"/>
         <source>Secret key</source>
         <translation>密钥</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="226"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="261"/>
         <source>Target language</source>
         <translation>目标语言</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="237"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="272"/>
         <source>Leave empty to auto-select by API key</source>
         <translation>留空按密钥自动选择(免费版 key 以 :fx 结尾)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="240"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="275"/>
         <source>http://127.0.0.1:1188 (leave empty for default)</source>
         <translation>http://127.0.0.1:1188(留空用默认)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="244"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="279"/>
         <source>Access token (optional)</source>
         <translation>访问令牌(可选)</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="252"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="287"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../src/ui/settings/SettingsDialog.cpp" line="254"/>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="289"/>
         <source>Cancel</source>
         <translation>取消</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/settings/SettingsDialog.cpp" line="360"/>
+        <source>Couldn&apos;t turn on start at login. Security software may have blocked it - allow Pixora to change startup items in your antivirus, then try again.</source>
+        <translation>无法开启开机自动启动,可能被安全软件拦截。请在杀毒软件中允许 Pixora 修改启动项后重试。</translation>
     </message>
 </context>
 <context>
