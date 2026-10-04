@@ -107,12 +107,17 @@ inline QString chromeStyleSheet(int fontPx, int padV, int padH) {
                "QToolButton { color: %1; background: transparent; border: none;"
                "  border-radius: 5px; padding: %4px %5px; font-size: %3px; }"
                "QToolButton:hover { background: %2; }"
-               "QToolButton:checked { background: %6; color: white; }")
+               "QToolButton:checked { background: %6; color: white; }"
+               // 主出口按钮(objectName = primary):实心主题蓝,一眼可辨
+               "QToolButton#primary { background: %6; color: white; font-weight: 600;"
+               "  padding: %4px 12px %4px 8px; }"
+               "QToolButton#primary:hover { background: %7; }"
+               "QToolButton#primary:pressed { background: %8; }")
         .arg(textDim().name(), surfaceHover().name())
         .arg(fontPx)
         .arg(padV)
         .arg(padH)
-        .arg(accent().name());
+        .arg(accent().name(), accentHover().name(), accentPressed().name());
 }
 
 // Fusion 的下拉框默认"覆盖式"弹出:列表盖住输入框本体,展开时

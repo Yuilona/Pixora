@@ -4,7 +4,7 @@
 <context>
     <name>Magnifier</name>
     <message>
-        <location filename="../src/ui/overlay/Magnifier.cpp" line="89"/>
+        <location filename="../src/ui/overlay/Magnifier.cpp" line="134"/>
         <source>C to pick color</source>
         <translation>C 取色</translation>
     </message>
@@ -30,72 +30,73 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../src/main.cpp" line="117"/>
+        <location filename="../src/main.cpp" line="126"/>
         <source>Pixora exited abnormally last time</source>
         <translation>Pixora 上次异常退出</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="118"/>
+        <location filename="../src/main.cpp" line="127"/>
         <source>A diagnostic file was written; please attach the logs and the crashes folder when reporting the issue</source>
         <translation>已生成诊断文件;反馈问题时请附上日志与 crashes 目录</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="131"/>
+        <location filename="../src/main.cpp" line="140"/>
+        <location filename="../src/ui/dev/UiGallery.cpp" line="116"/>
         <source>Screenshot copied to clipboard</source>
         <translation>截图已复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="136"/>
+        <location filename="../src/main.cpp" line="145"/>
         <source>Screenshot saved: %1</source>
         <translation>截图已保存:%1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="182"/>
+        <location filename="../src/main.cpp" line="191"/>
         <source>Color %1 copied</source>
         <translation>已复制颜色 %1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="220"/>
+        <location filename="../src/main.cpp" line="229"/>
         <source>Scrolling capture copied (%1 px tall)</source>
         <translation>长截图已复制(高 %1 px)</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="229"/>
+        <location filename="../src/main.cpp" line="238"/>
         <source>Scrolling capture saved: %1</source>
         <translation>长截图已保存:%1</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="246"/>
+        <location filename="../src/main.cpp" line="255"/>
         <source>Recognized text copied (%1 lines)</source>
         <translation>已复制识别文字(%1 行)</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="252"/>
+        <location filename="../src/main.cpp" line="261"/>
         <source>OCR / Translate</source>
         <translation>OCR / 翻译</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="262"/>
+        <location filename="../src/main.cpp" line="271"/>
         <source>No image in the clipboard</source>
         <translation>剪贴板中没有图像</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="269"/>
+        <location filename="../src/main.cpp" line="278"/>
         <source>Hotkey registration failed</source>
         <translation>热键注册失败</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="271"/>
+        <location filename="../src/main.cpp" line="280"/>
         <source>The %1 hotkey %2 may be taken by another program; change it in tray menu &gt; Settings</source>
         <translation>%1热键 %2 可能已被其它程序占用,请在托盘菜单 → 设置中更换</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="291"/>
+        <location filename="../src/main.cpp" line="300"/>
         <source>Update available</source>
         <translation>发现新版本</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="292"/>
+        <location filename="../src/main.cpp" line="301"/>
         <source>Pixora %1 is out (you have %2) - click to open the download page</source>
         <translation>Pixora %1 已发布(当前 %2),点击打开下载页</translation>
     </message>
@@ -103,113 +104,117 @@
 <context>
     <name>pixora::AnnotationToolbar</name>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="27"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="28"/>
         <source>Rectangle</source>
         <translation>矩形</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="28"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="29"/>
         <source>Ellipse</source>
         <translation>椭圆</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="29"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="30"/>
         <source>Arrow</source>
         <translation>箭头</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="30"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="31"/>
         <source>Pen</source>
         <translation>画笔</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="31"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="32"/>
         <source>Marker</source>
         <translation>马克笔</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="32"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="33"/>
         <source>Text</source>
         <translation>文字</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="34"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="35"/>
         <source>Numbered badge</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="35"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="36"/>
         <source>Mosaic</source>
         <translation>马赛克</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="36"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="37"/>
         <source>Blur</source>
         <translation>模糊</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="50"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="54"/>
         <source>thin</source>
         <translation>细</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="51"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="55"/>
         <source>medium</source>
         <translation>中</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="52"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="56"/>
         <source>thick</source>
         <translation>粗</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="131"/>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="137"/>
-        <source>Line width: %1 (click to cycle)</source>
-        <translation>线条粗细:%1(点击切换)</translation>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="224"/>
+        <source>Copy</source>
+        <translation>复制</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="145"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="254"/>
+        <source>Size: %1</source>
+        <translation>大小:%1</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="193"/>
         <source>Undo (Ctrl+Z)</source>
         <translation>撤销 (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="148"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="195"/>
         <source>Redo (Ctrl+Y)</source>
         <translation>重做 (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="159"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="204"/>
         <source>Extract text</source>
         <translation>提取文字</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="161"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="206"/>
         <source>Translate</source>
         <translation>翻译</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="163"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="208"/>
         <source>Scrolling capture</source>
         <translation>长截图</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="168"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="213"/>
         <source>Pin</source>
         <translation>贴图</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="170"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="214"/>
         <source>Save as (Ctrl+S)</source>
         <translation>另存 (Ctrl+S)</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="172"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="216"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="174"/>
+        <location filename="../src/ui/editor/AnnotationToolbar.cpp" line="221"/>
         <source>Copy and finish (Enter)</source>
         <translation>复制并完成 (Enter)</translation>
     </message>
@@ -290,42 +295,42 @@ Every capture you copy, save or pin is kept here automatically</source>
         <translation>Pixora 贴图</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="336"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="335"/>
         <source>Copy image</source>
         <translation>复制图像</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="339"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="338"/>
         <source>Save as...</source>
         <translation>另存为…</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="341"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="340"/>
         <source>Unfold</source>
         <translation>展开</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="341"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="340"/>
         <source>Fold into a slim bar</source>
         <translation>折叠</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="344"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="343"/>
         <source>Rotate 90°</source>
         <translation>旋转 90°</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="345"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="344"/>
         <source>Flip horizontally</source>
         <translation>水平翻转</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="349"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="348"/>
         <source>Click-through (turn off via tray menu)</source>
         <translation>点击穿透(经托盘菜单关闭)</translation>
     </message>
     <message>
-        <location filename="../src/ui/pin/PinWindow.cpp" line="354"/>
+        <location filename="../src/ui/pin/PinWindow.cpp" line="353"/>
         <source>Close pin</source>
         <translation>关闭贴图</translation>
     </message>
@@ -388,32 +393,32 @@ Every capture you copy, save or pin is kept here automatically</source>
 <context>
     <name>pixora::ScrollCaptureBar</name>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="27"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="28"/>
         <source>Scroll the target window to start stitching...</source>
         <translation>滚动目标窗口开始拼接…</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="35"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="36"/>
         <source>Auto-scroll</source>
         <translation>自动滚动</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="51"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="52"/>
         <source>Finish and pin</source>
         <translation>完成并贴图</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="53"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="54"/>
         <source>Finish and save</source>
         <translation>完成并另存</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="55"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="56"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="57"/>
+        <location filename="../src/ui/scroll/ScrollCaptureBar.cpp" line="58"/>
         <source>Finish and copy (F1)</source>
         <translation>完成并复制 (F1)</translation>
     </message>
@@ -469,12 +474,12 @@ Every capture you copy, save or pin is kept here automatically</source>
 <context>
     <name>pixora::ScrollPreview</name>
     <message>
-        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="82"/>
+        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="80"/>
         <source>Stitched %1 px</source>
         <translation>已拼 %1 px</translation>
     </message>
     <message>
-        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="87"/>
+        <location filename="../src/ui/scroll/ScrollPreview.cpp" line="85"/>
         <source>Waiting for the first frame...</source>
         <translation>等待首帧…</translation>
     </message>

@@ -114,11 +114,20 @@ QRect resized(const QRect& base, Hit hit, const QPoint& delta) {
 
 void paint(QPainter& painter, const QRect& selection, const QColor& color) {
     painter.save();
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(color);
+    painter.setRenderHint(QPainter::Antialiasing);
     for (const HandlePoint& h : handlePoints(selection)) {
-        painter.drawRect(QRect(h.pos - QPoint(3, 3), QSize(6, 6)));
+        paintKnob(painter, h.pos, color);
     }
+    painter.restore();
+}
+
+void paintKnob(QPainter& painter, const QPointF& center, const QColor& color) {
+    // 白底圆点 + 主题色描边:浅色、深色底上都醒目,又不像实心方块那样压内容
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(color, 1.5));
+    painter.setBrush(Qt::white);
+    painter.drawEllipse(center, 4.5, 4.5);
     painter.restore();
 }
 

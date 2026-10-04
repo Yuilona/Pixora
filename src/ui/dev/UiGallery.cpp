@@ -13,7 +13,6 @@
 #include <QGuiApplication>
 #include <QPainter>
 #include <QScreen>
-#include <QToolButton>
 
 #include <spdlog/spdlog.h>
 
@@ -24,7 +23,7 @@ namespace pixora {
 namespace {
 
 constexpr QSize kScene(1120, 640); // 截图场景(逻辑像素)
-constexpr int kStripH = 200;       // 下方长截图/通知条带
+constexpr int kStripH = 300;       // 下方条带:工具激活态工具栏 / 长截图 / 通知
 
 // 示例桌面:左半浅色文档窗,右半深色代码编辑器——HUD 两种典型底色都要好看
 QImage sampleDesktop(qreal dpr) {
@@ -80,13 +79,14 @@ bool renderUiGallery(const QString& outPath) {
     DesktopSnapshot snapshot({ScreenSnap{desktop, sceneRect, dpr}});
     SnipSession session(snapshot);
 
-    // 截图场景:跨浅/深两区的选区 + 一个矩形标注
+    // 截图场景:跨浅/深两区的选区 + 一个已选中的矩形标注(展示手柄与情境栏)
     session.setSelection(QRect(300, 150, 520, 300));
     session.setActiveTool(AnnotationTool::Rect);
     session.beginAnnotation(QPoint(360, 200));
     session.updateAnnotation(QPoint(520, 280));
     session.endAnnotation();
     session.setActiveTool(std::nullopt);
+    session.selectAnnotationAt(QPoint(360, 240));
 
     auto overlay = std::make_unique<OverlayWindow>(snapshot.screens().front(), session,
                                                    nullptr, false);
@@ -94,14 +94,22 @@ bool renderUiGallery(const QString& outPath) {
     auto toolbar = std::make_unique<AnnotationToolbar>(session);
     toolbar->setAttribute(Qt::WA_DontShowOnScreen);
     session.notifyInteractionFinished(); // 工具栏定位并"显示"
-    if (const auto buttons = toolbar->findChildren<QToolButton*>(); buttons.size() > 2) {
-        buttons[2]->click(); // 选中箭头工具,展示 On 态
-    }
 
+    // 下方条带的第二个会话:马赛克工具激活(工具 On 态 + 情境栏只剩大小)
     const QRect stripRect(0, kScene.height(), kScene.width(), kStripH);
+    const QRect fullRect(0, 0, kScene.width(), kScene.height() + kStripH);
+    QImage blank(fullRect.size() * dpr, QImage::Format_ARGB32_Premultiplied);
+    blank.fill(QColor(0x8A, 0x90, 0x9A));
+    const DesktopSnapshot stripSnapshot({ScreenSnap{blank, fullRect, dpr}});
+    SnipSession toolSession(stripSnapshot);
+    toolSession.setSelection(QRect(40, stripRect.top() + 10, 760, 20));
+    toolSession.setActiveTool(AnnotationTool::Mosaic);
+    auto toolToolbar = std::make_unique<AnnotationToolbar>(toolSession);
+    toolToolbar->setAttribute(Qt::WA_DontShowOnScreen);
+    toolSession.notifyInteractionFinished();
+
     auto scrollBar = std::make_unique<ScrollCaptureBar>(
-        QRect(40, stripRect.top() - 40, 420, 40), QRect(0, 0, kScene.width(), 2000),
-        /*autoModeAvailable=*/true);
+        QRect(40, stripRect.top() + 160, 420, 40), fullRect, /*autoModeAvailable=*/true);
     auto toast = std::make_unique<ToastWindow>();
     toast->setAttribute(Qt::WA_DontShowOnScreen);
     toast->popup(QStringLiteral("Pixora"),
@@ -123,12 +131,14 @@ bool renderUiGallery(const QString& outPath) {
     ctx.widgetSize = kScene;
     Magnifier::draw(p, ctx);
 
-    // 下方条带:中灰底,左长截图控制条、右通知卡
-    p.fillRect(stripRect, QColor(0x8A, 0x90, 0x9A));
+    // 下方条带:中灰底,工具激活态工具栏、长截图控制条、右下通知卡
+    p.drawImage(stripRect, blank, QRect(stripRect.topLeft() * dpr, stripRect.size() * dpr));
+    p.drawPixmap(toolToolbar->pos(), grabHidden(toolToolbar.get()));
     p.drawPixmap(scrollBar->pos(), grabHidden(scrollBar.get()));
     const QPixmap toastPm = grabHidden(toast.get());
     p.drawPixmap(stripRect.right() - toastPm.deviceIndependentSize().toSize().width() - 20,
-                 stripRect.top() + 20, toastPm);
+                 stripRect.bottom() - toastPm.deviceIndependentSize().toSize().height() - 20,
+                 toastPm);
     p.end();
 
     if (!out.save(outPath)) {

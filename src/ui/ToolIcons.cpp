@@ -162,5 +162,6 @@ QIcon pinIcon() { return svgIcon("pin"); }
 QIcon saveIcon() { return svgIcon("save"); }
 QIcon confirmIcon() { return svgIcon("checkmark", theme::accentHover()); }
 QIcon cancelIcon() { return svgIcon("dismiss", theme::danger().lighter(118)); }
+QIcon primaryConfirmIcon() { return svgIcon("checkmark", Qt::white); }
 
 } // namespace pixora::icons

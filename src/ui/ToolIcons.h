@@ -30,5 +30,7 @@ QIcon saveIcon();      // 另存:软盘
 // 出口动作(带语义色:对勾主题蓝,叉危险红)
 QIcon confirmIcon();
 QIcon cancelIcon();
+// 主出口按钮上的对勾(白色,落在主题蓝实心底上)
+QIcon primaryConfirmIcon();
 
 } // namespace pixora::icons

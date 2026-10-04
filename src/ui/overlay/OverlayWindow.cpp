@@ -128,26 +128,30 @@ void OverlayWindow::paintEvent(QPaintEvent* /*event*/) {
         }
         // 选中条目:虚线高亮框 + 编辑抓手(形状八向手柄/箭头端点圆点)
         if (const AnnotationItem* sel = session_.selectedItem()) {
-            const QRect b = sel->bounds().adjusted(-4, -4, 4, 4);
-            QPen dash(Qt::white, 1, Qt::DashLine);
-            painter.setPen(dash);
+            // 双色虚线(深色实线垫底 + 白虚线):白底、深底上都看得见
+            const QRectF b = QRectF(sel->bounds().adjusted(-4, -4, 4, 4))
+                                 .adjusted(0.5, 0.5, -0.5, -0.5);
             painter.setBrush(Qt::NoBrush);
+            painter.setPen(QPen(QColor(0, 0, 0, 110), 1));
+            painter.drawRect(b);
+            painter.setPen(QPen(Qt::white, 1, Qt::DashLine));
             painter.drawRect(b);
             if (session_.selectedIsShape()) {
-                SelectionHandles::paint(painter, b, Qt::white);
+                SelectionHandles::paint(painter, sel->bounds().adjusted(-4, -4, 4, 4),
+                                        kBorderColor);
             } else if (session_.selectedIsArrow()) {
                 const auto* arrow = static_cast<const ArrowItem*>(sel);
-                painter.setPen(QPen(kBorderColor, 1));
-                painter.setBrush(Qt::white);
-                painter.drawEllipse(arrow->from, 4, 4);
-                painter.drawEllipse(arrow->to, 4, 4);
+                SelectionHandles::paintKnob(painter, arrow->from, kBorderColor);
+                SelectionHandles::paintKnob(painter, arrow->to, kBorderColor);
             }
         }
         painter.restore();
     }
 
     if (!active.isEmpty()) {
-        painter.setPen(QPen(kBorderColor, 2));
+        // 1px 细边:选区内容一像素不让;四周暗化遮罩已提供足够反差
+        painter.setPen(QPen(kBorderColor, 1));
+        painter.setBrush(Qt::NoBrush);
         painter.drawRect(QRectF(active).adjusted(0.5, 0.5, -0.5, -0.5));
 
         if (hasSelection && mode_ != Mode::Creating && !session_.activeTool()) {

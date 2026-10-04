@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QPoint>
+#include <QPointF>
 #include <QRect>
 #include <Qt>
 
@@ -33,7 +34,10 @@ Qt::CursorShape cursorFor(Hit hit);
 // 以按下时的选区为基准,按手柄方向应用位移;结果已 normalized。
 QRect resized(const QRect& base, Hit hit, const QPoint& delta);
 
+// 八个手柄圆点;color 为描边色
 void paint(QPainter& painter, const QRect& selection, const QColor& color);
+// 单个手柄圆点(箭头端点等复用同一造型)
+void paintKnob(QPainter& painter, const QPointF& center, const QColor& color);
 
 } // namespace SelectionHandles
 
