@@ -37,13 +37,19 @@ namespace {
 
 const QString kHomepage = QStringLiteral("https://github.com/Yuilona/Pixora");
 
+constexpr int kSidebarWidth = 184;
+constexpr int kSidebarPad = 12;
+// 导航项固定尺寸:行高不交给样式表内边距推算——那条路径在某些重新布局时机
+// 会丢掉内边距,行距缩回文字高度,选中/悬停底块上下互相压住
+constexpr QSize kNavItemSize(kSidebarWidth - 2 * kSidebarPad, 38);
+
 // 导航栏样式:浅灰侧栏,选中项为白色浮起块(与右侧白卡片同色呼应)
 QString navStyleSheet() {
     return QStringLiteral(
         "QWidget#sidebar { background: #EEF0F4; border-right: 1px solid #E3E6EB; }"
         "QListWidget#settingsNav { background: transparent; border: none; outline: 0; }"
-        "QListWidget#settingsNav::item { color: #3A4150; padding: 8px 10px;"
-        "  margin: 1px 0; border-radius: 6px; border: 1px solid transparent; }"
+        "QListWidget#settingsNav::item { color: #3A4150; padding: 0 10px;"
+        "  margin: 2px 0; border-radius: 6px; border: 1px solid transparent; }"
         "QListWidget#settingsNav::item:hover { background: #E5E8ED; }"
         "QListWidget#settingsNav::item:selected { background: #FFFFFF; color: #1F2329;"
         "  border: 1px solid #E3E6EB; }");
@@ -80,10 +86,10 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     auto* sidebar = new QWidget(this);
     sidebar->setObjectName(QStringLiteral("sidebar"));
     sidebar->setAttribute(Qt::WA_StyledBackground);
-    sidebar->setFixedWidth(184);
+    sidebar->setFixedWidth(kSidebarWidth);
     sidebar->setStyleSheet(navStyleSheet());
     auto* sideLayout = new QVBoxLayout(sidebar);
-    sideLayout->setContentsMargins(12, 16, 12, 12);
+    sideLayout->setContentsMargins(kSidebarPad, 16, kSidebarPad, 12);
     sideLayout->setSpacing(12);
 
     auto* brand = new QHBoxLayout;
@@ -103,6 +109,8 @@ SettingsDialog::SettingsDialog(SettingsService& settings, ISystemIntegration* sy
     nav_->setObjectName(QStringLiteral("settingsNav"));
     nav_->setIconSize(QSize(18, 18));
     nav_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    nav_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    nav_->setUniformItemSizes(true);
     sideLayout->addWidget(nav_, 1);
 
     // —— 右侧:页标题 + 分页 + 底部按钮 ——
@@ -184,7 +192,8 @@ void SettingsDialog::addPage(const char* iconName, const QString& title, QWidget
         pages_->addWidget(content);
     }
     pageTitles_ << title;
-    new QListWidgetItem(icons::lightIcon(iconName), title, nav_);
+    auto* item = new QListWidgetItem(icons::lightIcon(iconName), title, nav_);
+    item->setSizeHint(kNavItemSize);
 }
 
 QWidget* SettingsDialog::buildGeneralPage() {
